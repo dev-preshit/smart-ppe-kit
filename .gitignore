@@ -36,3 +36,11 @@ pnpm-debug.log*
 firmware/common/secrets.h
 *.pem
 *.key
+# Firmware binaries and serial captures
+*.bin
+*.log
+logs/
+
+# Secrets in any sketch folder (real HMAC key lives here, never committed)
+**/secrets.h
+**/ppe_secrets.h
