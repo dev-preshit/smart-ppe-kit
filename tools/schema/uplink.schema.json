@@ -1,0 +1,740 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/dev-preshit/smart-ppe-kit/tools/schema/uplink.schema.json",
+  "title": "Smart PPE hub-to-gateway uplink message (protocol spec 1.1 section 10)",
+  "description": "One JSON object per HTTP POST. Per-type required fields and the detail object follow spec 10 and 10.1. Where the spec is silent the interpretation is listed in docs/s1_conflict_report.md (A-01..A-06).",
+  "type": "object",
+  "properties": {
+    "msg_type": {
+      "enum": [
+        "PACKET",
+        "NODE_OFFLINE",
+        "NODE_REBOOT",
+        "COMPLIANCE",
+        "COUNTER_ANOMALY",
+        "COUNTER_RESET",
+        "HUB_BOOT",
+        "HUB_FAULT",
+        "HUB_STATUS"
+      ]
+    },
+    "vest_id": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 254
+    },
+    "node_id": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "state": {
+      "enum": [
+        "WORN",
+        "NOT_WORN",
+        "OFFLINE",
+        "UNKNOWN",
+        "COMPLIANT",
+        "NON_COMPLIANT"
+      ]
+    },
+    "pkt_type": {
+      "enum": [
+        "HEARTBEAT",
+        "EVENT"
+      ]
+    },
+    "battery": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 255
+    },
+    "flags": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 255
+    },
+    "counter": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "hub_seq": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "age_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "detail": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "msg_type",
+    "vest_id",
+    "hub_seq",
+    "age_ms"
+  ],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "msg_type": {
+            "const": "PACKET"
+          }
+        },
+        "required": [
+          "msg_type"
+        ]
+      },
+      "then": {
+        "title": "PACKET",
+        "properties": {
+          "msg_type": {
+            "const": "PACKET"
+          },
+          "state": {
+            "enum": [
+              "WORN",
+              "NOT_WORN"
+            ]
+          },
+          "battery": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              },
+              {
+                "const": 255
+              }
+            ]
+          }
+        },
+        "required": [
+          "msg_type",
+          "vest_id",
+          "hub_seq",
+          "age_ms",
+          "node_id",
+          "state",
+          "pkt_type",
+          "battery",
+          "flags",
+          "counter"
+        ],
+        "not": {
+          "required": [
+            "detail"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "msg_type": {
+            "const": "NODE_OFFLINE"
+          }
+        },
+        "required": [
+          "msg_type"
+        ]
+      },
+      "then": {
+        "title": "NODE_OFFLINE",
+        "properties": {
+          "msg_type": {
+            "const": "NODE_OFFLINE"
+          },
+          "state": {
+            "const": "OFFLINE"
+          },
+          "detail": {
+            "type": "object",
+            "properties": {
+              "last_seen_age_s": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "last_seen_age_s"
+            ],
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "msg_type",
+          "vest_id",
+          "hub_seq",
+          "age_ms",
+          "node_id",
+          "state",
+          "detail"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "msg_type": {
+            "const": "NODE_REBOOT"
+          }
+        },
+        "required": [
+          "msg_type"
+        ]
+      },
+      "then": {
+        "title": "NODE_REBOOT",
+        "properties": {
+          "msg_type": {
+            "const": "NODE_REBOOT"
+          },
+          "state": {
+            "enum": [
+              "WORN",
+              "NOT_WORN"
+            ]
+          },
+          "detail": {
+            "type": "object",
+            "properties": {
+              "missed": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4294967295
+              }
+            },
+            "required": [
+              "missed"
+            ],
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "msg_type",
+          "vest_id",
+          "hub_seq",
+          "age_ms",
+          "node_id",
+          "state",
+          "detail"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "msg_type": {
+            "const": "COMPLIANCE"
+          }
+        },
+        "required": [
+          "msg_type"
+        ]
+      },
+      "then": {
+        "title": "COMPLIANCE",
+        "properties": {
+          "msg_type": {
+            "const": "COMPLIANCE"
+          },
+          "state": {
+            "enum": [
+              "COMPLIANT",
+              "NON_COMPLIANT"
+            ]
+          },
+          "detail": {
+            "type": "object",
+            "properties": {
+              "nodes_not_ok": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 5
+                },
+                "uniqueItems": true,
+                "maxItems": 5
+              }
+            },
+            "required": [
+              "nodes_not_ok"
+            ],
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "msg_type",
+          "vest_id",
+          "hub_seq",
+          "age_ms",
+          "state",
+          "detail"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "state": {
+                  "const": "COMPLIANT"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "detail": {
+                  "properties": {
+                    "nodes_not_ok": {
+                      "maxItems": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "state": {
+                  "const": "NON_COMPLIANT"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "detail": {
+                  "properties": {
+                    "nodes_not_ok": {
+                      "minItems": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "msg_type": {
+            "const": "COUNTER_ANOMALY"
+          }
+        },
+        "required": [
+          "msg_type"
+        ]
+      },
+      "then": {
+        "title": "COUNTER_ANOMALY",
+        "properties": {
+          "msg_type": {
+            "const": "COUNTER_ANOMALY"
+          },
+          "detail": {
+            "type": "object",
+            "properties": {
+              "received_counter": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4294967295
+              },
+              "last_counter": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4294967295
+              }
+            },
+            "required": [
+              "received_counter",
+              "last_counter"
+            ],
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "msg_type",
+          "vest_id",
+          "hub_seq",
+          "age_ms",
+          "node_id",
+          "detail"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "msg_type": {
+            "const": "COUNTER_RESET"
+          }
+        },
+        "required": [
+          "msg_type"
+        ]
+      },
+      "then": {
+        "title": "COUNTER_RESET",
+        "properties": {
+          "msg_type": {
+            "const": "COUNTER_RESET"
+          },
+          "detail": {
+            "type": "object",
+            "properties": {
+              "scope": {
+                "enum": [
+                  "node",
+                  "all"
+                ]
+              },
+              "node_id": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5
+              }
+            },
+            "required": [
+              "scope"
+            ],
+            "additionalProperties": true,
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "scope": {
+                      "const": "node"
+                    }
+                  }
+                },
+                "then": {
+                  "required": [
+                    "node_id"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "required": [
+          "msg_type",
+          "vest_id",
+          "hub_seq",
+          "age_ms",
+          "detail"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "msg_type": {
+            "const": "HUB_BOOT"
+          }
+        },
+        "required": [
+          "msg_type"
+        ]
+      },
+      "then": {
+        "title": "HUB_BOOT",
+        "properties": {
+          "msg_type": {
+            "const": "HUB_BOOT"
+          },
+          "hub_seq": {
+            "const": 0
+          },
+          "detail": {
+            "type": "object",
+            "properties": {
+              "reset_reason": {
+                "type": "string",
+                "minLength": 1
+              },
+              "fw": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "reset_reason",
+              "fw"
+            ],
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "msg_type",
+          "vest_id",
+          "hub_seq",
+          "age_ms",
+          "detail"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "msg_type": {
+            "const": "HUB_FAULT"
+          }
+        },
+        "required": [
+          "msg_type"
+        ]
+      },
+      "then": {
+        "title": "HUB_FAULT",
+        "properties": {
+          "msg_type": {
+            "const": "HUB_FAULT"
+          },
+          "detail": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "enum": [
+                  "SCAN_STALL",
+                  "WDT_RESET",
+                  "NVS_READ",
+                  "NVS_WRITE",
+                  "NO_KEY",
+                  "GUARD",
+                  "REGISTRY"
+                ]
+              }
+            },
+            "required": [
+              "code"
+            ],
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "msg_type",
+          "vest_id",
+          "hub_seq",
+          "age_ms",
+          "detail"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "msg_type": {
+            "const": "HUB_STATUS"
+          }
+        },
+        "required": [
+          "msg_type"
+        ]
+      },
+      "then": {
+        "title": "HUB_STATUS",
+        "properties": {
+          "msg_type": {
+            "const": "HUB_STATUS"
+          },
+          "detail": {
+            "type": "object",
+            "properties": {
+              "uptime_s": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "nodes": {
+                "type": "array",
+                "minItems": 5,
+                "maxItems": 5,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "node_id": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 5
+                    },
+                    "state": {
+                      "enum": [
+                        "WORN",
+                        "NOT_WORN",
+                        "OFFLINE",
+                        "UNKNOWN"
+                      ]
+                    },
+                    "battery": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 255
+                    },
+                    "flags": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 255
+                    },
+                    "last_seen_age_s": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "node_id",
+                    "state",
+                    "battery",
+                    "flags",
+                    "last_seen_age_s"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "diag": {
+                "type": "object",
+                "properties": {
+                  "rx_total": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 4294967295
+                  },
+                  "drop_len": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 4294967295
+                  },
+                  "drop_ver": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 4294967295
+                  },
+                  "drop_vest": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 4294967295
+                  },
+                  "drop_node": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 4294967295
+                  },
+                  "drop_state": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 4294967295
+                  },
+                  "scan_quiet_60s": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 4294967295
+                  },
+                  "nodes": {
+                    "type": "array",
+                    "minItems": 5,
+                    "maxItems": 5,
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "node_id": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 5
+                        },
+                        "hmac_fail": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 4294967295
+                        },
+                        "dup_count": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 4294967295
+                        },
+                        "replay_count": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 4294967295
+                        },
+                        "gap_count": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 4294967295
+                        },
+                        "accepted": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 4294967295
+                        }
+                      },
+                      "required": [
+                        "node_id",
+                        "hmac_fail",
+                        "dup_count",
+                        "replay_count",
+                        "gap_count",
+                        "accepted"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "rx_total",
+                  "drop_len",
+                  "drop_ver",
+                  "drop_vest",
+                  "drop_node",
+                  "drop_state",
+                  "scan_quiet_60s",
+                  "nodes"
+                ],
+                "additionalProperties": false
+              },
+              "buffer_fill": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "dropped": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4294967295
+              },
+              "superseded": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4294967295
+              }
+            },
+            "required": [
+              "uptime_s",
+              "nodes",
+              "diag",
+              "buffer_fill",
+              "dropped",
+              "superseded"
+            ],
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "msg_type",
+          "vest_id",
+          "hub_seq",
+          "age_ms",
+          "detail"
+        ]
+      }
+    }
+  ]
+}
