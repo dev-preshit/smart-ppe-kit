@@ -31,7 +31,7 @@ ppe_ctr_status_t PpeNodeCounter::next(uint32_t* out) {
   if ((uint64_t)counter_ + 1u > PPE_COUNTER_LIMIT) return PPE_CTR_ERR_LIMIT;
   if ((uint64_t)counter_ + 1u > ceiling_) {                               // T-02: extend before use
     uint32_t nc = advance_ceiling(ceiling_);
-    if (!store_->write_ceiling(nc)) return PPE_CTR_ERR_NVS;
+    if (!store_ || !store_->write_ceiling(nc)) return PPE_CTR_ERR_NVS;
     ceiling_ = nc;
   }
   counter_ += 1u;

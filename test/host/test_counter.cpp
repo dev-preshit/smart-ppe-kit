@@ -160,3 +160,14 @@ PPE_TEST(resume_accepts_every_image_the_counter_can_produce, "TC-75") {
     }
   }
 }
+
+// BUG-003 / F-07: next() must not dereference a missing store when the block has to be extended.
+PPE_TEST(next_with_null_store_refuses_instead_of_crashing, "TC-17") {
+  PpeNodeCounter c(nullptr); uint32_t x = 777;
+  c.resume(64, 64);                                   // valid image, block exhausted: next() must extend it
+  CHECK_EQ(c.next(&x), PPE_CTR_ERR_NVS);
+  CHECK_EQ(x, 777); CHECK_EQ(c.counter(), 64); CHECK_EQ(c.ceiling(), 64);
+  PpeNodeCounter d(nullptr);                          // inside the block no store is needed
+  d.resume(100, 128);
+  CHECK_EQ(d.next(&x), PPE_CTR_OK); CHECK_EQ(x, 101);
+}
