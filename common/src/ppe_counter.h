@@ -23,6 +23,8 @@ class PpeNodeCounter {
   // BEFORE any transmit. On error the node must not transmit.
   ppe_ctr_status_t cold_boot();
   // Deep-sleep wake (N-03): restore from RTC. No NVS access.
+  // An image this class could not have produced (zeroed, erased, corrupt) is refused: next() then
+  // returns PPE_CTR_ERR_NVS until cold_boot() succeeds. A stale but plausible image is not detectable here.
   void resume(uint32_t counter, uint32_t ceiling);
   // Reserve the next counter (T-02/T-03). Extends the block in NVS first when needed.
   // On any error the state is unchanged and *out is untouched.

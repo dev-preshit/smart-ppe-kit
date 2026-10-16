@@ -17,7 +17,13 @@ ppe_ctr_status_t PpeNodeCounter::cold_boot() {
 }
 
 void PpeNodeCounter::resume(uint32_t counter, uint32_t ceiling) {
-  counter_ = counter; ceiling_ = ceiling; ready_ = true;
+  // BUG-002: accept only an image this class can produce: 64 <= ceiling <= limit and
+  // ceiling - 64 <= counter <= ceiling. A zeroed, erased or corrupted RTC image leaves the
+  // counter not ready, so next() returns PPE_CTR_ERR_NVS and the caller must cold_boot().
+  bool ok = ceiling >= PPE_COUNTER_BLOCK && ceiling <= PPE_COUNTER_LIMIT &&
+            counter <= ceiling && counter >= ceiling - PPE_COUNTER_BLOCK;
+  ready_ = ok;
+  if (ok) { counter_ = counter; ceiling_ = ceiling; }
 }
 
 ppe_ctr_status_t PpeNodeCounter::next(uint32_t* out) {

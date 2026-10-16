@@ -122,3 +122,41 @@ PPE_TEST(thousand_simulated_power_cuts_counter_strictly_increasing, "TC-75") {
   CHECK(nvs_cut_commit > 20 && nvs_cut_lost > 20 && ram_cut > 20);   // all cut kinds were exercised
   fprintf(stderr, "  power cuts: commit=%d lost=%d ram=%d boot=%d max=%u\n", nvs_cut_commit, nvs_cut_lost, ram_cut, boot_cut, max_ever);
 }
+
+// BUG-002 / F-06: resume() must refuse an RTC image that this class could never have produced.
+// Every image cold_boot()/next() can produce satisfies: 64 <= ceiling <= PPE_COUNTER_LIMIT and
+// ceiling - 64 <= counter <= ceiling. Anything else (zeroed or erased RTC, corruption) must make
+// next() fail with PPE_CTR_ERR_NVS, issue no counter and leave NVS untouched.
+PPE_TEST(resume_refuses_implausible_rtc_image, "TC-75") {
+  struct Img { uint32_t counter, ceiling; } bad[] = {
+    {0, 0},                                   // zeroed RTC memory
+    {10, 5},                                  // counter above ceiling
+    {0, 128},                                 // counter below the start of its block
+    {5, PPE_COUNTER_LIMIT + 1u},              // ceiling above the limit
+    {0xFFFFFFFFu, 0xFFFFFFFFu}                // erased memory
+  };
+  for (const Img& b : bad) {
+    FakeNvs n; n.value = 5000; PpeNodeCounter c(&n); uint32_t x = 777;
+    c.resume(b.counter, b.ceiling);
+    CHECK_EQ(c.next(&x), PPE_CTR_ERR_NVS);
+    CHECK_EQ(x, 777); CHECK_EQ(n.writes, 0); CHECK_EQ(n.value, 5000);
+  }
+}
+
+// Guard against over-rejection: every state the counter itself reaches, including block edges
+// and the clamp near PPE_COUNTER_LIMIT, must be accepted by resume() (spec 6.1 deep-sleep wake).
+PPE_TEST(resume_accepts_every_image_the_counter_can_produce, "TC-75") {
+  uint32_t bases[] = {0, 5000, PPE_COUNTER_LIMIT - 200};
+  for (uint32_t base : bases) {
+    FakeNvs n; n.value = base; PpeNodeCounter a(&n); uint32_t x;
+    CHECK_EQ(a.cold_boot(), PPE_CTR_OK);
+    for (int i = 0; i < 300; i++) {
+      if (a.next(&x) != PPE_CTR_OK) break;
+      FakeNvs m; m.value = n.value; PpeNodeCounter b(&m); uint32_t y = 0;
+      b.resume(a.counter(), a.ceiling());
+      ppe_ctr_status_t st = b.next(&y);
+      CHECK(st == PPE_CTR_OK || st == PPE_CTR_ERR_LIMIT);
+      if (st == PPE_CTR_OK) CHECK_EQ(y, a.counter() + 1u);
+    }
+  }
+}
