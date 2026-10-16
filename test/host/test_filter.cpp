@@ -96,3 +96,10 @@ PPE_TEST(drop_counters_equal_injected, "TC-32") {
   CHECK_EQ(cnt[PPE_RX_DROP_NODE], 9); CHECK_EQ(cnt[PPE_RX_HMAC_FAIL], 15); CHECK_EQ(cnt[PPE_RX_DROP_STATE], 6);
   CHECK_EQ(cnt[PPE_RX_OK], 0);
 }
+
+// BUG-005 / F-03: a null out pointer must be refused, not dereferenced.
+PPE_TEST(filter_null_out_is_drop_len, "TC-22") {
+  CHECK_EQ(ppe_rx_filter(true, V_A1_ADV, 21, 1, V_KEY, nullptr), PPE_RX_DROP_LEN);
+  ppe_packet_t out;
+  CHECK_EQ(ppe_rx_filter(true, V_A1_ADV, 21, 1, V_KEY, &out), PPE_RX_OK);   // a normal call still works
+}
