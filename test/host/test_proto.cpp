@@ -92,3 +92,13 @@ PPE_TEST(ct_equal_detects_every_byte, "TC-12") {
   }
   CHECK(ppe_ct_equal(a, b, 0));
 }
+
+// BUG-004 / F-08: ppe_hmac_tag must not write through a null tag pointer.
+PPE_TEST(hmac_tag_null_output_returns_false, "TC-12") {
+  uint8_t key[PPE_KEY_LEN] = {0}, payload[PPE_PAYLOAD_LEN] = {0};
+  CHECK(!ppe_hmac_tag(key, payload, nullptr));
+  uint8_t tag[PPE_HMAC_LEN] = {0};
+  CHECK(ppe_hmac_tag(key, payload, tag));              // a normal call still works
+  CHECK(!ppe_hmac_tag(nullptr, payload, tag));         // the other null arguments were already refused
+  CHECK(!ppe_hmac_tag(key, nullptr, tag));
+}

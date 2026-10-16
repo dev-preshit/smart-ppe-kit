@@ -7,6 +7,7 @@ bool ppe_hmac_sha256(const uint8_t key[PPE_KEY_LEN], const uint8_t* msg, size_t 
   return mbedtls_md_hmac(info, key, PPE_KEY_LEN, msg, len, out) == 0;
 }
 bool ppe_hmac_tag(const uint8_t key[PPE_KEY_LEN], const uint8_t payload[PPE_PAYLOAD_LEN], uint8_t tag[PPE_HMAC_LEN]) {
+  if (!tag) return false;
   uint8_t full[32];
   if (!ppe_hmac_sha256(key, payload, PPE_HMAC_INPUT_LEN, full)) return false;
   for (size_t i = 0; i < PPE_HMAC_LEN; i++) tag[i] = full[i];
