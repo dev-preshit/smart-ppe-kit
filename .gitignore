@@ -44,3 +44,17 @@ logs/
 # Secrets in any sketch folder (real HMAC key lives here, never committed)
 **/secrets.h
 **/ppe_secrets.h
+
+
+# --- S1: key handling (SRS FR-42). Real keys never enter the repository.
+common/src/secrets.h
+secrets.h
+*.key
+*.pem
+keys/
+
+# --- S1: build and generated output
+test/host/build/
+test/host/gen/
+__pycache__/
+*.pyc
