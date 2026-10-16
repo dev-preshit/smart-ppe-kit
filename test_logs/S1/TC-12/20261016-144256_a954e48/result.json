@@ -1,0 +1,35 @@
+{
+  "tc": "TC-12",
+  "sprint": "S1",
+  "date": "2026-10-16T14:42:56+05:30",
+  "tester": "Preshit Kamble",
+  "fw": {
+    "node": "-",
+    "hub": "-",
+    "tools": "a954e48"
+  },
+  "toolchain": {
+    "ide": "n/a (host run)",
+    "esp32_core": "n/a (host run)",
+    "nimble": "n/a (host run)"
+  },
+  "devices": {
+    "host": "Windows 11, Python 3.14.8"
+  },
+  "parameters": {},
+  "result": "PASS",
+  "measurements": {
+    "scope": "host part only (S1). Bench part (node on air, sniffer, 1000-packet verifier run) is owed in S4",
+    "host_tests": 7,
+    "host_tests_passed": 7,
+    "appendix_a_vectors": "A.1 (21-byte adv, 17-byte payload, full digest) and A.2 (17-byte payload) reproduced",
+    "sc02_verifier_unit_tests": "pass"
+  },
+  "bugs": [],
+  "findings": [],
+  "artifacts": [
+    "serial_host.log",
+    "analysis.txt",
+    "notes.md"
+  ]
+}

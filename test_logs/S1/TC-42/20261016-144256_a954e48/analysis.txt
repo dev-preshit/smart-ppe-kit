@@ -1,0 +1,8 @@
+== 1. gitignore and tracked-file hygiene
+ok
+== 2. key scan over all commits + working tree
+secret_scan.py mode: key-file
+RESULT PASS (0 occurrences)
+== 3. gitleaks
+gitleaks: clean
+SECRET SCAN: PASS

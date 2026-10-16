@@ -1,0 +1,32 @@
+{
+  "tc": "TC-81",
+  "sprint": "S1",
+  "date": "2026-10-16T14:42:56+05:30",
+  "tester": "Preshit Kamble",
+  "fw": {
+    "node": "-",
+    "hub": "-",
+    "tools": "a954e48"
+  },
+  "toolchain": {
+    "ide": "n/a (host run)",
+    "esp32_core": "n/a (host run)",
+    "nimble": "n/a (host run)"
+  },
+  "devices": {
+    "host": "Windows 11, Python 3.14.8"
+  },
+  "parameters": {},
+  "result": "BLOCKED",
+  "measurements": {
+    "requirements_with_test": "document not found in docs: SRS_v1.2.md",
+    "sprint_summary_check": "ok (TC-81 row added after the check)"
+  },
+  "bugs": [],
+  "findings": [],
+  "artifacts": [
+    "serial_host.log",
+    "analysis.txt",
+    "notes.md"
+  ]
+}
