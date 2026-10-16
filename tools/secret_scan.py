@@ -8,7 +8,8 @@ Exit: 0 clean, 1 finding, 2 setup error."""
 import argparse, base64, os, re, subprocess, sys
 
 TEST_KEY = bytes(range(32))
-ALLOW = {TEST_KEY, bytes(32),                                   # spec Appendix A test key, all-zero placeholder
+SPIKE_KEY = b"PPE-S0-SPIKE-KEY" + bytes.fromhex("00112233445566778899aabbccddeeff")  # S0 spike throwaway key, old history only
+ALLOW = {TEST_KEY, bytes(32), SPIKE_KEY,                                   # spec Appendix A test key, all-zero placeholder
          bytes.fromhex("3222111bd50a5b34d531d0ce9aa7dbd39f985e938c82f9c6f10158d5733ca3c3")}  # A.1 digest (not a key)
 
 def git(repo, *a, text=True):
