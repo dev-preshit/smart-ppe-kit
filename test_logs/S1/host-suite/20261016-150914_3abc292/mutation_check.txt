@@ -1,0 +1,11 @@
+tag uses wrong bytes                     KILLED (5 failing tests)
+ct_equal compares 1 byte                 KILLED (5 failing tests)
+block extension not persisted            KILLED (5 failing tests)
+cold boot does not advance ceiling       KILLED (3 failing tests)
+counter limit not enforced               KILLED (1 failing tests)
+state checked before HMAC                KILLED (2 failing tests)
+version checked after HMAC (removed)     KILLED (3 failing tests)
+duplicate accepted                       KILLED (2 failing tests)
+counter big-endian                       KILLED (3 failing tests)
+hmac verify always true                  KILLED (4 failing tests)
+mutants=10 survivors=0

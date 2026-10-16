@@ -1,0 +1,24 @@
+{
+  "result": "PASS",
+  "reason": "",
+  "versions": {
+    "arduino_cli": "arduino-cli  Version: 1.5.2-rc.1 Commit: fef6e48df Date: 2026-07-23T11:13:25Z",
+    "esp32_core": "3.0.7",
+    "nimble": "2.5.1",
+    "ide_attested": "2.3.10"
+  },
+  "builds": {
+    "node_test": {
+      "compiled": true,
+      "test_hooks_in_build": false
+    },
+    "hub_test": {
+      "compiled": true,
+      "test_hooks_in_build": false
+    }
+  },
+  "log_files": [
+    "D:/application/smart-ppe-kit/test_logs/S1/TC-78/20261016-150914_3abc292/build_node_test.log",
+    "D:/application/smart-ppe-kit/test_logs/S1/TC-78/20261016-150914_3abc292/build_hub_test.log"
+  ]
+}
