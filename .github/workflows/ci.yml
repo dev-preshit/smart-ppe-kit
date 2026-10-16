@@ -1,0 +1,75 @@
+name: ci
+# R0 (test plan 5.5): host suite, traceability, secret scan on every push and PR.
+on:
+  push:
+    branches: [main, develop, 'feature/**']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      firmware_build:
+        description: "Run the pinned-toolchain firmware build (TC-78); needs tools/build_targets.txt filled in"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  host:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++ make libmbedtls-dev
+          python -m pip install jsonschema==4.26.0
+      - name: Host unit tests (SC-13)
+        run: make -C test/host test
+      - name: Tool tests (SC-02, SC-09, SC-10, SC-14, build_check)
+        run: python -m unittest discover -s tools/tests -p "test_*.py"
+      - name: Traceability (SC-09, TC-81)
+        run: python tools/check_traceability.py --docs docs
+      - name: Mutation check (the suite can fail)
+        run: python tools/mutation_check.py
+
+  secrets:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Hygiene and generic key scan over all history (SC-10, no real key available in CI)
+        run: bash tools/secret_scan.sh
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  firmware-build:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.firmware_build }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - uses: arduino/setup-arduino-cli@v2
+        with:
+          version: "1.0.1"
+      - name: Pinned core and library (TOOLCHAIN.md Config A)
+        run: |
+          arduino-cli config init
+          arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32@3.0.7
+          arduino-cli lib install "NimBLE-Arduino@2.5.1"
+      - name: Clean build of node and hub, no key in source, no test hooks (TC-78)
+        # The CLI stands in for the IDE here (test plan TC-78 allows the matching CLI); the IDE version itself is attested by the owner.
+        run: python tools/build_check.py --ide 2.3.10 --logdir build_logs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: build_logs, path: build_logs }
