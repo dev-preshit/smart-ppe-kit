@@ -13,7 +13,7 @@ class PpeCounterStore {
 enum ppe_ctr_status_t {
   PPE_CTR_OK = 0,
   PPE_CTR_ERR_LIMIT,   // counter + 1 > 0xFFFFFFF0   -> NODE_FAULT (N-09), needs re-provisioning
-  PPE_CTR_ERR_NVS      // block write/read failed    -> NODE_FAULT (N-30), clears on reset
+  PPE_CTR_ERR_NVS      // block write/read failed, no store, or counter not ready (resume() refused its image, or no cold_boot) -> NODE_FAULT (N-30), clears on reset
 };
 
 class PpeNodeCounter {

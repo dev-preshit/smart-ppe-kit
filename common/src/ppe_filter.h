@@ -5,7 +5,7 @@
 
 enum ppe_rx_result_t {
   PPE_RX_OK = 0,        // steps 1-6 passed; run ppe_counter_check next
-  PPE_RX_DROP_LEN,      // step 1: not ADV_NONCONN_IND, length != 21, or bad AD header  (drop_len)
+  PPE_RX_DROP_LEN,      // step 1: not ADV_NONCONN_IND, length != 21, bad AD header, null adv or out  (drop_len)
   PPE_RX_DROP_VER,      // step 2: version != PROTO_VER, checked BEFORE the HMAC        (drop_ver)
   PPE_RX_DROP_VEST,     // step 3                                                        (drop_vest)
   PPE_RX_DROP_NODE,     // step 4: node_id not 1..5                                      (drop_node)
@@ -14,9 +14,10 @@ enum ppe_rx_result_t {
 };
 
 // pdu_is_nonconn_adv: decided by the BLE glue (NimBLE event type) so this core stays platform-free.
-// On PPE_RX_OK, *out holds the decoded packet. On any other result *out may be partially filled
-// (valid fields only up to the failing step) and must not be used except node_id for PPE_RX_HMAC_FAIL
-// accounting, which the caller may only trust when result == PPE_RX_HMAC_FAIL.
+// On PPE_RX_OK, *out holds the decoded packet. On PPE_RX_DROP_LEN *out is not touched (this includes a null out).
+// On every other result *out is fully decoded, but only the checks before the failing step have passed, so it
+// must not be used except node_id for PPE_RX_HMAC_FAIL accounting, which the caller may only trust when
+// result == PPE_RX_HMAC_FAIL.
 ppe_rx_result_t ppe_rx_filter(bool pdu_is_nonconn_adv, const uint8_t* adv, size_t adv_len,
                               uint8_t hub_vest_id, const uint8_t key[PPE_KEY_LEN], ppe_packet_t* out);
 

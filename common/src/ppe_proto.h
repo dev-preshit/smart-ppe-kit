@@ -91,7 +91,7 @@ static inline bool ppe_node_id_valid(uint8_t id)  { return id >= 1u && id <= PPE
 static inline bool ppe_vest_id_valid(uint8_t id)  { return id >= 0x01u && id <= 0xFEu; }
 static inline bool ppe_state_valid(uint8_t s)     { return s == PPE_NOT_WORN || s == PPE_WORN; }
 
-// ---- wire encode/decode (no HMAC here; see ppe_crypto.h / ppe_build_payload)
+// ---- wire encode/decode (no HMAC here; see ppe_crypto.h / ppe_sign_payload)
 void ppe_put_u32le(uint8_t* p, uint32_t v);
 uint32_t ppe_get_u32le(const uint8_t* p);
 // Fields -> 17 bytes (hmac copied from p.hmac).

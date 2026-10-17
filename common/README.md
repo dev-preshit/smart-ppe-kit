@@ -30,7 +30,7 @@ always sees the one current copy. A directory junction needs no administrator ri
 4. To unlink: `rmdir "%USERPROFILE%\Documents\Arduino\libraries\ppe_common"`. Never use `rd /s` or `del /s` on it, those can follow the junction and delete the repo files.
 
 Test builds that need the test key: add a file `build_opt.h` next to the sketch containing `-DPPE_TEST_HOOKS`.
-Release builds must not have it (TC-78 checks this).
+Release builds must not have it. TC-78 looks for test-hook strings, but it does not see this flag in `build_opt.h`, so check release builds by hand until a real release build exists (S6).
 
 arduino-cli does not need the junction: `arduino-cli compile --fqbn esp32:esp32:esp32c3:CDCOnBoot=cdc --library "<repo>\common" "<sketch>"`.
 Do not use "Add .ZIP Library": it makes a stale copy.
@@ -45,6 +45,6 @@ The real vest key is never in source, build files or any commit. It reaches a de
 ## Rules the modules rely on (S2-S5 must keep them)
 
 - The counter is only handed out by `PpeNodeCounter::next()`. If it returns an error, do not transmit (NODE_FAULT).
-- On a deep-sleep wake call `resume(counter, ceiling)` from RTC memory. Only a real boot calls `cold_boot()`.
+- On a deep-sleep wake call `resume(counter, ceiling)` from RTC memory. Only a real boot calls `cold_boot()`. `resume()` refuses an image the counter could not have produced (then `next()` returns an error); it cannot detect a stale one, so also keep an RTC-valid flag and check the reset reason.
 - `ppe_rx_filter` takes `pdu_is_nonconn_adv` from the BLE glue. A `PPE_RX_HMAC_FAIL` result must not touch the counter or the node state.
 - Never pass key bytes to `PPE_LOG*`.

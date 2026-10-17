@@ -3,9 +3,9 @@
 #pragma once
 #include "ppe_proto.h"
 
-// Full 32-byte HMAC-SHA256. Returns true on success.
+// Full 32-byte HMAC-SHA256. Returns true on success, false on a null argument or a crypto failure.
 bool ppe_hmac_sha256(const uint8_t key[PPE_KEY_LEN], const uint8_t* msg, size_t len, uint8_t out[32]);
-// Truncated 8-byte tag over the first 9 payload bytes (spec 5).
+// Truncated 8-byte tag over the first 9 payload bytes (spec 5). False if key, payload or tag is null.
 bool ppe_hmac_tag(const uint8_t key[PPE_KEY_LEN], const uint8_t payload[PPE_PAYLOAD_LEN], uint8_t tag[PPE_HMAC_LEN]);
 // Constant-time equality: runtime depends only on n, never on the data.
 bool ppe_ct_equal(const uint8_t* a, const uint8_t* b, size_t n);

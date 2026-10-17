@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """TC-78 / NFR-09 build check with arduino-cli. Verifies the pinned versions, does a clean build of every
 target in tools/build_targets.txt with common/ as the library and NO key in source, and confirms the
-release build carries no PPE_TEST_HOOKS. Exit 0 PASS, 1 FAIL, 3 BLOCKED (tool or targets missing).
+release build shows no test-hook strings (compile log and binary). It cannot see a -D flag that comes from a sketch's build_opt.h.
+Exit 0 PASS, 1 FAIL, 3 BLOCKED (tool or targets missing).
 Pinned (TOOLCHAIN.md Config A): esp32 core 3.0.7, NimBLE-Arduino 2.5.1, IDE 2.3.10 (IDE version is
 attested with --ide because arduino-cli cannot read it)."""
 import argparse, json, os, re, shutil, subprocess, sys, tempfile
