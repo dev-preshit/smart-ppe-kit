@@ -6,7 +6,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 MUTANTS = [  # (name, file, old, new)
  ("tag uses wrong bytes", "ppe_crypto.cpp", "tag[i] = full[i]", "tag[i] = full[i+1]"),
  ("ct_equal compares 1 byte", "ppe_crypto.cpp", "for (size_t i = 0; i < n; i++) diff", "for (size_t i = 0; i < 1 && i < n; i++) diff"),
- ("block extension not persisted", "ppe_counter.cpp", "if (!store_->write_ceiling(nc)) return PPE_CTR_ERR_NVS;\n    ceiling_ = nc;", "ceiling_ = nc;"),
+ ("block extension not persisted", "ppe_counter.cpp", "if (!store_ || !store_->write_ceiling(nc)) return PPE_CTR_ERR_NVS;\n    ceiling_ = nc;", "ceiling_ = nc;"),
  ("cold boot does not advance ceiling", "ppe_counter.cpp", "uint32_t nc = advance_ceiling(stored);", "uint32_t nc = stored;"),
  ("counter limit not enforced", "ppe_counter.cpp", "if ((uint64_t)counter_ + 1u > PPE_COUNTER_LIMIT) return PPE_CTR_ERR_LIMIT;", ""),
  ("state checked before HMAC", "ppe_filter.cpp", "  if (!ppe_hmac_verify(key, pl)) return PPE_RX_HMAC_FAIL;\n", "  if (!ppe_state_valid(out->state)) return PPE_RX_DROP_STATE;\n  if (!ppe_hmac_verify(key, pl)) return PPE_RX_HMAC_FAIL;\n"),
