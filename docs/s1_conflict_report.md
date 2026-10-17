@@ -37,3 +37,28 @@ Reported separately as instructed. **No source document was changed.** IDs V12-1
 - Counter block advance at every cold boot burns up to 64 values per boot. At 0xFFFFFFF0 that is 67 million boots, no practical issue; noted for NFR-06.
 - `PPE_LOG*` has no key redaction by construction: the rule is "never pass key bytes", enforced by review and by the secret scan, not by code.
 - Your carry-forward items stay open: Wi-Fi plus BLE recheck (S3, S7), NVS write time vs NFR-03 (S3), RTC context and deep sleep (S2, S4). `PpeNodeCounter::resume()` is the hook for the RTC case.
+
+## E. S1 Task 18 review additions (2026-10-16)
+
+### Rulings recorded
+- C-05: SC-06 `logger.py` moves to S2 and SC-01 `provision.py` moves to S6. Neither is built in S1.
+- C-01 to C-04, C-06 and V12-10 to V12-17: accepted as implemented (pull request #1).
+
+### Spec and document findings (not bugs; owner decides)
+
+| ID | Where | Finding | Sev |
+|---|---|---|---|
+| V12-18 (proposed) | `docs/protocol_spec_v1.1.md` against the code | The spec copy in the repo is older than the code or differs from it. Section 2 lists 6 steps with the counter rule as step 6 and no state-value step (code: state is step 6, counter rule is step 7). Section 9.3 has no `drop_state` counter. Section 6.1.5 is the 0xFFFFFFF0 limit rule, not a block-write failure rule (V12-11 cites it as one). There is no section 10.1 and no `diag` layout (V12-14 cites both). The header still names `docs/protocol_spec_v1.md`, `SRS_v1.1` and `traceability_v1.1`. The position of the state step only changes which counter increments, not which packets are accepted. Open: compare with the final spec. | P3 |
+| Q-1 | filter step 4 | The spec says `node_id` is registered in the hub registry; the code accepts the fixed range 1 to 5 and cites FR-25. Equivalence needs SRS FR-25, which was not available in this review. | open question |
+
+### Product-code bugs found in review and fixed (docs/bugs/BUGLOG.md)
+- BUG-002 (P2): `PpeNodeCounter::resume()` accepted an impossible RTC image and could lower the stored ceiling.
+- BUG-003 (P3): `PpeNodeCounter::next()` dereferenced a null store.
+- BUG-004 (P3): `ppe_hmac_tag()` wrote through a null `tag`.
+- BUG-005 (P3): `ppe_rx_filter()` wrote through a null `out`.
+
+### Carried forward, not changed in S1
+- F-09 (P3): `ppe_hmac_tag()` wipes its temporary HMAC buffer only on success. Not testable on the host (the crypto library cannot be made to fail on purpose) and no secret is expected in the buffer on the failure path.
+- F-10 (P3): `test_logs/summary.csv` shows plain PASS for TC-12 and TC-79; the bench and on-air parts are owed to S4 (V12-17) and the scope is only in each run's measurements file.
+- F-02 (P3): shared limits for `PPE_ADV_BURST_MS` and `PPE_ADV_INTERVAL_MS` are not defined yet; nothing uses them in S1. Add them with provisioning (S6).
+- TC-78 note: the hook check cannot see the `-D` flag that `build_opt.h` supplies, and the two spike builds define `PPE_TEST_HOOKS`. A hook-free release build belongs to S6.
