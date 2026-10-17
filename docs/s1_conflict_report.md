@@ -62,3 +62,8 @@ Reported separately as instructed. **No source document was changed.** IDs V12-1
 - F-10 (P3): `test_logs/summary.csv` shows plain PASS for TC-12 and TC-79; the bench and on-air parts are owed to S4 (V12-17) and the scope is only in each run's measurements file.
 - F-02 (P3): shared limits for `PPE_ADV_BURST_MS` and `PPE_ADV_INTERVAL_MS` are not defined yet; nothing uses them in S1. Add them with provisioning (S6).
 - TC-78 note: the hook check cannot see the `-D` flag that `build_opt.h` supplies, and the two spike builds define `PPE_TEST_HOOKS`. A hook-free release build belongs to S6.
+
+### Ruling on F-05 (hub vest id validity)
+- Ruling A: the hub start-up code (S3) refuses to run with an invalid vest id (0x00 or 0xFF). `ppe_rx_filter` only compares the ids; its header now says the caller must pass a valid hub id.
+- V12-19 (proposed, P3): spec section 3 says vest ids 0x00 and 0xFF are invalid, but section 2 step 3 and the provisioning rules do not say where the hub's own id is checked. Suggest stating in the spec or SRS that the hub refuses to start with an invalid vest id.
+- Carried to S3: implement that start-up check.

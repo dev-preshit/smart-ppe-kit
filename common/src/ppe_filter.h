@@ -14,6 +14,7 @@ enum ppe_rx_result_t {
 };
 
 // pdu_is_nonconn_adv: decided by the BLE glue (NimBLE event type) so this core stays platform-free.
+// hub_vest_id must be a valid id (0x01..0xFE). The filter only compares it; the hub start-up code (S3) must refuse to run with an invalid id (V12-19).
 // On PPE_RX_OK, *out holds the decoded packet. On PPE_RX_DROP_LEN *out is not touched (this includes a null out).
 // On every other result *out is fully decoded, but only the checks before the failing step have passed, so it
 // must not be used except node_id for PPE_RX_HMAC_FAIL accounting, which the caller may only trust when
