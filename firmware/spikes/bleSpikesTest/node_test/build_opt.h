@@ -1,0 +1,1 @@
+-DPPE_TEST_HOOKS
