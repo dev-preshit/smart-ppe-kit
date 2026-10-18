@@ -3,7 +3,7 @@
 | Item | Value |
 |---|---|
 | Document | `docs/test_plan_v1.md` (document revision 1.1) |
-| Status | DRAFT for owner review (S0) |
+| Status | APPROVED (S0 closed) |
 | Covers | TC-01 to TC-81 in `docs/traceability_v1.2.md` (58 test cases for 59 requirements in `docs/SRS_v1.2.md`) |
 | Companions | `docs/SRS_v1.2.md`, `docs/protocol_spec_v1.1.md`, `docs/state_machines_v1.md`, `docs/s0_findings_v1.md`, `docs/bug_log_template.md` |
 | Branch | `feature/s0-statemachines-testplan` |

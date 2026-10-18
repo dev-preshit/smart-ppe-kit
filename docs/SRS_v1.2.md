@@ -3,7 +3,7 @@
 | Item | Value |
 |---|---|
 | Document | `docs/SRS_v1.2.md` |
-| Version | 1.2 (release candidate for sign-off; resolves S0 findings F-01 to F-20) |
+| Version | 1.2 (APPROVED, S0 closed; resolves S0 findings F-01 to F-20) |
 | Scope | Firmware v1, procedural rebuild from scratch |
 | Companions | `docs/protocol_spec_v1.1.md`, `docs/traceability_v1.2.md` |
 | Branch | `feature/s0-statemachines-testplan` (merged to `develop` after sign-off) |

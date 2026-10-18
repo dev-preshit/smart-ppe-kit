@@ -3,7 +3,7 @@
 | Item | Value |
 |---|---|
 | Document | `docs/traceability_v1.2.md` |
-| Status | Release candidate for sign-off (resolves S0 findings F-01 to F-20) |
+| Status | APPROVED (S0 closed) (resolves S0 findings F-01 to F-20) |
 | Covers | `docs/SRS_v1.2.md` (46 functional + 13 non-functional = 59 requirements, 58 test cases) |
 
 Test IDs name the test cases. Their steps, tooling and pass rules are detailed in `docs/test_plan_v1.md`. The acceptance criterion in the SRS is the pass rule. New in v1.2: TC-17 and TC-46.
