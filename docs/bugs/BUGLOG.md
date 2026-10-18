@@ -7,6 +7,7 @@
 | BUG-003 | `PpeNodeCounter::next()` dereferences a null store when the block must be extended (counter built with a null store and then `resume()`d) | P3 | Closed | none failed; found in S1 review (TC-17 scope) | FR-17 | d6ae406 | `test_counter.cpp`: `next_with_null_store_refuses_instead_of_crashing` | S1 |
 | BUG-004 | `ppe_hmac_tag()` writes through a null `tag` pointer | P3 | Closed | none failed; found in S1 review (TC-12 scope) | FR-12 | 80e23f2 | `test_proto.cpp`: `hmac_tag_null_output_returns_false` | S1 |
 | BUG-005 | `ppe_rx_filter()` writes through a null `out` pointer | P3 | Closed | none failed; found in S1 review (TC-22 scope) | FR-22 | 2018c57 | `test_filter.cpp`: `filter_null_out_is_drop_len` | S1 |
+| BUG-006 | S1 run 20261018-200608_5062d2d invalid: tools missing in the run environment | P3 | Not a bug | TC-12, TC-42, TC-78, TC-79, S1 | - | - | re-run 20261018-204717_10f6072 | 2026-10-18 |
 
 Product-code defects found in the S1 review are the rows above from BUG-002 on. Spec and test-plan defects are not bugs; they are listed in `docs/s1_conflict_report.md`
 for the owner to add to `docs/s0_findings_v1.md` section 4.
