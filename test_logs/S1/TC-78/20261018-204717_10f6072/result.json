@@ -1,0 +1,47 @@
+{
+  "tc": "TC-78",
+  "sprint": "S1",
+  "date": "2026-10-18T20:47:17+05:30",
+  "tester": "Preshit Kamble",
+  "fw": {
+    "node": "-",
+    "hub": "-",
+    "tools": "10f6072"
+  },
+  "toolchain": {
+    "ide": "2.3.10",
+    "esp32_core": "3.0.7",
+    "nimble": "2.5.1"
+  },
+  "devices": {
+    "host": "Windows 11, Python 3.14.8"
+  },
+  "parameters": {},
+  "result": "PASS",
+  "measurements": {
+    "versions": {
+      "arduino_cli": "arduino-cli  Version: 1.5.2-rc.1 Commit: fef6e48df Date: 2026-07-23T11:13:25Z",
+      "esp32_core": "3.0.7",
+      "nimble": "2.5.1",
+      "ide_attested": "2.3.10"
+    },
+    "builds": {
+      "node_test": {
+        "compiled": true,
+        "test_hooks_in_build": false
+      },
+      "hub_test": {
+        "compiled": true,
+        "test_hooks_in_build": false
+      }
+    },
+    "reason": ""
+  },
+  "bugs": [],
+  "findings": [],
+  "artifacts": [
+    "serial_host.log",
+    "analysis.txt",
+    "notes.md"
+  ]
+}

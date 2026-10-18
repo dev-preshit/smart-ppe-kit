@@ -1,0 +1,10 @@
+log_macro_levels_and_sink	PASS	checks=5
+a1_vector_adv_matches_spec	PASS	checks=8
+a2_vector_payload_matches_spec	PASS	checks=3
+crypto_wrapper_matches_independent_hmac	PASS	checks=4000
+encode_decode_roundtrip	PASS	checks=15000
+flag_helpers	PASS	checks=12
+ct_equal_detects_every_byte	PASS	checks=66
+hmac_tag_null_output_returns_false	PASS	checks=4
+make test rc=0
+SUMMARY	tests=30	failed=0	checks=23426

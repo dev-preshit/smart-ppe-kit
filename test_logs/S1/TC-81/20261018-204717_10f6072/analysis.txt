@@ -1,0 +1,7 @@
+requirements=59 with_test=59 (100%) test_cases=58 transitions=203
+RESULT PASS
+
+--- with --sprint S1 ---
+requirements=59 with_test=59 (100%) test_cases=58 transitions=203
+sprint S1 TCs: TC-12, TC-42, TC-78, TC-79, TC-81
+RESULT PASS
