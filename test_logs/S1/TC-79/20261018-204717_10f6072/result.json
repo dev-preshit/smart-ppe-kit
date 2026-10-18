@@ -1,0 +1,34 @@
+{
+  "tc": "TC-79",
+  "sprint": "S1",
+  "date": "2026-10-18T20:47:17+05:30",
+  "tester": "Preshit Kamble",
+  "fw": {
+    "node": "-",
+    "hub": "-",
+    "tools": "10f6072"
+  },
+  "toolchain": {
+    "ide": "n/a (host run)",
+    "esp32_core": "n/a (host run)",
+    "nimble": "n/a (host run)"
+  },
+  "devices": {
+    "host": "Windows 11, Python 3.14.8"
+  },
+  "parameters": {},
+  "result": "PASS",
+  "measurements": {
+    "scope": "inspection + host unit test (S1). On-air confirmation by sniffer is owed in S4",
+    "static_assert_21_bytes_present": true,
+    "adv_length_bytes": 21,
+    "other_copies_of_ppe_proto_h": []
+  },
+  "bugs": [],
+  "findings": [],
+  "artifacts": [
+    "serial_host.log",
+    "analysis.txt",
+    "notes.md"
+  ]
+}

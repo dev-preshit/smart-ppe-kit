@@ -1,0 +1,36 @@
+{
+  "tc": "TC-42",
+  "sprint": "S1",
+  "date": "2026-10-18T20:47:17+05:30",
+  "tester": "Preshit Kamble",
+  "fw": {
+    "node": "-",
+    "hub": "-",
+    "tools": "10f6072"
+  },
+  "toolchain": {
+    "ide": "2.3.10",
+    "esp32_core": "3.0.7",
+    "nimble": "2.5.1"
+  },
+  "devices": {
+    "host": "Windows 11, Python 3.14.8"
+  },
+  "parameters": {},
+  "result": "PASS",
+  "measurements": {
+    "scan_exit_code": 0,
+    "scan_mode": "key-file",
+    "gitignore_and_tracked_file_hygiene": "checked",
+    "secrets_h_present_in_tree": false,
+    "host_build_with_no_key_in_source": "ok",
+    "blocked_because": []
+  },
+  "bugs": [],
+  "findings": [],
+  "artifacts": [
+    "serial_host.log",
+    "analysis.txt",
+    "notes.md"
+  ]
+}
