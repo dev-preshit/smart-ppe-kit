@@ -1,0 +1,38 @@
+{
+  "tc": "TC-42",
+  "sprint": "S1",
+  "date": "2026-10-18T20:06:08+05:30",
+  "tester": "Preshit Kamble",
+  "fw": {
+    "node": "-",
+    "hub": "-",
+    "tools": "5062d2d"
+  },
+  "toolchain": {
+    "ide": "2.3.10",
+    "esp32_core": "-",
+    "nimble": "-"
+  },
+  "devices": {
+    "host": "Windows 10, Python 3.10.8"
+  },
+  "parameters": {},
+  "result": "FAIL",
+  "measurements": {
+    "scan_exit_code": 1,
+    "scan_mode": "key-file",
+    "gitignore_and_tracked_file_hygiene": "checked",
+    "secrets_h_present_in_tree": false,
+    "host_build_with_no_key_in_source": "ok",
+    "blocked_because": [
+      "device build with no key in source not demonstrated (TC-78 build)"
+    ]
+  },
+  "bugs": [],
+  "findings": [],
+  "artifacts": [
+    "serial_host.log",
+    "analysis.txt",
+    "notes.md"
+  ]
+}

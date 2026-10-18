@@ -1,0 +1,33 @@
+{
+  "tc": "TC-78",
+  "sprint": "S1",
+  "date": "2026-10-18T20:06:08+05:30",
+  "tester": "Preshit Kamble",
+  "fw": {
+    "node": "-",
+    "hub": "-",
+    "tools": "5062d2d"
+  },
+  "toolchain": {
+    "ide": "2.3.10",
+    "esp32_core": "-",
+    "nimble": "-"
+  },
+  "devices": {
+    "host": "Windows 10, Python 3.10.8"
+  },
+  "parameters": {},
+  "result": "BLOCKED",
+  "measurements": {
+    "versions": {},
+    "builds": {},
+    "reason": "arduino-cli not found on PATH"
+  },
+  "bugs": [],
+  "findings": [],
+  "artifacts": [
+    "serial_host.log",
+    "analysis.txt",
+    "notes.md"
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "result": "BLOCKED",
+  "reason": "arduino-cli not found on PATH",
+  "versions": {},
+  "builds": {},
+  "log_files": []
+}
