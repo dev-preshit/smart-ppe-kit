@@ -3,7 +3,7 @@
 | Item | Value |
 |---|---|
 | Document | `docs/state_machines_v1.md` (document revision 1.1) |
-| Status | DRAFT for owner review (S0) |
+| Status | APPROVED (S0 closed) |
 | Sources | `docs/SRS_v1.2.md`, `docs/protocol_spec_v1.1.md`, `docs/traceability_v1.2.md` |
 | Findings | `docs/s0_findings_v1.md` (F-01 to F-20 are resolved in the sources above; section 4 of that file lists observations on SRS 1.2, marked V12-xx here) |
 | Branch | `feature/s0-statemachines-testplan` |

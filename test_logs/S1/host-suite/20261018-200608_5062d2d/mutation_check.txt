@@ -1,0 +1,11 @@
+tag uses wrong bytes                     BUILD ERROR (counts as not killed by tests)
+ct_equal compares 1 byte                 BUILD ERROR (counts as not killed by tests)
+block extension not persisted            BUILD ERROR (counts as not killed by tests)
+cold boot does not advance ceiling       BUILD ERROR (counts as not killed by tests)
+counter limit not enforced               BUILD ERROR (counts as not killed by tests)
+state checked before HMAC                BUILD ERROR (counts as not killed by tests)
+version checked after HMAC (removed)     BUILD ERROR (counts as not killed by tests)
+duplicate accepted                       BUILD ERROR (counts as not killed by tests)
+counter big-endian                       BUILD ERROR (counts as not killed by tests)
+hmac verify always true                  BUILD ERROR (counts as not killed by tests)
+mutants=10 survivors=10
