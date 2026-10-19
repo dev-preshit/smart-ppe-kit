@@ -4,6 +4,9 @@
 #include "esp_system.h"
 #include "hub_nvs.h"
 #include "src/hub_scan_supervisor.h"
+#ifdef PPE_TEST_HOOKS
+#include "src/hub_dump.h"
+#endif
 
 // NimBLE host sync state. ble_hs_synced() is a C function inside the NimBLE host; NimBLEDevice::m_synced is private.
 extern "C" int ble_hs_synced(void);
@@ -26,6 +29,11 @@ static volatile uint32_t g_queue_full = 0, g_queue_max = 0;
 static HubRxStats g_rx;
 static HubScanSupervisor g_sup;
 static volatile uint32_t g_scan_end_reason = 0, g_scan_end_count = 0;
+#ifdef PPE_TEST_HOOKS
+static volatile bool g_rxlog = false;          // default off (manager decision: keep it off during TC-72)
+static volatile bool g_time = true;            // time stamp on every accepted packet
+static volatile uint8_t g_forced_fail = 0;     // stall n: the next n restart attempts fail
+#endif
 
 RTC_NOINIT_ATTR static uint32_t g_rtc_magic;
 RTC_NOINIT_ATTR static uint32_t g_rtc_fault;
@@ -58,12 +66,26 @@ static RxScanCb g_cb;
 // ---- processing -----------------------------------------------------------------------------------------------
 static void log_result(const RxEntry& e, const HubResult& r, uint32_t now_ms) {
   (void)e;
+#ifdef PPE_TEST_HOOKS
+  if (g_time && r.verdict == HUB_V_ACCEPT)
+    Serial.printf("ACC t_ms=%lu t_us=%llu node=%u ctr=%lu state=%u batt=%u flags=0x%02X missed=%lu\n", (unsigned long)now_ms,
+                  (unsigned long long)esp_timer_get_time(), r.node_id, (unsigned long)r.counter, r.state, r.battery, r.flags,
+                  (unsigned long)r.missed);
+#endif
   if (r.verdict == HUB_V_REPLAY && r.anomaly_report)
     Serial.printf("ANOMALY t_ms=%lu node=%u received=%lu last=%lu\n", (unsigned long)now_ms, r.node_id,
                   (unsigned long)r.counter, (unsigned long)r.last_counter);
 }
 
 static void process_entry(const RxEntry& e) {
+#ifdef PPE_TEST_HOOKS
+  if (g_rxlog) {          // before filtering, duplicates included; timestamp comes from the queue entry (P-01)
+    char hex[2 * HUB_RX_ADV_MAX + 1];
+    for (uint8_t i = 0; i < e.len; i++) snprintf(hex + 2 * i, 3, "%02x", e.data[i]);
+    hex[2 * e.len] = 0;
+    Serial.printf("RX,%llu,%s\n", (unsigned long long)e.us, hex);
+  }
+#endif
   uint32_t now_ms = (uint32_t)(esp_timer_get_time() / 1000);
   xSemaphoreTake(g_pipe_mx, portMAX_DELAY);
   HubResult r = g_pipe.process(e.data, e.len, e.nonconn != 0, now_ms);
@@ -91,6 +113,9 @@ static bool scan_healthy() {
 }
 
 static bool scan_restart() {
+#ifdef PPE_TEST_HOOKS
+  if (g_forced_fail > 0) { g_forced_fail--; Serial.println("PPE_HOOK stall: restart attempt forced to fail"); return false; }
+#endif
   NimBLEScan* s = NimBLEDevice::getScan();
   s->stop();
   bool ok = s->start(0, false, true);
@@ -172,3 +197,50 @@ uint32_t hub_ble_queue_max_fill() { return g_queue_max; }
 uint32_t hub_ble_adv_seen() { return g_pipe.global().rx_total + g_queue_full; }
 uint32_t hub_ble_scan_restarts() { return g_sup.restarts(); }
 uint32_t hub_ble_scan_consecutive_fails() { return g_sup.consecutive_fails(); }
+
+#ifdef PPE_TEST_HOOKS
+bool hub_hook_inject(const uint8_t* adv, size_t len) {
+  if (!g_rxq || len > HUB_RX_ADV_MAX) return false;
+  RxEntry e;
+  e.us = (uint64_t)esp_timer_get_time();
+  e.len = (uint8_t)len;
+  e.nonconn = 1;                                   // injected packets look like ADV_NONCONN_IND
+  if (len) memcpy(e.data, adv, len);
+  if (xQueueSend(g_rxq, &e, 0) != pdTRUE) { g_queue_full++; return false; }
+  UBaseType_t fill = uxQueueMessagesWaiting(g_rxq);
+  if (fill > g_queue_max) g_queue_max = fill;
+  return true;
+}
+
+void hub_hook_stall(uint8_t n) {
+  g_forced_fail = n;
+  NimBLEDevice::getScan()->stop();                 // a real stall: no advertisements until a restart works
+  Serial.printf("PPE_HOOK stall %u t_ms=%lu scan stopped\n", n, (unsigned long)(esp_timer_get_time() / 1000));
+}
+
+static void dump_emit(void*, const char* line) { Serial.println(line); }
+
+void hub_hook_dump() {
+  HubDumpExtra x;
+  memset(&x, 0, sizeof x);
+  const HubPersistStats& ps = hub_persist_stats();
+  x.now_ms = (uint32_t)(esp_timer_get_time() / 1000);
+  x.queue_fill = hub_ble_queue_fill(); x.queue_depth = HUB_RX_QUEUE_DEPTH;
+  x.queue_max_fill = g_queue_max; x.queue_full = g_queue_full;
+  x.persist_pending = hub_persist_pending(); x.persist_writes = ps.writes; x.persist_write_fails = hub_persist_writes_failed();
+  x.persist_dropped = ps.queue_dropped; x.persist_last_us = ps.last_us; x.persist_max_us = ps.max_us;
+  x.persist_avg_us = ps.writes ? (uint32_t)(ps.sum_us / ps.writes) : 0;
+  x.proc_count = g_rx.count; x.proc_last_us = g_rx.last_us; x.proc_max_us = g_rx.max_us; x.proc_over_10ms = g_rx.over_10ms;
+  x.proc_avg_us = g_rx.count ? (uint32_t)(g_rx.sum_us / g_rx.count) : 0;
+  x.scan_restarts = g_sup.restarts(); x.scan_consecutive_fails = g_sup.consecutive_fails();
+  xSemaphoreTake(g_pipe_mx, portMAX_DELAY);
+  hub_dump_emit(g_pipe, x, dump_emit, nullptr);
+  xSemaphoreGive(g_pipe_mx);
+}
+
+void hub_hook_time_now() {
+  Serial.printf("PPE_HOOK time t_ms=%lu t_us=%llu\n", (unsigned long)(esp_timer_get_time() / 1000), (unsigned long long)esp_timer_get_time());
+}
+void hub_hook_set_time(bool on) { g_time = on; Serial.printf("PPE_HOOK time %s\n", on ? "on" : "off"); }
+void hub_hook_set_rxlog(bool on) { g_rxlog = on; Serial.printf("PPE_HOOK rxlog %s\n", on ? "on" : "off"); }
+#endif

@@ -26,3 +26,13 @@ uint32_t hub_ble_queue_max_fill();
 uint32_t hub_ble_adv_seen();                 // callbacks seen = rx_total + queue_full
 uint32_t hub_ble_scan_restarts();
 uint32_t hub_ble_scan_consecutive_fails();
+
+#ifdef PPE_TEST_HOOKS
+// Test hooks (serial commands in hub.ino call these). Compiled only with -DPPE_TEST_HOOKS.
+bool hub_hook_inject(const uint8_t* adv, size_t len);   // same queue and rx task as a BLE advertisement
+void hub_hook_stall(uint8_t n);                         // stop the scan; the next n restart attempts fail
+void hub_hook_dump();                                   // registry, counters, queue fill, timing
+void hub_hook_time_now();
+void hub_hook_set_time(bool on);                        // time stamp on every accepted packet (default on)
+void hub_hook_set_rxlog(bool on);                       // every received advertisement before filtering (default off)
+#endif

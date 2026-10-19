@@ -7,6 +7,7 @@
 #include "hub_ble.h"
 #include "src/hub_pipeline.h"
 #ifdef PPE_TEST_HOOKS
+#include "src/hub_hooks.h"
 #include <ppe_test_key.h>
 #ifndef HUB_TEST_VEST_ID
 #define HUB_TEST_VEST_ID 0x01      // override with -DHUB_TEST_VEST_ID=0xFF to test the start-up refusal
@@ -42,7 +43,43 @@ void setup() {
   Serial.printf("HUB running=%d\n", g_running);
 }
 
+#ifdef PPE_TEST_HOOKS
+// Serial test hooks: inject <hex> | stall <n> | dump | time [on|off] | rxlog on|off  (one command per line)
+static char g_line[256];
+static size_t g_line_len = 0;
+
+static void run_hook(const char* line) {
+  HubHookCmd c = hub_hook_parse(line);
+  switch (c.type) {
+    case HUB_HOOK_NONE: break;
+    case HUB_HOOK_INJECT:
+      Serial.printf("PPE_HOOK inject len=%u %s\n", c.len, hub_hook_inject(c.data, c.len) ? "queued" : "REFUSED(queue full)");
+      break;
+    case HUB_HOOK_STALL: hub_hook_stall(c.n); break;
+    case HUB_HOOK_DUMP: hub_hook_dump(); break;
+    case HUB_HOOK_TIME_NOW: hub_hook_time_now(); break;
+    case HUB_HOOK_TIME_ON: hub_hook_set_time(true); break;
+    case HUB_HOOK_TIME_OFF: hub_hook_set_time(false); break;
+    case HUB_HOOK_RXLOG_ON: hub_hook_set_rxlog(true); break;
+    case HUB_HOOK_RXLOG_OFF: hub_hook_set_rxlog(false); break;
+    default: Serial.println("PPE_HOOK error: commands are inject <hex>, stall <1-9>, dump, time [on|off], rxlog on|off"); break;
+  }
+}
+
+static void poll_hooks() {
+  while (Serial.available()) {
+    char ch = (char)Serial.read();
+    if (ch == '\n') { g_line[g_line_len] = 0; if (g_running) run_hook(g_line); g_line_len = 0; }
+    else if (g_line_len < sizeof g_line - 1) g_line[g_line_len++] = ch;
+    else g_line_len = 0;                      // overlong line: drop it
+  }
+}
+#endif
+
 void loop() {
+#ifdef PPE_TEST_HOOKS
+  poll_hooks();
+#endif
   if (!g_running) {
     if (millis() - g_last_refuse_print > 5000) {
       g_last_refuse_print = millis();
