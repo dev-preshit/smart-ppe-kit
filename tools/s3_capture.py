@@ -8,6 +8,7 @@ Log line format: ISO-8601 time, device, message.  A repeated run on the same com
   python tools/s3_capture.py capture --port COM5 --tc TC-21 --seconds 120 --send-after 5:"stall 1" --send-after 40:dump
   python tools/s3_capture.py path --tc TC-22                 # prints the log path (use it as inject.py --log)
   python tools/s3_capture.py analyze --tc TC-20 --expected 120 --node 5
+  python tools/s3_capture.py analyze --tc TC-20 --expected 120 --recheck     # with Wi-Fi connected
   python tools/s3_capture.py analyze --tc TC-72
   python tools/s3_capture.py result --tc TC-20 --result PASS --note "119 of 120"
 
@@ -75,16 +76,38 @@ def last_dump_value(text, pattern):
     return m
 
 
-def analyze_tc20(text, node, expected):
-    """TC-20: beacon packets accepted >= 99 %; manager rule: more than 1 miss in 120 is a FAIL to investigate."""
-    m = last_dump_value(text, r"DUMP node=%d state=\w+ last_counter=\d+ last_seen_ms=\d+ accepted=(\d+)" % node)
-    if not m:
-        return "BLOCKED", "no DUMP line for node %d in the log (send 'dump' at the end of the run)" % node
-    got = int(m.group(1))
-    misses = expected - got
-    pct = 100.0 * got / expected
+def last_run_block(text):
+    i = text.rfind("# RUN")
+    return text[i:] if i >= 0 else text
+
+
+def node_dumps(text, node):
+    pat = (r"DUMP node=%d state=\w+ last_counter=(\d+) last_seen_ms=\d+ accepted=(\d+) dup=(\d+) replay=(\d+) "
+           r"gap=(\d+) hmac_fail=(\d+)" % node)
+    return [tuple(int(x) for x in m.groups()) for m in re.finditer(pat, text)]
+
+
+def analyze_tc20(text, node, expected, recheck=False):
+    """TC-20: beacon packets accepted >= 99 %; manager rule: more than 1 miss in 120 is a FAIL to investigate.
+    Uses the latest "# RUN" block: delta between its first and last dump (take the first dump after the first beacon
+    packet), or the single dump if the hub was reset right before the run.
+    recheck=True (Wi-Fi + BLE recheck 1) also requires gap_count growth == misses ("gaps minus bad stays 0")."""
+    d = node_dumps(last_run_block(text), node)
+    if not d:
+        return "BLOCKED", "no DUMP line for node %d in the latest run (send 'dump' at the start and at the end)" % node
+    first, last = d[0], d[-1]
+    if len(d) >= 2:
+        acc, gap, basis = last[1] - first[1], last[4] - first[4], "delta of %d dumps" % len(d)
+    else:
+        acc, gap, basis = last[1], last[4], "single dump, hub assumed reset before the run"
+    misses = max(expected - acc, 0)
+    pct = 100.0 * acc / expected
     ok = pct >= 99.0 and misses <= 1
-    return ("PASS" if ok else "FAIL"), "accepted %d of %d expected = %.2f %%, misses %d" % (got, expected, pct, misses)
+    msg = "accepted %d of %d expected = %.2f %%, misses %d, gap_count growth %d (%s)" % (acc, expected, pct, misses, gap, basis)
+    if recheck:
+        ok = ok and gap == misses
+        msg += ", gaps minus misses = %d" % (gap - misses)
+    return ("PASS" if ok else "FAIL"), msg
 
 
 def analyze_tc72(text, min_count=1000):
@@ -109,7 +132,8 @@ def analyze_tc72(text, min_count=1000):
 def cmd_capture(a):
     import serial
     path = a.out or log_path(ROOT, a.tc, sha7())
-    append_line(path, "# RUN %s tc=%s device=%s port=%s%s" % (now_iso(), a.tc, a.device, a.port, "  (working tree has uncommitted changes)" if dirty() else ""))
+    append_line(path, "# RUN %s tc=%s device=%s port=%s label=%s%s" % (now_iso(), a.tc, a.device, a.port, a.label,
+                                                                    "  (working tree has uncommitted changes)" if dirty() else ""))
     sends = [(0.0, s) for s in (a.send or [])]
     for item in a.send_after or []:
         sec, _, cmd = item.partition(":")
@@ -147,7 +171,7 @@ def cmd_analyze(a):
     path = a.log or log_path(ROOT, a.tc, sha7())
     text = open(path, encoding="utf-8", errors="replace").read()
     if a.tc == "TC-20":
-        verdict, msg = analyze_tc20(text, a.node, a.expected)
+        verdict, msg = analyze_tc20(text, a.node, a.expected, a.recheck)
     elif a.tc == "TC-72":
         verdict, msg = analyze_tc72(text, a.min_count)
     else:
@@ -180,6 +204,7 @@ def main(argv=None):
     p.add_argument("--send", action="append", help="command sent at the start (repeatable)")
     p.add_argument("--send-after", action="append", help="SECONDS:command, sent after that many seconds (repeatable)")
     p.add_argument("--out", help="override the log path")
+    p.add_argument("--label", default="", help="free text in the RUN header, e.g. wifi")
     p.set_defaults(fn=cmd_capture)
     p = sub.add_parser("path")
     p.add_argument("--tc", required=True)
@@ -190,6 +215,7 @@ def main(argv=None):
     p.add_argument("--expected", type=int, default=120)
     p.add_argument("--node", type=int, default=5)
     p.add_argument("--min-count", type=int, default=1000)
+    p.add_argument("--recheck", action="store_true", help="TC-20 with Wi-Fi connected: also require gaps == misses")
     p.set_defaults(fn=cmd_analyze)
     p = sub.add_parser("result")
     p.add_argument("--tc", required=True)

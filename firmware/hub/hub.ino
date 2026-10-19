@@ -6,6 +6,7 @@
 #include "hub_nvs.h"
 #include "hub_ble.h"
 #include "src/hub_pipeline.h"
+#include "hub_wifi_recheck.h"
 #ifdef PPE_TEST_HOOKS
 #include "src/hub_hooks.h"
 #include <ppe_test_key.h>
@@ -40,6 +41,9 @@ void setup() {
   if (!g_store.begin()) Serial.println("ERROR NVS open failed: registry unreadable, accept stays disabled");
   if (!hub_persist_start(&g_store)) Serial.println("ERROR persist task not started");
   g_running = hub_ble_start(vest, key, &g_store);
+#ifdef PPE_S3_WIFI_RECHECK
+  if (g_running) hub_wifi_recheck_start();   // after the scan runs, so the recheck sees BLE and Wi-Fi together
+#endif
   Serial.printf("HUB running=%d\n", g_running);
 }
 

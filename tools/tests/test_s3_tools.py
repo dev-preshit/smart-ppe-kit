@@ -170,15 +170,35 @@ class CaptureTests(unittest.TestCase):
         self.assertEqual(sum(1 for l in lines if l.startswith("TC,sprint")), 1)
         self.assertEqual(len(lines), 3)
 
-    def test_tc20_pass_rule(self):
-        def log(acc):
-            return "t,hub,DUMP node=5 state=WORN last_counter=9 last_seen_ms=1 accepted=%d dup=0 replay=0 gap=0 hmac_fail=0" % acc
-        self.assertEqual(cap.analyze_tc20(log(120), 5, 120)[0], "PASS")
-        self.assertEqual(cap.analyze_tc20(log(119), 5, 120)[0], "PASS")     # 1 miss allowed (99.17 %)
-        self.assertEqual(cap.analyze_tc20(log(118), 5, 120)[0], "FAIL")     # 2 misses
+    @staticmethod
+    def dump(acc, gap=0, ctr=9):
+        return ("t,hub,DUMP node=5 state=WORN last_counter=%d last_seen_ms=1 accepted=%d dup=0 replay=0 gap=%d hmac_fail=0\n"
+                % (ctr, acc, gap))
+
+    def test_tc20_pass_rule_single_dump(self):
+        d = self.dump
+        self.assertEqual(cap.analyze_tc20(d(120), 5, 120)[0], "PASS")
+        self.assertEqual(cap.analyze_tc20(d(119), 5, 120)[0], "PASS")     # 1 miss allowed (99.17 %)
+        self.assertEqual(cap.analyze_tc20(d(118), 5, 120)[0], "FAIL")     # 2 misses
         self.assertEqual(cap.analyze_tc20("nothing", 5, 120)[0], "BLOCKED")
-        two = log(100) + "\n" + log(119)
-        self.assertEqual(cap.analyze_tc20(two, 5, 120)[0], "PASS")           # the last dump counts
+
+    def test_tc20_uses_the_delta_inside_the_latest_run(self):
+        d = self.dump
+        old = "# RUN old\n" + d(10) + d(50)
+        new = "# RUN new\n" + d(50) + d(169)                                 # delta 119
+        self.assertEqual(cap.analyze_tc20(old + new, 5, 120)[0], "PASS")
+        self.assertIn("accepted 119 of 120", cap.analyze_tc20(old + new, 5, 120)[1])
+        self.assertEqual(cap.analyze_tc20("# RUN x\n" + d(50) + d(167), 5, 120)[0], "FAIL")   # delta 117
+
+    def test_wifi_recheck_requires_gaps_equal_misses(self):
+        d = self.dump
+        ok = "# RUN w\n" + d(10, gap=0) + d(129, gap=1)                      # 119 accepted, 1 miss, 1 gap
+        self.assertEqual(cap.analyze_tc20(ok, 5, 120, recheck=True)[0], "PASS")
+        bad = "# RUN w\n" + d(10, gap=0) + d(129, gap=3)                     # gaps that no missing packet explains
+        self.assertEqual(cap.analyze_tc20(bad, 5, 120, recheck=True)[0], "FAIL")
+        self.assertEqual(cap.analyze_tc20(bad, 5, 120, recheck=False)[0], "PASS")   # plain TC-20 ignores gap_count
+        clean = "# RUN w\n" + d(10) + d(130)
+        self.assertEqual(cap.analyze_tc20(clean, 5, 120, recheck=True)[0], "PASS")
 
     def test_tc72_pass_rule(self):
         def log(count, mx, over, qfull):
