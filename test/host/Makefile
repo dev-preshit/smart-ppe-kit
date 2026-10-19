@@ -8,7 +8,7 @@ MBEDLIBS ?= -lmbedcrypto
 LIBSRC   := $(SRC)/ppe_proto.cpp $(SRC)/ppe_crypto.cpp $(SRC)/ppe_filter.cpp $(SRC)/ppe_counter.cpp $(SRC)/ppe_log.cpp
 # S3 hub pure logic (no Arduino includes), see firmware/hub/README.md
 HUBLIB   := $(HUB)/hub_pipeline.cpp $(HUB)/hub_persist.cpp $(HUB)/hub_scan_supervisor.cpp $(HUB)/hub_hooks.cpp $(HUB)/hub_dump.cpp
-TESTSRC  := ppe_test_main.cpp sha256_portable.cpp test_proto.cpp test_filter.cpp test_counter.cpp test_log.cpp test_hub_pipeline.cpp test_hub_persist.cpp test_hub_scan.cpp test_hub_hooks.cpp
+TESTSRC  := ppe_test_main.cpp sha256_portable.cpp test_proto.cpp test_filter.cpp test_counter.cpp test_log.cpp test_hub_pipeline.cpp test_hub_persist.cpp test_hub_scan.cpp test_hub_hooks.cpp test_hub_tc.cpp
 BIN      := build/ppe_host_tests
 
 .PHONY: test list clean release_check
