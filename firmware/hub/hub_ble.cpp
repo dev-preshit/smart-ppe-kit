@@ -52,13 +52,13 @@ class RxScanCb : public NimBLEScanCallbacks {
     e.len = (uint8_t)n;
     e.nonconn = (d->getAdvType() == kEvtNonconnInd) ? 1 : 0;
     if (n) memcpy(e.data, pl.data(), n);
-    if (xQueueSend(g_rxq, &e, 0) != pdTRUE) { g_queue_full++; return; }
+    if (xQueueSend(g_rxq, &e, 0) != pdTRUE) { g_queue_full = g_queue_full + 1; return; }
     UBaseType_t fill = uxQueueMessagesWaiting(g_rxq);
     if (fill > g_queue_max) g_queue_max = fill;
   }
   void onScanEnd(const NimBLEScanResults&, int reason) override {   // also fires when the host re-syncs
     g_scan_end_reason = (uint32_t)reason;
-    g_scan_end_count++;
+    g_scan_end_count = g_scan_end_count + 1;
   }
 };
 static RxScanCb g_cb;
@@ -92,11 +92,11 @@ static void process_entry(const RxEntry& e) {
   xSemaphoreGive(g_pipe_mx);
   if (r.verdict == HUB_V_ACCEPT) hub_persist_enqueue(r.node_id, r.counter);   // after dispatch, never inline
   uint32_t dt = (uint32_t)((uint64_t)esp_timer_get_time() - e.us);            // callback entry -> dispatched
-  g_rx.count++;
+  g_rx.count = g_rx.count + 1;
   g_rx.last_us = dt;
   if (dt > g_rx.max_us) g_rx.max_us = dt;
-  if (dt > 10000u) g_rx.over_10ms++;
-  g_rx.sum_us += dt;
+  if (dt > 10000u) g_rx.over_10ms = g_rx.over_10ms + 1;
+  g_rx.sum_us = g_rx.sum_us + dt;
   log_result(e, r, now_ms);
 }
 
@@ -114,7 +114,7 @@ static bool scan_healthy() {
 
 static bool scan_restart() {
 #ifdef PPE_TEST_HOOKS
-  if (g_forced_fail > 0) { g_forced_fail--; Serial.println("PPE_HOOK stall: restart attempt forced to fail"); return false; }
+  if (g_forced_fail > 0) { g_forced_fail = g_forced_fail - 1; Serial.println("PPE_HOOK stall: restart attempt forced to fail"); return false; }
 #endif
   NimBLEScan* s = NimBLEDevice::getScan();
   s->stop();
@@ -206,7 +206,7 @@ bool hub_hook_inject(const uint8_t* adv, size_t len) {
   e.len = (uint8_t)len;
   e.nonconn = 1;                                   // injected packets look like ADV_NONCONN_IND
   if (len) memcpy(e.data, adv, len);
-  if (xQueueSend(g_rxq, &e, 0) != pdTRUE) { g_queue_full++; return false; }
+  if (xQueueSend(g_rxq, &e, 0) != pdTRUE) { g_queue_full = g_queue_full + 1; return false; }
   UBaseType_t fill = uxQueueMessagesWaiting(g_rxq);
   if (fill > g_queue_max) g_queue_max = fill;
   return true;

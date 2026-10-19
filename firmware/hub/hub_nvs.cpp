@@ -38,10 +38,10 @@ static void persist_task(void*) {
       uint64_t t0 = esp_timer_get_time();
       bool ok = g_store->write_last_counter(n, c);
       uint32_t dt = (uint32_t)(esp_timer_get_time() - t0);
-      g_stats.writes++;
+      g_stats.writes = g_stats.writes + 1;
       g_stats.last_us = dt;
       if (dt > g_stats.max_us) g_stats.max_us = dt;
-      g_stats.sum_us += dt;
+      g_stats.sum_us = g_stats.sum_us + dt;
       g_persist.done(n, c, ok);
     }
   }
@@ -57,7 +57,7 @@ bool hub_persist_start(HubNvsStore* store) {
 
 void hub_persist_enqueue(uint8_t node_id, uint32_t counter) {
   PersistItem it = {node_id, counter};
-  if (!g_pq || xQueueSend(g_pq, &it, 0) != pdTRUE) g_stats.queue_dropped++;
+  if (!g_pq || xQueueSend(g_pq, &it, 0) != pdTRUE) g_stats.queue_dropped = g_stats.queue_dropped + 1;
 }
 
 const HubPersistStats& hub_persist_stats() { return g_stats; }
