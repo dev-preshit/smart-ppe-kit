@@ -11,3 +11,5 @@
 #define HUB_RX_QUEUE_DEPTH      64u       // callback -> task queue (state machine P-01: >= 32)
 #define HUB_RX_ADV_MAX          64u       // bytes copied per advertisement (legacy max is 31)
 #define HUB_PERSIST_QUEUE_DEPTH 32u       // task -> NVS writer queue
+#define HUB_SCAN_INTERVAL_MS    100u      // FR-20: continuous scan, window == interval (tuned in the Wi-Fi recheck)
+#define HUB_SCAN_WINDOW_MS      100u

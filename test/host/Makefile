@@ -7,8 +7,8 @@ CXXFLAGS := -std=c++11 -O1 -g -Wall -Wextra -Wpedantic -Werror -DPPE_HOST_TEST -
 MBEDLIBS ?= -lmbedcrypto
 LIBSRC   := $(SRC)/ppe_proto.cpp $(SRC)/ppe_crypto.cpp $(SRC)/ppe_filter.cpp $(SRC)/ppe_counter.cpp $(SRC)/ppe_log.cpp
 # S3 hub pure logic (no Arduino includes), see firmware/hub/README.md
-HUBLIB   := $(HUB)/hub_pipeline.cpp $(HUB)/hub_persist.cpp
-TESTSRC  := ppe_test_main.cpp sha256_portable.cpp test_proto.cpp test_filter.cpp test_counter.cpp test_log.cpp test_hub_pipeline.cpp test_hub_persist.cpp
+HUBLIB   := $(HUB)/hub_pipeline.cpp $(HUB)/hub_persist.cpp $(HUB)/hub_scan_supervisor.cpp
+TESTSRC  := ppe_test_main.cpp sha256_portable.cpp test_proto.cpp test_filter.cpp test_counter.cpp test_log.cpp test_hub_pipeline.cpp test_hub_persist.cpp test_hub_scan.cpp
 BIN      := build/ppe_host_tests
 
 .PHONY: test list clean
