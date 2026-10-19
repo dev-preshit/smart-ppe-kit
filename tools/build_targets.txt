@@ -2,3 +2,4 @@
 # Board settings follow TOOLCHAIN.md (USB CDC On Boot: Enabled).
 node_test|firmware/spikes/bleSpikesTest/node_test|esp32:esp32:esp32c3:CDCOnBoot=cdc
 hub_test|firmware/spikes/bleSpikesTest/hub_test|esp32:esp32:esp32s3:CDCOnBoot=cdc
+hub|firmware/hub|esp32:esp32:esp32s3:CDCOnBoot=cdc

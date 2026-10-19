@@ -12,7 +12,8 @@ Examples (python tools/inject.py ...):
   inject.py --via injector --port COM7 pkt --node 1 --ctr 1000 --copies 5     # 5 copies, 500 ms apart
   inject.py --via hub --port COM5 --check a1                                    # TC-23 valid vector
   inject.py --via hub --port COM5 --check flips                                 # TC-23, 136 bit flips
-  inject.py --via hub --port COM5 --check defects --ctr 300 --malformed         # TC-22
+  inject.py --via hub --port COM5 --check defects --ctr 300 --malformed --repeat 20   # TC-22 step 1
+  inject.py --via hub --port COM5 --check tc32                                  # TC-32 (fresh hub NVS)
   inject.py --via hub --port COM5 burst --ctr-start 5000                        # TC-72 burst of 25
   inject.py --dry-run defects --ctr 300                                         # print only, no port
 """
@@ -27,7 +28,8 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import gen_vectors as gv
 
-STAGE = {gv.OK: "ACCEPT", gv.DROP_LEN: "DROP_LEN", gv.DROP_VER: "DROP_VER", gv.DROP_VEST: "DROP_VEST",
+DUP, REPLAY = 100, 101      # counter-rule outcomes (step 7); the gen_vectors codes only cover steps 1-6
+STAGE = {DUP: "DUPLICATE", REPLAY: "REPLAY", gv.OK: "ACCEPT", gv.DROP_LEN: "DROP_LEN", gv.DROP_VER: "DROP_VER", gv.DROP_VEST: "DROP_VEST",
          gv.DROP_NODE: "DROP_NODE", gv.HMAC_FAIL: "HMAC_FAIL", gv.DROP_STATE: "DROP_STATE"}
 GCOUNTERS = ["rx_total", "drop_len", "drop_ver", "drop_vest", "drop_node", "drop_state"]
 NCOUNTERS = ["accepted", "dup", "replay", "hmac_fail"]
@@ -146,7 +148,47 @@ def expected_diff(stage, pkt):
         d["n%d.hmac_fail" % pkt[6]] = 1
     elif stage == gv.OK:
         d["n%d.accepted" % pkt[6]] = 1
+    elif stage == DUP:
+        d["n%d.dup" % pkt[6]] = 1
+    elif stage == REPLAY:
+        d["n%d.replay" % pkt[6]] = 1
     return d
+
+
+def tc32_cases(node=2):
+    """TC-32 step 1: known numbers of each kind. Needs node `node` at last_counter 0 (erase the hub NVS first).
+    10 bad length, 7 wrong version, 12 wrong vest, 9 unknown node, 15 bad HMAC, 6 valid HMAC + invalid state,
+    20 duplicates, 8 replays, 30 accepted."""
+    good = signed(node, 1)
+    cases = []
+    for i in range(30):
+        cases.append(("accepted c%d" % (i + 1), signed(node, i + 1), gv.OK))
+    for i in range(20):
+        cases.append(("duplicate c30 #%d" % (i + 1), signed(node, 30), DUP))
+    for i in range(8):
+        cases.append(("replay c%d" % (i + 1), signed(node, i + 1), REPLAY))
+    for i in range(5):
+        cases.append(("bad_len20 #%d" % (i + 1), good[:20], gv.DROP_LEN))
+        cases.append(("bad_len22 #%d" % (i + 1), good + b"\x00", gv.DROP_LEN))
+    for i, v in enumerate([0, 2, 3, 0, 2, 3, 0]):
+        cases.append(("wrong_version%d #%d" % (v, i + 1), gv.adv(gv.payload((v << 6) | 0x20, 1, node, 1, 90, 40)), gv.DROP_VER))
+    for i in range(12):
+        cases.append(("wrong_vest #%d" % (i + 1), gv.adv(gv.payload(0x60, 2 + i, node, 1, 90, 40)), gv.DROP_VEST))
+    for i, n in enumerate([0, 6, 0xFF] * 3):
+        cases.append(("unknown_node%d #%d" % (n, i + 1), gv.adv(gv.payload(0x60, 1, n, 1, 90, 40)), gv.DROP_NODE))
+    for i in range(15):
+        bad = bytearray(signed(node, 41 + i))
+        bad[-1 - (i % 8)] ^= 0x01
+        cases.append(("bad_hmac #%d" % (i + 1), bytes(bad), gv.HMAC_FAIL))
+    for i, st in enumerate([2, 0xFF, 3, 0x80, 2, 0xFF]):
+        cases.append(("invalid_state%02X #%d" % (st, i + 1), gv.adv(gv.payload(0x60, 1, node, st, 90, 40)), gv.DROP_STATE))
+    return cases
+
+
+def tc32_totals(node=2):
+    """What the dump must show after tc32_cases (rx_total 117)."""
+    return {"g.rx_total": 117, "g.drop_len": 10, "g.drop_ver": 7, "g.drop_vest": 12, "g.drop_node": 9, "g.drop_state": 6,
+            "n%d.accepted" % node: 30, "n%d.dup" % node: 20, "n%d.replay" % node: 8, "n%d.hmac_fail" % node: 15}
 
 
 # ------------------------------------------------------------ links
@@ -222,8 +264,13 @@ class HubLink:
             if line.startswith("DUMP"):
                 lines.append(line)
             if line == "DUMP end":
+                self.last_raw = lines
                 return parse_dump(lines)
         raise RuntimeError("no complete DUMP from the hub (PPE_TEST_HOOKS build? port free?)")
+
+    def command(self, line):
+        self.s.write((line + "\n").encode())
+        time.sleep(0.3)
 
     def settle(self, seconds=0.15):
         time.sleep(seconds)
@@ -260,6 +307,8 @@ def build_parser():
     ap.add_argument("--log")
     ap.add_argument("--dry-run", action="store_true", help="print the packets, open no port")
     ap.add_argument("--check", action="store_true", help="hub link only: compare counters after every packet")
+    ap.add_argument("--pre", action="append", help="hub link only: serial hook command sent first, e.g. --pre \"time off\"")
+    ap.add_argument("--dump-at-end", action="store_true", help="hub link only: write the raw DUMP lines to the log at the end")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     def common(p):
@@ -291,6 +340,10 @@ def build_parser():
     p.add_argument("--ctr", type=int, required=True)
     p.add_argument("--node", type=int, default=3)
     p.add_argument("--malformed", action="store_true", help="also bad length / bad AD header")
+    p.add_argument("--repeat", type=int, default=1, help="TC-22 step 1: send each defect this many times (20)")
+    common(p)
+    p = sub.add_parser("tc32")
+    p.add_argument("--node", type=int, default=2)
     common(p)
     p = sub.add_parser("forged")
     p.add_argument("n", type=int, nargs="?", default=1000)
@@ -317,6 +370,10 @@ def main(argv=None):
             ap.error("--port is required unless --dry-run")
         link = (InjectorLink if a.via == "injector" else HubLink)(a.port, a.baud, copies, spacing)
 
+    if link and a.via == "hub":
+        for c in a.pre or []:
+            link.command(c)
+            out.note("sent hook command: %s" % c)
     if a.cmd == "burst":
         lines = []
         for n in [int(x) for x in a.nodes.split(",")]:
@@ -328,6 +385,11 @@ def main(argv=None):
             link.write_batch(["inject %s" % d.hex() for _, d in lines])
             out.note("burst of %d packets written in one go; now run dump: rx_total delta must be %d, queue_full 0"
                      % (len(lines), len(lines)))
+            if a.dump_at_end and a.via == "hub":
+                time.sleep(1.0)
+                link.snapshot()
+                for l in link.last_raw:
+                    out.note(l)
         return 0
 
     if a.cmd == "hex":
@@ -342,7 +404,12 @@ def main(argv=None):
     elif a.cmd == "flips":
         cases = flip_cases()
     elif a.cmd == "defects":
-        cases = defect_cases(a.ctr, a.node, a.malformed)
+        cases = []
+        for label, d, st in defect_cases(a.ctr, a.node, a.malformed):
+            for i in range(1 if st == gv.OK else max(a.repeat, 1)):   # the valid control is sent once (a repeat is a duplicate)
+                cases.append((label if a.repeat <= 1 else "%s #%d" % (label, i + 1), d, st))
+    elif a.cmd == "tc32":
+        cases = tc32_cases(a.node)
     else:
         cases = forged_cases(a.n)
 
@@ -357,6 +424,23 @@ def main(argv=None):
             time.sleep(a.interval_ms / 1000.0)
     else:
         fails = run_set(link, out, cases, a.check)
+    if a.dump_at_end and link and a.via == "hub":
+        time.sleep(1.0)
+        link.snapshot()
+        for l in link.last_raw:
+            out.note(l)
+    if a.check and a.cmd == "tc32" and link:
+        snap = link.snapshot()
+        got = {}
+        for k in GCOUNTERS:
+            got["g." + k] = snap["g"].get(k, 0)
+        n = snap["n"][a.node]
+        for k in ("accepted", "dup", "replay", "hmac_fail"):
+            got["n%d.%s" % (a.node, k)] = n[k]
+        want = tc32_totals(a.node)
+        ok = all(got.get(k) == v for k, v in want.items())
+        out.note("%s TC-32 totals: got %s want %s" % ("PASS" if ok else "FAIL", got, want))
+        fails += 0 if ok else 1
     if a.check:
         out.note("RESULT %s (%d of %d packets failed)" % ("PASS" if fails == 0 else "FAIL", fails, len(cases)))
         if a.cmd == "forged" and link:

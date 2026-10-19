@@ -125,6 +125,31 @@ class InjectTests(unittest.TestCase):
         without = [n for n, _, _ in inj.defect_cases(300)]
         self.assertNotIn("len20", without)                      # malformed ones only on request
 
+    def test_tc32_mix_has_the_numbers_of_the_test_plan_and_the_model_agrees(self):
+        cases = inj.tc32_cases()
+        kinds = {}
+        for _, _, st in cases:
+            kinds[st] = kinds.get(st, 0) + 1
+        self.assertEqual(kinds[gv.DROP_LEN], 10); self.assertEqual(kinds[gv.DROP_VER], 7); self.assertEqual(kinds[gv.DROP_VEST], 12)
+        self.assertEqual(kinds[gv.DROP_NODE], 9); self.assertEqual(kinds[gv.HMAC_FAIL], 15); self.assertEqual(kinds[gv.DROP_STATE], 6)
+        self.assertEqual(kinds[inj.DUP], 20); self.assertEqual(kinds[inj.REPLAY], 8); self.assertEqual(kinds[gv.OK], 30)
+        self.assertEqual(len(cases), 117)
+        m = ModelHub(); link = FakeLink(m)
+        self.assertEqual(inj.run_set(link, Null(), cases, True), 0)       # every packet raises exactly the expected counter
+        snap = link.snapshot(); want = inj.tc32_totals()
+        self.assertEqual(snap["g"]["rx_total"], want["g.rx_total"]); self.assertEqual(snap["n"][2]["accepted"], 30)
+        self.assertEqual(snap["n"][2]["dup"], 20); self.assertEqual(snap["n"][2]["replay"], 8); self.assertEqual(snap["n"][2]["hmac_fail"], 15)
+        self.assertEqual(snap["n"][2]["gap"], 0)
+
+    def test_defects_repeat_20_keeps_the_valid_control_single(self):
+        import io, contextlib
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            inj.main(["--dry-run", "defects", "--ctr", "300", "--repeat", "20"])
+        lines = buf.getvalue().splitlines()
+        self.assertEqual(sum(1 for l in lines if "wrong_vest" in l), 20)
+        self.assertEqual(sum(1 for l in lines if "valid_control" in l), 1)
+
     def test_forged_set_all_fail_hmac(self):
         c = inj.forged_cases(50)
         self.assertEqual(len(c), 50)
@@ -141,6 +166,69 @@ class InjectTests(unittest.TestCase):
         m.feed(inj.signed(2, 5))
         d = inj.diff(before, inj.parse_dump(m.dump_lines()))
         self.assertEqual(d, {"g.rx_total": 1, "n2.accepted": 1})
+
+
+class FakeSerialModule:
+    """Stands in for pyserial: a scripted hub that answers 'dump' with a model's DUMP lines and records what was written."""
+    class Serial:
+        model = None
+        written = []
+
+        def __init__(self, *a, **k):
+            self.pending = []
+            FakeSerialModule.Serial.written = []
+
+        def reset_input_buffer(self):
+            pass
+
+        def write(self, b):
+            FakeSerialModule.Serial.written.append(b.decode())
+            for line in b.decode().splitlines():
+                if line.startswith("inject "):
+                    FakeSerialModule.Serial.model.feed(bytes.fromhex(line.split()[1]))
+                if line == "dump":
+                    self.pending += [l + "\n" for l in FakeSerialModule.Serial.model.dump_lines()]
+
+        def readline(self):
+            return self.pending.pop(0).encode() if self.pending else b""
+
+
+class HubLinkTests(unittest.TestCase):
+    def setUp(self):
+        self.saved = sys.modules.get("serial")
+        sys.modules["serial"] = FakeSerialModule
+        FakeSerialModule.Serial.model = ModelHub()
+
+    def tearDown(self):
+        if self.saved is not None:
+            sys.modules["serial"] = self.saved
+        else:
+            del sys.modules["serial"]
+
+    def test_hub_link_sends_inject_lines_and_snapshots(self):
+        link = inj.HubLink("COMX", copies=5)
+        link.send(inj.signed(1, 7))
+        self.assertEqual(sum(1 for w in FakeSerialModule.Serial.written if w.startswith("inject ")), 5)
+        snap = link.snapshot()
+        self.assertEqual(snap["n"][1]["accepted"], 1); self.assertEqual(snap["n"][1]["dup"], 4)
+        self.assertTrue(link.last_raw[-1] == "DUMP end")
+
+    def test_main_runs_pre_command_and_dump_at_end_over_the_hub_link(self):
+        import io, contextlib
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = inj.main(["--via", "hub", "--port", "COMX", "--pre", "time off", "--dump-at-end", "seq", "--node", "1", "--ctr-start", "100", "--count", "3"])
+        self.assertEqual(rc, 0)
+        self.assertIn("time off\n", FakeSerialModule.Serial.written)
+        out = buf.getvalue()
+        self.assertIn("DUMP end", out); self.assertIn("accepted=3", out)
+
+    def test_main_check_mode_returns_nonzero_on_a_wrong_counter(self):
+        import io, contextlib
+        FakeSerialModule.Serial.model = ModelHub(mutate=True)
+        with contextlib.redirect_stdout(io.StringIO()):
+            rc = inj.main(["--via", "hub", "--port", "COMX", "--check", "defects", "--ctr", "300"])
+        self.assertEqual(rc, 1)
 
 
 class CaptureTests(unittest.TestCase):

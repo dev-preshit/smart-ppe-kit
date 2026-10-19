@@ -145,11 +145,31 @@ def cmd_capture(a):
     buf = b""
     try:
         while a.seconds is None or time.time() - t0 < a.seconds:
-            while sends and time.time() - t0 >= sends[0][0]:
-                cmd = sends.pop(0)[1]
-                s.write((cmd + "\n").encode())
-                append_line(path, "%s,pc,> %s" % (now_iso(), cmd))
-            buf += s.read(512)
+            try:
+                while sends and time.time() - t0 >= sends[0][0]:
+                    cmd = sends.pop(0)[1]
+                    s.write((cmd + "\n").encode())
+                    append_line(path, "%s,pc,> %s" % (now_iso(), cmd))
+                buf += s.read(512)
+            except (serial.SerialException, OSError):
+                # the hub reboots on purpose in TC-21 (stall 3) and the USB port disappears for a moment: reopen
+                append_line(path, "# %s port lost, reopening" % now_iso())
+                try:
+                    s.close()
+                except Exception:
+                    pass
+                deadline = time.time() + 30
+                while time.time() < deadline:
+                    try:
+                        s = serial.Serial(a.port, a.baud, timeout=0.2)
+                        append_line(path, "# %s port back" % now_iso())
+                        break
+                    except (serial.SerialException, OSError):
+                        time.sleep(0.5)
+                else:
+                    append_line(path, "# %s port did not come back within 30 s" % now_iso())
+                    break
+                continue
             while b"\n" in buf:
                 line, buf = buf.split(b"\n", 1)
                 text = line.decode(errors="replace").rstrip("\r")
