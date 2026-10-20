@@ -233,9 +233,13 @@ void hub_hook_dump() {
   x.proc_count = g_rx.count; x.proc_last_us = g_rx.last_us; x.proc_max_us = g_rx.max_us; x.proc_over_10ms = g_rx.over_10ms;
   x.proc_avg_us = g_rx.count ? (uint32_t)(g_rx.sum_us / g_rx.count) : 0;
   x.scan_restarts = g_sup.restarts(); x.scan_consecutive_fails = g_sup.consecutive_fails();
+  // Copy the pipeline under the lock, print after releasing it. Serial output takes milliseconds, and holding the
+  // lock during it made the receive task wait and inflated the processing time (bench finding, 2026-10-20).
+  HubPipeline snap;
   xSemaphoreTake(g_pipe_mx, portMAX_DELAY);
-  hub_dump_emit(g_pipe, x, dump_emit, nullptr);
+  snap = g_pipe;
   xSemaphoreGive(g_pipe_mx);
+  hub_dump_emit(snap, x, dump_emit, nullptr);
 }
 
 void hub_hook_time_now() {
