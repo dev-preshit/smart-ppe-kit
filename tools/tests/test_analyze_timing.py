@@ -87,10 +87,28 @@ class Logger(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             logger.append_summary("TC-03", "PASS", sha="abc1234", root=d)
             logger.append_summary("TC-06", "FAIL", sha="abc1234", root=d)
-            rows = open(os.path.join(d, "summary.csv")).read().splitlines()
+            self.assertFalse(os.path.exists(os.path.join(d, "summary.csv")))     # each story has its own file
+            rows = open(os.path.join(d, "summary_s2.csv")).read().splitlines()
             self.assertEqual(rows[0], "TC,sprint,date,sha,result")
             self.assertEqual(len(rows), 3)
             self.assertTrue(rows[1].startswith("TC-03,S2,") and rows[1].endswith(",abc1234,PASS"))
+
+    def test_each_story_writes_only_its_own_summary_file(self):
+        with tempfile.TemporaryDirectory() as d:
+            logger.append_summary("TC-22", "PASS", sprint="S3", sha="abc1234", root=d)
+            logger.append_summary("TC-03", "PASS", sha="abc1234", root=d)
+            self.assertEqual(sorted(os.listdir(d)), ["summary_s2.csv", "summary_s3.csv"])
+            self.assertEqual(len(open(os.path.join(d, "summary_s3.csv")).read().splitlines()), 2)
+
+    def test_existing_file_keeps_its_rows_and_gets_no_second_header(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = logger.summary_path("S2", d)
+            open(p, "w", newline="").write("TC,sprint,date,sha,result\nTC-03,S2,2026-10-20,797a970,FAIL\n")
+            logger.append_summary("TC-03", "PASS", sha="1234567", root=d)
+            rows = open(p).read().splitlines()
+            self.assertEqual(rows[0], "TC,sprint,date,sha,result")
+            self.assertEqual(len(rows), 3)
+            self.assertEqual(sum(1 for r in rows if r.startswith("TC,")), 1)
 
     def test_log_path(self):
         self.assertTrue(logger.log_path("TC-02", sha="1234567", root="r").replace("\\", "/").endswith("r/S2/TC-02_1234567.log"))
@@ -118,6 +136,25 @@ class NodeBuild(unittest.TestCase):
                          ["-DPPE_BUILD_NODE_TYPE=1", "-DPPE_TEST_HOOKS", "-DPPE_CONTACT_CLOSED_LEVEL=1"])
         self.assertEqual(nb.build_opt_lines("helmet", True, adc_boot=800),
                          ["-DPPE_BUILD_NODE_TYPE=2", "-DPPE_TEST_HOOKS", "-DPPE_TEST_ADC_BOOT=800"])
+
+    def test_library_check_accepts_only_this_checkouts_common(self):
+        import node_build as nb
+        out = "Used library Version Path\nppe_common   1.0.0   D:\\application\\S2-smart-ppe-kit\\common\n\nUsed platform Version Path\n"
+        self.assertEqual(nb.used_library_path(out), "D:\\application\\S2-smart-ppe-kit\\common")
+        ok, _ = nb.check_library(out, "D:\\application\\S2-smart-ppe-kit\\common")
+        self.assertTrue(ok or os.name != "nt")        # path folding rules differ on Linux, the Windows check is the real one
+        ok, msg = nb.check_library(out, "D:\\application\\S3-smart-ppe-kit\\common")
+        self.assertFalse(ok); self.assertIn("WRONG", msg)
+        verbose = "Using library ppe_common at version 1.0.0 in folder: D:\\application\\S2-smart-ppe-kit\\common \n"
+        self.assertEqual(nb.used_library_path(verbose), "D:\\application\\S2-smart-ppe-kit\\common")
+        ok, _ = nb.check_library("Sketch uses 1 bytes\n")
+        self.assertFalse(ok)
+
+    def test_compile_command_passes_the_checkouts_common(self):
+        import node_build as nb, io, contextlib
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            nb.main(["--type", "foot", "--dry-run"])
+        self.assertIn("--library " + nb.COMMON, out.getvalue()); self.assertIn("--verbose", out.getvalue())
 
     def test_dry_run_writes_nothing_into_the_sketch_folder(self):
         import node_build as nb, io, contextlib

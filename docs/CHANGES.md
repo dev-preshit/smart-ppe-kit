@@ -19,3 +19,5 @@
 2026-10-19 | S2 TC-03, TC-05, TC-06, TC-16 are driven through the adc hook on an FSR node by drive_contacts.py (TC-05 allows any node); TC-03 step 2 uses a build with -DPPE_TEST_ADC_BOOT=800 because hook values do not survive a reset | no relay board, awake variant
 2026-10-19 | S2 MARK vocabulary: COLD_START, RAW, CAND, GRACE_START, GRACE_CANCEL, CONFIRM, CONFIRM_BOOT (S4 adds the first-copy mark); TC-16 reference time = first RAW with fault=1 | A-01 and V12-01 ruling
 2026-10-19 | S2 hooks implemented: adc <n>|fail|ok|real, marker on|off, set settle|grace, show; tx, setcounter, nvslog, skiptx, fault, awake belong to later sprints | S2 scope
+2026-10-20 | A-11 amended by the owner: S2 summary rows go to test_logs/summary_s2.csv (S3 uses summary_s3.csv); same header TC,sprint,date,sha,result; logger.py writes only the story's own file | two stories ran in parallel and shared one file
+2026-10-20 | S2 build tool node_build.py passes this checkout's common/ with --library and refuses to continue if the compiler used another ppe_common | the Arduino user-library link pointed at a renamed folder, two worktrees now exist

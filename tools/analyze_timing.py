@@ -5,7 +5,7 @@ Log line:  <PC time> | MARK <NAME> <micros> [state=n fault=n]      (PC time only
   grace   TC-06: GRACE_START -> CONFIRM, expected GRACE_S +- 0.5 s (also CONFIRM_BOOT). --scenario a|b|c|d
   settle  TC-05: --mode s0 (RAW -> CAND <= 50 ms) | pulse (400 ms pulse gives no CAND) | hold (600 ms change gives CAND)
   fault   TC-16: first RAW with fault=1 -> CONFIRM with fault=1, and first RAW back to fault=0 -> CONFIRM fault=0, 25 +- 0.5 s
-The result is appended to the same log ('# ANALYSIS ...') and, with --summary, one row goes to test_logs/summary.csv.
+The result is appended to the same log ('# ANALYSIS ...') and, with --summary, one row goes to test_logs/summary_s2.csv.
 Exit code 0 = PASS, 1 = FAIL.
 """
 import argparse, os, re, sys

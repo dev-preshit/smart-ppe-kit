@@ -11,10 +11,11 @@ you use for arduino-cli.
   python tools/node_build.py --type foot                         # release build, checks that no hook text is inside
   add --upload COM3 to flash the board (do not run logger.py or drive_contacts.py on that port at the same time)
 """
-import argparse, os, shutil, subprocess, sys, tempfile
+import argparse, os, re, shutil, subprocess, sys, tempfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SKETCH = os.path.join(REPO, "firmware", "node_sense")
+COMMON = os.path.join(REPO, "common")     # this checkout's own ppe_common, never the Arduino user-library link
 FQBN = "esp32:esp32:esp32c3:CDCOnBoot=cdc"
 TYPES = {"foot": 0, "glove": 1, "helmet": 2}
 
@@ -28,6 +29,32 @@ def build_opt_lines(node_type, hooks, adc_boot=None, closed_level=None):
     if closed_level is not None:
         lines.append("-DPPE_CONTACT_CLOSED_LEVEL=%d" % closed_level)
     return lines
+
+
+def used_library_path(output, name="ppe_common"):
+    """Path arduino-cli printed in its 'Used library' table for the library, or None."""
+    for line in output.splitlines():
+        m = re.search(r"Using library %s at version \S+ in folder: (.+?)\s*$" % re.escape(name), line)   # --verbose
+        if not m:
+            m = re.match(r"^%s\s+\S+\s+(.+?)\s*$" % re.escape(name), line)                              # summary table
+        if m:
+            return m.group(1)
+    return None
+
+
+def same_path(a, b):
+    n = lambda p: os.path.normcase(os.path.realpath(p))
+    return n(a) == n(b)
+
+
+def check_library(output, common=COMMON):
+    """(ok, message): the build must have used THIS checkout's common/."""
+    got = used_library_path(output)
+    if got is None:
+        return False, "no 'ppe_common' line in the compiler output, cannot confirm which common/ was used"
+    if not same_path(got, common):
+        return False, "built with the WRONG ppe_common: %s (expected %s)" % (got, common)
+    return True, "ppe_common from this checkout: %s" % got
 
 
 def main(argv=None):
@@ -51,15 +78,26 @@ def main(argv=None):
     with open(os.path.join(sk, "build_opt.h"), "w", newline="\n") as f:
         f.write("\n".join(opts) + "\n")
     print("variant:", a.type, "| hooks" if a.hooks else "| RELEASE", "|", " ".join(opts))
-    cmd = ["arduino-cli", "compile", "--fqbn", FQBN, "--build-path", bld, sk]
+    cmd = ["arduino-cli", "compile", "--fqbn", FQBN, "--verbose", "--library", COMMON, "--build-path", bld, sk]
     print(" ".join(cmd))
     if a.dry_run:
         return 0
     rc = 1
     try:
-        rc = subprocess.run(cmd).returncode
+        p = subprocess.run(cmd, capture_output=True, text=True, errors="replace")
+        text = p.stdout + p.stderr
+        rc = p.returncode
         if rc != 0:
+            print("\n".join(text.splitlines()[-80:]))          # verbose output is long: the tail has the error
             print("BUILD FAILED, folder kept:", tmp)
+            return rc
+        for line in text.splitlines():
+            if line.startswith(("Sketch uses", "Global variables")):
+                print(line)
+        ok, msg = check_library(text)
+        print(msg)
+        if not ok:
+            rc = 3
             return rc
         elf = os.path.join(bld, "node_sense.ino.elf")
         if not a.hooks and os.path.exists(elf):

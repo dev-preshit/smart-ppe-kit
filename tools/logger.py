@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SC-06 logger.py - timestamped serial capture to test_logs/S2/<TC>_<sha7>.log (and a helper for summary.csv).
+"""SC-06 logger.py - timestamped serial capture to test_logs/S2/<TC>_<sha7>.log (and a helper for summary_s2.csv).
 
 Every device line is stored as   <PC ISO time> | <device line>.  The PC time only orders lines; all timing
 checks use the node's own micros() inside MARK lines (A-01). Do not run two programs on one COM port: the
@@ -104,9 +104,14 @@ def header_lines(tc, waived):
     return h
 
 
+def summary_path(sprint="S2", root=None):
+    """One summary file per story: test_logs/summary_s2.csv for S2, summary_s3.csv for S3 (owner rule, 2026-10-20)."""
+    return os.path.join(root or os.path.join(REPO, "test_logs"), "summary_%s.csv" % sprint.lower())
+
+
 def append_summary(tc, result, sprint="S2", sha=None, root=None):
-    """One row per test in test_logs/summary.csv, header TC,sprint,date,sha,result (A-11)."""
-    path = os.path.join(root or os.path.join(REPO, "test_logs"), "summary.csv")
+    """One row per test in the story's own summary file, header TC,sprint,date,sha,result (A-11)."""
+    path = summary_path(sprint, root)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     new = not os.path.exists(path) or os.path.getsize(path) == 0
     with open(path, "a", newline="", encoding="utf-8") as f:
