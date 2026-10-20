@@ -231,6 +231,56 @@ class HubLinkTests(unittest.TestCase):
         self.assertEqual(rc, 1)
 
 
+class HearStatsTests(unittest.TestCase):
+    def rx(self, node, ctr, us=1):
+        return "t,hub,RX,%d,%s\n" % (us, inj.signed(node, ctr).hex())
+
+    def test_per_packet_dup_stats(self):
+        log = "# RUN x\n" + self.rx(5, 1) + self.rx(5, 1, 2) + self.rx(5, 1, 3) + self.rx(5, 2) + self.rx(3, 9) + self.rx(5, 3)
+        h = cap.beacon_hear_stats(log, 5)
+        self.assertEqual(h["packets"], 3)
+        self.assertEqual((h["min"], h["max"]), (0, 2))
+        self.assertAlmostEqual(h["avg"], 2.0 / 3)
+        self.assertTrue(h["multi"])
+
+    def test_single_hear_per_packet_is_reported_as_not_multi(self):
+        log = self.rx(5, 1) + self.rx(5, 2)
+        self.assertFalse(cap.beacon_hear_stats(log, 5)["multi"])
+
+    def test_no_rx_lines_gives_none(self):
+        self.assertIsNone(cap.beacon_hear_stats("nothing here", 5))
+
+    def test_only_the_latest_run_counts(self):
+        log = "# RUN a\n" + self.rx(5, 1) + self.rx(5, 1, 2) + "# RUN b\n" + self.rx(5, 7)
+        self.assertEqual(cap.beacon_hear_stats(log, 5)["max"], 0)
+
+
+class Tc21Tests(unittest.TestCase):
+    def test_pass_when_restart_is_10_to_11_s_after_onset_and_packets_resume(self):
+        log = ("# RUN x\nPPE_HOOK stall 1 t_ms=100000 scan stopped\n"
+               "SCAN restart #1 t_ms=110400 synced=1 scanning=0\nSCAN restart result=failed fails=1\n"
+               "SCAN restart #2 t_ms=111400 synced=1 scanning=0\n"
+               "ACC t_ms=112000 node=2\nACC t_ms=112500 node=2\n")
+        v, msg = cap.analyze_tc21(log)
+        self.assertEqual(v, "PASS")
+        self.assertIn("first accepted packet 12000 ms after onset", msg)
+
+    def test_fail_when_restart_is_too_early_or_too_late(self):
+        base = "# RUN x\nPPE_HOOK stall 1 t_ms=100000 scan stopped\nACC t_ms=105000 node=2\n"
+        early = base + "SCAN restart #1 t_ms=105000 synced=1 scanning=0\n"
+        late = base + "SCAN restart #1 t_ms=112500 synced=1 scanning=0\nACC t_ms=113000 node=2\n"
+        self.assertEqual(cap.analyze_tc21(early)[0], "FAIL")
+        self.assertEqual(cap.analyze_tc21(late)[0], "FAIL")
+
+    def test_fail_when_nothing_is_accepted_within_10_s_of_the_attempt(self):
+        log = ("# RUN x\nPPE_HOOK stall 1 t_ms=100000 scan stopped\n"
+               "SCAN restart #1 t_ms=110200 synced=1 scanning=0\nACC t_ms=125000 node=2\n")
+        self.assertEqual(cap.analyze_tc21(log)[0], "FAIL")
+
+    def test_blocked_without_the_hook_line(self):
+        self.assertEqual(cap.analyze_tc21("SCAN restart #1 t_ms=110200")[0], "BLOCKED")
+
+
 class CaptureTests(unittest.TestCase):
     def test_log_path_and_tc_validation(self):
         self.assertEqual(cap.log_path("/r", "TC-24", "abc1234"), os.path.join("/r", "test_logs", "S3", "TC-24_abc1234.log"))

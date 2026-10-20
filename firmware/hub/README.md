@@ -117,15 +117,18 @@ counters from 100000 up. A beacon reset advances its counter block (a gap of up 
 1. Flash the C3 with `tools\beacon`, power it next to the hub. Inject nodes 1-4 on air:
    `python tools\inject.py --via injector --port <INJ> pkt --node 1 --ctr 1000 --copies 5` (repeat for nodes 2, 3, 4, `--ctr 1000`).
    Flash the beacon back (node 5 is received from the beacon). `dump`: all 5 nodes show `accepted` above 0.
-2. `python tools\s3_capture.py capture --port <HUB> --tc TC-20 --seconds 1260 --send-after 15:dump --send-after 1230:dump`
-3. `python tools\s3_capture.py analyze --tc TC-20 --expected 120 --node 5`, then `result`.
+2. `python tools\s3_capture.py capture --port <HUB> --tc TC-20 --seconds 1260 --send "rxlog on" --send-after 15:dump --send-after 1230:dump`
+   (`rxlog on` lets the analysis count how many times each beacon packet was heard.)
+3. `python tools\s3_capture.py analyze --tc TC-20 --expected 120 --node 5`, then `result`. The analyze output also prints the per-packet
+   duplicate statistics (min, max, average `dup_count` per beacon packet and whether any packet was heard more than once) for S4.
 
 **TC-21 scan watchdog** (beacon running, `time on`)
 1. With the beacon (as the test plan says, resolution 10 s): `python tools\s3_capture.py capture --port <HUB> --tc TC-21 --seconds 90 --send "rxlog on" --send-after 5:"stall 1" --send-after 60:dump`.
    For a 1 s resolution use the injector instead (beacon off, injector sketch on the C3) and in a second window
    `python tools\inject.py --via injector --port <INJ> seq --node 2 --ctr-start 3000 --count 60 --interval-ms 1000`.
    Expected log: `PPE_HOOK stall 1`, 10 s later `SCAN restart #1`, `result=failed`, next second `SCAN restart #2`, `result=ok`, then `RX` lines again.
-   Report: stall to restart (10-11 s), restart to first `RX` after it (must be 10 s or less), no reboot.
+   Report: `python tools\s3_capture.py analyze --tc TC-21` (approved pass rule: first restart attempt 10 to 11 s after the stall, an accepted
+   packet again within 10 s of that attempt; it also prints the measured onset to first accepted packet), and no reboot.
 2. `stall 3`: `capture ... --seconds 90 --send "stall 3"`. Expected: three `result=failed`, then `SCAN reboot`, the port drops and returns
    (the capture reconnects), `BOOT reset_reason=3` (software reset) and `BOOT previous run ended with fault code 1`.
 3. 10 min quiet: beacon and injector unplugged, `capture ... --seconds 600 --send-after 5:dump --send-after 595:dump`. Expected: no `SCAN restart`,
@@ -176,6 +179,21 @@ The mix is 10 bad length, 7 wrong version, 12 wrong vest, 9 unknown node, 15 bad
 (allow Python through the Windows firewall for private networks), repeat the TC-20 run with `--label wifi` and
 `python tools\s3_capture.py analyze --tc TC-20 --expected 120 --node 5 --recheck`. Pass: same 99 % rule and `gap_count` growth equals the misses; the stub shows one arrival
 about every 30 s and the log shows `WIFI http code=200`.
+
+## Build figures for planning (sprint S3 build, arduino-cli 1.5.2-rc.1 with esp32 core 3.0.7 and NimBLE-Arduino 2.5.1)
+
+FQBN for every hub build: `esp32:esp32:esp32s3:CDCOnBoot=cdc`. Partition scheme: `default` (the core's
+"Default 4MB with spiffs (1.2MB APP/1.5MB SPIFFS)", flash 4 MB, app maximum 1310720 bytes). The bench and Wi-Fi builds
+need the same scheme; no custom partition table exists in the repo yet.
+
+| Build | Flags | Flash used | Flash % of 1310720 | RAM (static) | RAM % of 327680 |
+|---|---|---|---|---|---|
+| Release | none (no `build_opt.h`) | 562453 bytes | 42 % | 30124 bytes | 9 % |
+| Bench | `-DPPE_TEST_HOOKS` | 566301 bytes | 43 % | 30388 bytes | 9 % |
+| Bench + Wi-Fi recheck | `-DPPE_TEST_HOOKS -DPPE_S3_WIFI_RECHECK` | 1209441 bytes | 92 % | 49992 bytes | 15 % |
+
+Measured with `arduino-cli compile --warnings more`. Static RAM only; heap at run time is not included.
+The Wi-Fi build is over the 90 % mark: the S7 uplink will need a larger app partition or the Wi-Fi code trimmed.
 
 ## Known limits (open for later sprints)
 

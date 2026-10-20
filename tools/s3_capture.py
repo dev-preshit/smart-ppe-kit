@@ -9,6 +9,7 @@ Log line format: ISO-8601 time, device, message.  A repeated run on the same com
   python tools/s3_capture.py path --tc TC-22                 # prints the log path (use it as inject.py --log)
   python tools/s3_capture.py analyze --tc TC-20 --expected 120 --node 5
   python tools/s3_capture.py analyze --tc TC-20 --expected 120 --recheck     # with Wi-Fi connected
+  python tools/s3_capture.py analyze --tc TC-21
   python tools/s3_capture.py analyze --tc TC-72
   python tools/s3_capture.py result --tc TC-20 --result PASS --note "119 of 120"
 
@@ -110,6 +111,49 @@ def analyze_tc20(text, node, expected, recheck=False):
     return ("PASS" if ok else "FAIL"), msg
 
 
+def beacon_hear_stats(text, node=5):
+    """Per beacon packet (one counter value), how many times the hub heard it, from the RX lines of the latest run
+    (needs "rxlog on" during the run). dup_count per packet = heard - 1 (the first copy is the accepted one)."""
+    heard = {}
+    for m in re.finditer(r"(?:^|,)RX,(\d+),([0-9a-fA-F]+)", last_run_block(text), re.M):
+        b = bytes.fromhex(m.group(2))
+        if len(b) != 21 or b[:4] != bytes([0x14, 0xFF, 0xFF, 0xFF]) or b[6] != node:
+            continue
+        ctr = int.from_bytes(b[9:13], "little")
+        heard[ctr] = heard.get(ctr, 0) + 1
+    if not heard:
+        return None
+    dups = [h - 1 for h in heard.values()]
+    return {"packets": len(dups), "min": min(dups), "max": max(dups),
+            "avg": sum(dups) / float(len(dups)), "multi": any(d > 0 for d in dups)}
+
+
+def analyze_tc21(text):
+    """TC-21 stall 1 (manager ruling, owner approved 2026-10-20): first restart attempt 10 to 11 s after the onset,
+    and an accepted packet again within 10 s of the restart attempt. Also reports onset -> first accepted packet."""
+    blk = last_run_block(text)
+    st = re.search(r"PPE_HOOK stall \d+ t_ms=(\d+)", blk)
+    rs = [int(x) for x in re.findall(r"SCAN restart #\d+ t_ms=(\d+)", blk)]
+    acc = [int(x) for x in re.findall(r"ACC t_ms=(\d+)", blk)]
+    if not st or not rs:
+        return "BLOCKED", "need the 'stall' hook line and a SCAN restart line in the latest run"
+    onset, r1 = int(st.group(1)), rs[0]
+    if len(rs) >= 3 and "SCAN reboot" in blk:
+        return "BLOCKED", "reboot case (stall 3): use the stall 3 pass rule, not this one"
+    after_onset = [a for a in acc if a >= onset]
+    first_acc = min(after_onset) if after_onset else None
+    after_restart = [a for a in acc if a >= r1]
+    first_after_r1 = min(after_restart) if after_restart else None
+    d_restart = r1 - onset
+    ok_restart = 10000 <= d_restart <= 11000
+    ok_resume = first_after_r1 is not None and first_after_r1 - r1 <= 10000
+    msg = ("restart attempt %d ms after onset (rule 10000-11000), first accepted packet %s ms after onset, "
+           "first accepted after restart %s ms after the attempt (rule <= 10000)"
+           % (d_restart, first_acc - onset if first_acc is not None else "none",
+              first_after_r1 - r1 if first_after_r1 is not None else "none"))
+    return ("PASS" if ok_restart and ok_resume else "FAIL"), msg
+
+
 def analyze_tc72(text, min_count=1000):
     """TC-72: max processing time <= 10 ms over >= 1000 packets, no advertisement lost to a full queue."""
     p = last_dump_value(text, r"DUMP proc count=(\d+) last_us=(\d+) max_us=(\d+) avg_us=(\d+) over_10ms=(\d+)")
@@ -192,10 +236,18 @@ def cmd_analyze(a):
     text = open(path, encoding="utf-8", errors="replace").read()
     if a.tc == "TC-20":
         verdict, msg = analyze_tc20(text, a.node, a.expected, a.recheck)
+        h = beacon_hear_stats(text, a.node)
+        if h:
+            print("beacon heard per packet: packets %d, dup_count min %d max %d avg %.2f, any packet heard more than once: %s"
+                  % (h["packets"], h["min"], h["max"], h["avg"], "YES" if h["multi"] else "no"))
+        else:
+            print("beacon heard per packet: no RX lines (send 'rxlog on' before the run)")
+    elif a.tc == "TC-21":
+        verdict, msg = analyze_tc21(text)
     elif a.tc == "TC-72":
         verdict, msg = analyze_tc72(text, a.min_count)
     else:
-        print("analyze supports TC-20 and TC-72; read the other tests from the DUMP lines (see firmware/hub/README.md)")
+        print("analyze supports TC-20, TC-21 and TC-72; read the other tests from the DUMP lines (see firmware/hub/README.md)")
         return 2
     print("%s %s: %s" % (verdict, a.tc, msg))
     return {"PASS": 0, "FAIL": 1}.get(verdict, 3)
