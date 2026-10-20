@@ -73,3 +73,18 @@ PPE_TEST(dump_lists_registry_counters_queue_and_the_callbacks_identity, "TC-32")
   CHECK_EQ(out.size(), 13);                              // begin, hub, global, queue, 5 nodes, persist, proc, scan, end
   for (size_t i = 0; i < out.size(); i++) CHECK(out[i].compare(0, 5, "DUMP ") == 0 && out[i].size() < 200);
 }
+
+// A copy of the pipeline (taken by the dump hook under the lock, printed after it) must print the same dump.
+PPE_TEST(dump_of_a_copy_equals_dump_of_the_original, "TC-32") {
+  FakeHubStore st; HubPipeline h; h.init(1, V_KEY); h.load_registry(&st, 0);
+  h.process(V_A1_ADV, 21, true, 500);
+  h.process(V_A1_ADV, 21, true, 600);
+  HubDumpExtra x; memset(&x, 0, sizeof x); x.now_ms = 1000; x.queue_depth = 64;
+  std::vector<std::string> a, b;
+  hub_dump_emit(h, x, collect, &a);
+  HubPipeline snap; snap = h;
+  h.process(V_A1_ADV, 21, true, 700);             // the original moves on after the copy
+  hub_dump_emit(snap, x, collect, &b);
+  CHECK_EQ(a.size(), b.size());
+  for (size_t i = 0; i < a.size() && i < b.size(); i++) CHECK(a[i] == b[i]);
+}
