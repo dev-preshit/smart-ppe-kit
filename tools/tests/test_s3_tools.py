@@ -231,6 +231,31 @@ class HubLinkTests(unittest.TestCase):
         self.assertEqual(rc, 1)
 
 
+class AmbientJudgeTests(unittest.TestCase):
+    def test_ambient_extra_rx_and_drop_len_are_tolerated(self):
+        got = {"g.rx_total": 9, "g.drop_len": 8, "g.drop_state": 1}
+        want = {"g.rx_total": 1, "g.drop_state": 1}
+        self.assertEqual(inj.judge(got, want), (True, 8))
+
+    def test_wrong_stage_counter_still_fails(self):
+        got = {"g.rx_total": 3, "g.drop_len": 2, "g.drop_ver": 1}
+        want = {"g.rx_total": 1, "g.drop_state": 1}
+        self.assertFalse(inj.judge(got, want)[0])
+
+    def test_extra_rx_must_be_matched_by_drop_len(self):
+        got = {"g.rx_total": 4, "g.drop_state": 1}
+        want = {"g.rx_total": 1, "g.drop_state": 1}
+        self.assertFalse(inj.judge(got, want)[0])
+
+    def test_drop_len_case_with_ambient(self):
+        got = {"g.rx_total": 5, "g.drop_len": 5}
+        want = {"g.rx_total": 1, "g.drop_len": 1}
+        self.assertEqual(inj.judge(got, want), (True, 4))
+
+    def test_missing_expected_counter_fails(self):
+        self.assertFalse(inj.judge({"g.rx_total": 2, "g.drop_len": 1}, {"g.rx_total": 1, "g.drop_state": 1})[0])
+
+
 class HearStatsTests(unittest.TestCase):
     def rx(self, node, ctr, us=1):
         return "t,hub,RX,%d,%s\n" % (us, inj.signed(node, ctr).hex())

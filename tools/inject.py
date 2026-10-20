@@ -277,6 +277,19 @@ class HubLink:
 
 
 # ------------------------------------------------------------ runners
+def judge(got, want):
+    """Compare a counter delta with the expectation, allowing ambient advertisements from the room.
+    Ambient packets (phones, other devices) fail the header check, so each one adds 1 to rx_total and 1 to drop_len.
+    Pass = every counter other than rx_total and drop_len matches exactly, and the extra rx_total equals the extra
+    drop_len (>= 0). Returns (ok, ambient_count)."""
+    g = {k: v for k, v in got.items() if k not in ("g.rx_total", "g.drop_len")}
+    w = {k: v for k, v in want.items() if k not in ("g.rx_total", "g.drop_len")}
+    extra_rx = got.get("g.rx_total", 0) - want.get("g.rx_total", 0)
+    extra_drop = got.get("g.drop_len", 0) - want.get("g.drop_len", 0)
+    ok = g == w and extra_rx >= 0 and extra_drop == extra_rx
+    return ok, extra_rx
+
+
 def run_set(link, out, cases, check, settle=0.15):
     """Send every case; with --check (hub link) compare the counter delta to the expectation. Returns failures."""
     fails = 0
@@ -292,8 +305,8 @@ def run_set(link, out, cases, check, settle=0.15):
             else:
                 want = expected_diff(stage, data)
             got = diff(snap, after)
-            ok = (got == want)
-            out.note("%s %s: got %s want %s" % ("PASS" if ok else "FAIL", label, got, want))
+            ok, ambient = judge(got, want)
+            out.note("%s %s: got %s want %s ambient=%d" % ("PASS" if ok else "FAIL", label, got, want, ambient))
             fails += 0 if ok else 1
             snap = after
     return fails
@@ -438,8 +451,10 @@ def main(argv=None):
         for k in ("accepted", "dup", "replay", "hmac_fail"):
             got["n%d.%s" % (a.node, k)] = n[k]
         want = tc32_totals(a.node)
-        ok = all(got.get(k) == v for k, v in want.items())
-        out.note("%s TC-32 totals: got %s want %s" % ("PASS" if ok else "FAIL", got, want))
+        ok, ambient = judge({k: v for k, v in got.items() if v}, {k: v for k, v in want.items() if v})
+        ok = ok and all(got.get(k) == v for k, v in want.items() if k.startswith("n%d." % a.node))
+        out.note("%s TC-32 totals: got %s want %s ambient=%d (rx_total - 117; the hub counts room traffic too)"
+                 % ("PASS" if ok else "FAIL", got, want, ambient))
         fails += 0 if ok else 1
     if a.check:
         out.note("RESULT %s (%d of %d packets failed)" % ("PASS" if fails == 0 else "FAIL", fails, len(cases)))
