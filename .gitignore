@@ -58,3 +58,7 @@ test/host/build/
 test/host/gen/
 __pycache__/
 *.pyc
+
+# S3: bench build flags and Wi-Fi credentials never go into the repo
+firmware/hub/build_opt.h
+firmware/hub/wifi_secrets.h

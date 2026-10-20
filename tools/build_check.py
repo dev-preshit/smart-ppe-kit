@@ -7,7 +7,7 @@ Pinned (TOOLCHAIN.md Config A): esp32 core 3.0.7, NimBLE-Arduino 2.5.1, IDE 2.3.
 attested with --ide because arduino-cli cannot read it)."""
 import argparse, json, os, re, shutil, subprocess, sys, tempfile
 PIN = {"esp32": "3.0.7", "nimble": "2.5.1", "ide": "2.3.10"}
-HOOK_STRINGS = [b"setcounter", b"nvslog", b"skiptx", b"PPE_TEST_HOOKS"]
+HOOK_STRINGS = [b"setcounter", b"nvslog", b"skiptx", b"PPE_TEST_HOOKS", b"rxlog", b"PPE_HOOK"]
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 def run(cmd, cwd=None):

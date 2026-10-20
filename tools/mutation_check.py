@@ -14,14 +14,25 @@ MUTANTS = [  # (name, file, old, new)
  ("duplicate accepted", "ppe_filter.cpp", "if (c > last)", "if (c >= last)"),
  ("counter big-endian", "ppe_proto.cpp", "p[0] = (uint8_t)(v);       p[1] = (uint8_t)(v >> 8);", "p[1] = (uint8_t)(v);       p[0] = (uint8_t)(v >> 8);"),
  ("hmac verify always true", "ppe_crypto.cpp", "return ppe_ct_equal(tag, payload + PPE_OFF_HMAC, PPE_HMAC_LEN);", "return true;"),
+ # S3 hub logic (firmware/hub/src), paths relative to the repo root
+ ("hub: duplicate updates last_seen", "firmware/hub/src/hub_pipeline.cpp", "n.c.dup_count++; ", "n.c.dup_count++; n.last_seen_ms = now_ms; "),
+ ("hub: anomaly not rate limited", "firmware/hub/src/hub_pipeline.cpp", "if (!n.anomaly_valid || (uint32_t)(now_ms - n.anomaly_ms) >= HUB_ANOMALY_LIMIT_MS) {", "if (true) {"),
+ ("hub: rx_total not counted", "firmware/hub/src/hub_pipeline.cpp", "  g_.rx_total++;\n", ""),
+ ("hub: replay lowers last_counter", "firmware/hub/src/hub_pipeline.cpp", "n.c.replay_count++;", "n.c.replay_count++; n.last_counter = p.counter;"),
+ ("hub: states not UNKNOWN after load", "firmware/hub/src/hub_pipeline.cpp", "n.state = HUB_NODE_UNKNOWN;       //", "n.state = HUB_NODE_WORN;       //"),
+ ("hub: hmac_fail counted as drop_state", "firmware/hub/src/hub_pipeline.cpp", "node_[p.node_id].c.hmac_fail++;", "g_.drop_state++;"),
+ ("hub: scan reboot after 4 failures", "firmware/hub/src/hub_scan_supervisor.cpp", "if (fails_ >= HUB_SCAN_MAX_FAILS)", "if (fails_ > HUB_SCAN_MAX_FAILS)"),
+ ("hub: restart before 10 s stall", "firmware/hub/src/hub_scan_supervisor.cpp", "< HUB_SCAN_STALL_MS) return t;", "< HUB_SCAN_STALL_MS - 2000u) return t;"),
+ ("hub: persist accepts lower value", "firmware/hub/src/hub_persist.cpp", "if (has_[node_id] && (int32_t)(counter - value_[node_id]) < 0) return;", ""),
+ ("hub: inject hex accepts odd digits", "firmware/hub/src/hub_hooks.cpp", "if (hi >= 0) return false;\n  *len", "*len"),
 ]
 def main():
     survivors = 0
     for name, f, old, new in MUTANTS:
         with tempfile.TemporaryDirectory() as t:
-            for d in ("common", "tools", "test"):
+            for d in ("common", "tools", "test", "firmware"):
                 shutil.copytree(os.path.join(ROOT, d), os.path.join(t, d), ignore=shutil.ignore_patterns("build", "gen", "__pycache__"))
-            p = os.path.join(t, "common", "src", f); s = open(p).read()
+            p = os.path.join(t, f) if "/" in f else os.path.join(t, "common", "src", f); s = open(p).read()
             if old not in s: print("MUTATION NOT APPLICABLE:", name); survivors += 1; continue
             open(p, "w").write(s.replace(old, new, 1))
             r = subprocess.run(["make", "-C", os.path.join(t, "test", "host"), "test"], capture_output=True, text=True)
