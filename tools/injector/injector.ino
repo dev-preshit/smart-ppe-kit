@@ -41,13 +41,12 @@ static bool parseHex(const char* s, uint8_t* out, size_t max, size_t* n, const c
 }
 
 static void sendCopy(const uint8_t* data, size_t len) {
+  // Only the raw bytes are set here. setConnectableMode/enableScanResponse are done once in setup():
+  // calling them after setAdvertisementData made NimBLE append a 3-byte Flags AD (02 01 04), so every
+  // packet reached the air as 24 bytes (bench finding 2026-10-21).
   NimBLEAdvertisementData ad;
   if (len) ad.addData(data, len);                 // raw bytes, nothing added or fixed by the library
   advertising->setAdvertisementData(ad);
-  advertising->enableScanResponse(false);
-  advertising->setConnectableMode(BLE_GAP_CONN_MODE_NON);
-  advertising->setMinInterval(0x20);              // 20 ms
-  advertising->setMaxInterval(0x30);              // 30 ms
   if (!advertising->start(ADV_BURST_MS)) Serial.printf("ERR seq=%lu advertising start failed\n", (unsigned long)seq);
   delay(ADV_BURST_MS + 10);
   advertising->stop();
@@ -81,6 +80,10 @@ void setup() {
   NimBLEDevice::init("");
   NimBLEDevice::setPower(3);
   advertising = NimBLEDevice::getAdvertising();
+  advertising->setConnectableMode(BLE_GAP_CONN_MODE_NON);   // once, before any data is set
+  advertising->enableScanResponse(false);
+  advertising->setMinInterval(0x20);              // 20 ms
+  advertising->setMaxInterval(0x30);              // 30 ms
   Serial.println("INJECTOR ready");
 }
 

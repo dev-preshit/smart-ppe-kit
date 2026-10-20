@@ -46,11 +46,7 @@ static void sendOne() {
   ppe_make_adv(payload, adv);
   NimBLEAdvertisementData ad;
   ad.addData(adv, PPE_ADV_LEN);
-  advertising->setAdvertisementData(ad);
-  advertising->enableScanResponse(false);
-  advertising->setConnectableMode(BLE_GAP_CONN_MODE_NON);
-  advertising->setMinInterval(0x20);
-  advertising->setMaxInterval(0x30);
+  advertising->setAdvertisementData(ad);            // mode/interval are set once in setup(): see injector note
   bool ok = advertising->start(ADV_BURST_MS);
   Serial.printf("BEACON t_ms=%lu node=%u ctr=%lu adv=%s\n", (unsigned long)millis(), BEACON_NODE_ID, (unsigned long)c, ok ? "ok" : "FAIL");
   delay(ADV_BURST_MS + 10);
@@ -67,6 +63,10 @@ void setup() {
   NimBLEDevice::init("");
   NimBLEDevice::setPower(3);
   advertising = NimBLEDevice::getAdvertising();
+  advertising->setConnectableMode(BLE_GAP_CONN_MODE_NON);   // once, before any data is set
+  advertising->enableScanResponse(false);
+  advertising->setMinInterval(0x20);
+  advertising->setMaxInterval(0x30);
   Serial.printf("BEACON ready, node %u every %d s\n", BEACON_NODE_ID, BEACON_PERIOD_S);
   nextAt = millis();
 }
