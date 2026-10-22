@@ -28,6 +28,18 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import gen_vectors as gv
 
+
+def open_serial(port, baud, timeout=0.2):
+    """Open a port with DTR and RTS low. pyserial raises both on open, which resets the ESP32 board
+    (same fix as open_serial in s3_capture.py, bench finding 2026-10-21)."""
+    import serial
+    s = serial.Serial(None, baud, timeout=timeout)
+    s.port = port
+    s.dtr = False
+    s.rts = False
+    s.open()
+    return s
+
 DUP, REPLAY = 100, 101      # counter-rule outcomes (step 7); the gen_vectors codes only cover steps 1-6
 STAGE = {DUP: "DUPLICATE", REPLAY: "REPLAY", gv.OK: "ACCEPT", gv.DROP_LEN: "DROP_LEN", gv.DROP_VER: "DROP_VER", gv.DROP_VEST: "DROP_VEST",
          gv.DROP_NODE: "DROP_NODE", gv.HMAC_FAIL: "HMAC_FAIL", gv.DROP_STATE: "DROP_STATE"}
@@ -216,8 +228,7 @@ class Out:
 
 class InjectorLink:
     def __init__(self, port, baud=115200, copies=1, spacing_ms=500):
-        import serial
-        self.s = serial.Serial(port, baud, timeout=0.2)
+        self.s = open_serial(port, baud)
         self.copies, self.spacing = copies, spacing_ms
         time.sleep(0.3)
         self.s.reset_input_buffer()
@@ -239,8 +250,7 @@ class InjectorLink:
 
 class HubLink:
     def __init__(self, port, baud=115200, copies=1, spacing_ms=0):
-        import serial
-        self.s = serial.Serial(port, baud, timeout=0.2)
+        self.s = open_serial(port, baud)
         self.copies, self.spacing = copies, spacing_ms
         time.sleep(0.3)
         self.s.reset_input_buffer()

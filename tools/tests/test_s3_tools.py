@@ -173,10 +173,19 @@ class FakeSerialModule:
     class Serial:
         model = None
         written = []
+        at_open = None          # (dtr, rts) as they were at the moment the port opened
 
         def __init__(self, *a, **k):
             self.pending = []
+            self.dtr = True     # pyserial default: both lines high, which resets an ESP32 board
+            self.rts = True
             FakeSerialModule.Serial.written = []
+            FakeSerialModule.Serial.at_open = None
+            if a and a[0] is not None:      # pyserial opens inside the constructor when a port is given
+                self.open()
+
+        def open(self):
+            FakeSerialModule.Serial.at_open = (self.dtr, self.rts)
 
         def reset_input_buffer(self):
             pass
@@ -229,6 +238,38 @@ class HubLinkTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             rc = inj.main(["--via", "hub", "--port", "COMX", "--check", "defects", "--ctr", "300"])
         self.assertEqual(rc, 1)
+
+
+class OpenSerialTests(unittest.TestCase):
+    """Bench finding 2026-10-21: pyserial raises DTR and RTS on open and that resets the ESP32 board.
+    Every port the tools open must have both lines low before open()."""
+
+    def setUp(self):
+        self.saved = sys.modules.get("serial")
+        sys.modules["serial"] = FakeSerialModule
+        FakeSerialModule.Serial.model = ModelHub()
+
+    def tearDown(self):
+        if self.saved is not None:
+            sys.modules["serial"] = self.saved
+        else:
+            del sys.modules["serial"]
+
+    def test_capture_open_serial_has_dtr_and_rts_low_at_open(self):
+        cap.open_serial("COMX", 115200)
+        self.assertEqual(FakeSerialModule.Serial.at_open, (False, False))
+
+    def test_inject_open_serial_has_dtr_and_rts_low_at_open(self):
+        inj.open_serial("COMX", 115200)
+        self.assertEqual(FakeSerialModule.Serial.at_open, (False, False))
+
+    def test_hub_link_opens_with_dtr_and_rts_low(self):
+        inj.HubLink("COMX")
+        self.assertEqual(FakeSerialModule.Serial.at_open, (False, False))
+
+    def test_injector_link_opens_with_dtr_and_rts_low(self):
+        inj.InjectorLink("COMX")
+        self.assertEqual(FakeSerialModule.Serial.at_open, (False, False))
 
 
 class AmbientJudgeTests(unittest.TestCase):
