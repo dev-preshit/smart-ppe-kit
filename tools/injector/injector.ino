@@ -81,6 +81,7 @@ void setup() {
   NimBLEDevice::setPower(3);
   advertising = NimBLEDevice::getAdvertising();
   advertising->setConnectableMode(BLE_GAP_CONN_MODE_NON);   // once, before any data is set
+  advertising->setDiscoverableMode(BLE_GAP_DISC_MODE_NON);  // conn NON + disc NON = ADV_NONCONN_IND; any other disc mode sends ADV_SCAN_IND (NimBLE ble_gap_adv_type), which the hub drops
   advertising->enableScanResponse(false);
   advertising->setMinInterval(0x20);              // 20 ms
   advertising->setMaxInterval(0x30);              // 30 ms
