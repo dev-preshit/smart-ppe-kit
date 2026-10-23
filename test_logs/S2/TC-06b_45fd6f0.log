@@ -1,0 +1,29 @@
+# tc=TC-06b
+# sha=45fd6f0
+# date=2026-10-23T08:13:17.525
+# tool=logger.py
+2026-10-23T08:13:18.077 | TX set grace 25
+2026-10-23T08:13:18.077 | TX set settle 0
+2026-10-23T08:13:18.078 | TX adc 50
+2026-10-23T08:13:18.078 | TX show
+2026-10-23T08:13:18.079 | CFG type=0 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T08:13:18.079 | OK set grace
+2026-10-23T08:13:18.079 | CFG type=0 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T08:13:18.079 | OK set settle
+2026-10-23T08:13:18.079 | OK adc 50
+2026-10-23T08:13:18.079 | CFG type=0 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T08:13:18.185 | STATE confirmed=1/0 candidate=1/0 grace=0 adc_inject=50 adc_fail=0
+2026-10-23T08:13:18.201 | TX adc 2000
+2026-10-23T08:13:18.294 | OK adc 2000
+2026-10-23T08:13:18.294 | MARK RAW 2666956004 state=2 fault=0
+2026-10-23T08:13:18.294 | MARK CAND 2666956059 state=2 fault=0
+2026-10-23T08:13:18.294 | [2666956] I node: candidate state=2 fault=0
+2026-10-23T08:13:18.294 | MARK GRACE_START 2666956264
+2026-10-23T08:13:28.203 | TX adc 50
+2026-10-23T08:13:28.221 | OK adc 50
+2026-10-23T08:13:28.329 | MARK RAW 2676956006 state=1 fault=0
+2026-10-23T08:13:28.329 | MARK CAND 2676956063 state=1 fault=0
+2026-10-23T08:13:28.329 | [2676956] I node: candidate state=1 fault=0
+2026-10-23T08:13:28.329 | MARK GRACE_CANCEL 2676956277
+# ANALYSIS b: GRACE_CANCEL=1 CONFIRM=0 (expect >=1 and 0)
+# ANALYSIS RESULT PASS
