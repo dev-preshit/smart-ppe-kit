@@ -45,6 +45,19 @@ def check_grace(marks, grace_s, scenario, include_boot=False):
         cancels = sum(1 for m in marks if m[0] == "GRACE_CANCEL")
         out.append("b: GRACE_CANCEL=%d CONFIRM=%d (expect >=1 and 0)" % (cancels, len(confirms)))
         return cancels >= 1 and len(confirms) == 0, out
+    if scenario in ("a", "d"):                    # every trial is a real change: each GRACE_START episode must end in CONFIRM
+        ends = []
+        for i, m in enumerate(marks):
+            if m[0] == "GRACE_START":
+                ends.append(next((x[0] for x in marks[i + 1:]
+                                  if x[0] in ("CONFIRM", "CONFIRM_BOOT", "GRACE_CANCEL", "GRACE_START")), None))
+        boot = ends.count("CONFIRM_BOOT")          # the power-on grace is not a trial (ignored unless --include-boot)
+        trials = [e for e in ends if e != "CONFIRM_BOOT"]
+        good = len(trials) > 0 and all(e == "CONFIRM" for e in trials)
+        out.append("%s: trials=%d, each ends in CONFIRM: %s, boot episodes ignored=%d %s"
+                   % (scenario, len(trials), "yes" if good else "no", boot, "ok" if good else "FAIL"))
+        if not good:
+            return False, out
     if not confirms:
         return False, ["no CONFIRM mark found"]
     for ci in confirms:

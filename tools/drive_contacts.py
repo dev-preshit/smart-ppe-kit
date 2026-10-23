@@ -76,6 +76,8 @@ def analyze(path, kind, extra, tc, summary=True):
 
 def open_cap(a):
     path = logger.log_path(a.tc)
+    if os.path.exists(path):                      # never append to an old run's log
+        sys.exit("refused: %s already exists. Commit a new sha, or move the old log to test_logs/invalid/ first." % path)
     cap = logger.Capture(a.port, 115200, path, logger.header_lines(a.tc, a.waived))
     time.sleep(0.5)
     return cap, path
@@ -171,12 +173,31 @@ def do_settle(a):
     return rc
 
 
+def ensure_not_worn(cap, grace):
+    """Precondition for the grace scenarios: the node must be confirmed NOT_WORN (1/0) before trial 1.
+    Returns None when confirmed, otherwise the reason."""
+    cap.send("adc 50")
+    if not wait_boot_confirmed(cap, 40 + grace):
+        return "boot grace never completed"
+    last, t_end = None, time.time() + grace + 10
+    while time.time() < t_end:
+        last = confirmed(cap)
+        if last == (1, 0):
+            return None
+        time.sleep(1)
+    return "node not confirmed NOT_WORN (last confirmed=%s) within %d s of adc 50" % (last, grace + 10)
+
+
 def do_grace(a):
     cap, path = open_cap(a)
-    cap.send("set grace %d" % a.grace); cap.send("set settle 0"); cap.send("adc 50")
-    if not wait_boot_confirmed(cap, 40 + a.grace):
-        cap.note("# RESULT boot grace never completed"); cap.close()
-        print("FAIL: node never completed the boot grace, see", path); return 1
+    cap.send("set grace %d" % a.grace); cap.send("set settle 0")
+    why = ensure_not_worn(cap, a.grace)
+    if why:
+        cap.note("# RESULT precondition failed: " + why); cap.close()
+        invalid = os.path.normpath(os.path.join(os.path.dirname(path), "..", "invalid"))
+        os.makedirs(invalid, exist_ok=True)
+        os.replace(path, os.path.join(invalid, os.path.basename(path)))
+        print("FAIL precondition: %s. Log moved to %s, no summary row." % (why, invalid)); return 1
     hi, lo = 2000, 50
     if a.scenario in ("a", "d"):
         for i in range(a.trials):
