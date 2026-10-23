@@ -160,7 +160,7 @@ def do_settle(a):
     cap.note("# STEP pulse end")
     cap.note("# STEP hold begin")
     for _ in range(a.n):                         # step 3: 600 ms holds
-        cap.send("adc 2000"); time.sleep(0.7); cap.send("adc 50"); time.sleep(1.5)
+        cap.send("adc 2000"); time.sleep(0.6); cap.send("adc 50"); time.sleep(1.5)
     cap.note("# STEP hold end")
     cap.close()
     rc = analyze(path, "settle", ["--mode", "s0", "--step", "s0"], a.tc, summary=False)

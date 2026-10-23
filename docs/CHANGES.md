@@ -22,3 +22,4 @@
 2026-10-20 | A-11 amended by the owner: S2 summary rows go to test_logs/summary_s2.csv (S3 uses summary_s3.csv); same header TC,sprint,date,sha,result; logger.py writes only the story's own file | two stories ran in parallel and shared one file
 2026-10-20 | S2 build tool node_build.py passes this checkout's common/ with --library and refuses to continue if the compiler used another ppe_common | the Arduino user-library link pointed at a renamed folder, two worktrees now exist
 2026-10-23 | esp32 core 3.3.12 (not 3.0.7) used for S2 builds and bench runs, including TC-03 | 3.3.12 is the installed core; keeping one core for all S2 evidence
+2026-10-23 | TC-05 hold: driver holds 600 ms (plan); hold check is CAND within 600 ms of RAW, 500 ms lower bound removed | 500 ms lower bound failed on 499.x ms (node settle uses millis(), marks use micros()); plan has no lower bound; manager approval needed

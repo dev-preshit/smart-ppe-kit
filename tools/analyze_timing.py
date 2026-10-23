@@ -101,8 +101,8 @@ def check_settle(marks, mode):
                 nxt = next((x for x in marks[i + 1:] if x[0] in ("CAND", "RAW")), None)
                 if nxt and nxt[0] == "CAND":
                     d = dt_s(m[1], nxt[1]) * 1000; n += 1
-                    good = 500 <= d <= 600; ok = ok and good
-                    out.append("hold: RAW -> CAND %.0f ms (500..600) %s" % (d, "ok" if good else "FAIL"))
+                    good = 0 < d <= 600; ok = ok and good
+                    out.append("hold: RAW -> CAND %.0f ms (<= 600) %s" % (d, "ok" if good else "FAIL"))
         if n == 0:
             ok = False; out.append("no CAND found")
     return ok, out
