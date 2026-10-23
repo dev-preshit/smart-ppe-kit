@@ -1,0 +1,96 @@
+# tc=TC-02
+# sha=446ae31
+# date=2026-10-23T10:42:35.757
+# tool=logger.py
+# trials=5 waived
+2026-10-23T10:42:41.654 | MARK RAW 107356004 state=2 fault=0
+2026-10-23T10:42:41.654 | MARK CAND 107356055 state=2 fault=0
+2026-10-23T10:42:41.654 | [107356] I node: candidate state=2 fault=0
+2026-10-23T10:42:41.654 | MARK GRACE_START 107356261
+2026-10-23T10:42:42.299 | EXPECT candidate=2 (CONNECT)
+2026-10-23T10:42:44.300 | TX show
+2026-10-23T10:42:44.374 | CFG type=1 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T10:42:44.375 | STATE confirmed=1/0 candidate=2/0 grace=1 adc_inject=-1 adc_fail=0
+2026-10-23T10:42:45.244 | MARK RAW 111006003 state=1 fault=0
+2026-10-23T10:42:45.245 | MARK CAND 111006057 state=1 fault=0
+2026-10-23T10:42:45.245 | [111006] I node: candidate state=1 fault=0
+2026-10-23T10:42:45.245 | MARK GRACE_CANCEL 111006256
+2026-10-23T10:42:46.255 | EXPECT candidate=1 (DISCONNECT)
+2026-10-23T10:42:48.255 | TX show
+2026-10-23T10:42:48.290 | CFG type=1 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T10:42:48.290 | STATE confirmed=1/0 candidate=1/0 grace=0 adc_inject=-1 adc_fail=0
+2026-10-23T10:42:49.050 | MARK RAW 114806004 state=2 fault=0
+2026-10-23T10:42:49.050 | MARK CAND 114806059 state=2 fault=0
+2026-10-23T10:42:49.050 | [114806] I node: candidate state=2 fault=0
+2026-10-23T10:42:49.050 | MARK GRACE_START 114806258
+2026-10-23T10:42:49.508 | EXPECT candidate=2 (CONNECT)
+2026-10-23T10:42:51.508 | TX show
+2026-10-23T10:42:51.559 | CFG type=1 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T10:42:51.560 | STATE confirmed=1/0 candidate=2/0 grace=1 adc_inject=-1 adc_fail=0
+2026-10-23T10:42:52.319 | MARK RAW 118056005 state=1 fault=0
+2026-10-23T10:42:52.319 | MARK CAND 118056060 state=1 fault=0
+2026-10-23T10:42:52.319 | [118056] I node: candidate state=1 fault=0
+2026-10-23T10:42:52.319 | MARK GRACE_CANCEL 118056263
+2026-10-23T10:42:52.852 | EXPECT candidate=1 (DISCONNECT)
+2026-10-23T10:42:54.853 | TX show
+2026-10-23T10:42:54.934 | CFG type=1 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T10:42:54.934 | STATE confirmed=1/0 candidate=1/0 grace=0 adc_inject=-1 adc_fail=0
+2026-10-23T10:42:55.699 | MARK RAW 121406006 state=2 fault=0
+2026-10-23T10:42:55.699 | MARK CAND 121406061 state=2 fault=0
+2026-10-23T10:42:55.699 | [121406] I node: candidate state=2 fault=0
+2026-10-23T10:42:55.699 | MARK GRACE_START 121406265
+2026-10-23T10:42:56.409 | EXPECT candidate=2 (CONNECT)
+2026-10-23T10:42:58.410 | TX show
+2026-10-23T10:42:58.419 | CFG type=1 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T10:42:58.419 | STATE confirmed=1/0 candidate=2/0 grace=1 adc_inject=-1 adc_fail=0
+2026-10-23T10:42:59.181 | MARK RAW 124956005 state=1 fault=0
+2026-10-23T10:42:59.181 | MARK CAND 124956059 state=1 fault=0
+2026-10-23T10:42:59.181 | [124956] I node: candidate state=1 fault=0
+2026-10-23T10:42:59.181 | MARK GRACE_CANCEL 124956258
+2026-10-23T10:42:59.822 | EXPECT candidate=1 (DISCONNECT)
+2026-10-23T10:43:01.823 | TX show
+2026-10-23T10:43:01.906 | CFG type=1 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T10:43:01.906 | STATE confirmed=1/0 candidate=1/0 grace=0 adc_inject=-1 adc_fail=0
+2026-10-23T10:43:02.667 | MARK RAW 128456006 state=2 fault=0
+2026-10-23T10:43:02.667 | MARK CAND 128456061 state=2 fault=0
+2026-10-23T10:43:02.667 | [128456] I node: candidate state=2 fault=0
+2026-10-23T10:43:02.667 | MARK GRACE_START 128456260
+2026-10-23T10:43:03.218 | EXPECT candidate=2 (CONNECT)
+2026-10-23T10:43:05.218 | TX show
+2026-10-23T10:43:05.281 | CFG type=1 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T10:43:05.281 | STATE confirmed=1/0 candidate=2/0 grace=1 adc_inject=-1 adc_fail=0
+2026-10-23T10:43:06.040 | MARK RAW 131756005 state=1 fault=0
+2026-10-23T10:43:06.040 | MARK CAND 131756059 state=1 fault=0
+2026-10-23T10:43:06.040 | [131756] I node: candidate state=1 fault=0
+2026-10-23T10:43:06.040 | MARK GRACE_CANCEL 131756269
+2026-10-23T10:43:06.503 | EXPECT candidate=1 (DISCONNECT)
+2026-10-23T10:43:08.503 | TX show
+2026-10-23T10:43:08.547 | CFG type=1 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T10:43:08.547 | STATE confirmed=1/0 candidate=1/0 grace=0 adc_inject=-1 adc_fail=0
+2026-10-23T10:43:09.091 | MARK RAW 134856004 state=2 fault=0
+2026-10-23T10:43:09.091 | MARK CAND 134856059 state=2 fault=0
+2026-10-23T10:43:09.091 | [134856] I node: candidate state=2 fault=0
+2026-10-23T10:43:09.091 | MARK GRACE_START 134856263
+2026-10-23T10:43:09.653 | EXPECT candidate=2 (CONNECT)
+2026-10-23T10:43:11.654 | TX show
+2026-10-23T10:43:11.712 | CFG type=1 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T10:43:11.712 | STATE confirmed=1/0 candidate=2/0 grace=1 adc_inject=-1 adc_fail=0
+2026-10-23T10:43:12.692 | MARK RAW 138456003 state=1 fault=0
+2026-10-23T10:43:12.692 | MARK CAND 138456057 state=1 fault=0
+2026-10-23T10:43:12.692 | [138456] I node: candidate state=1 fault=0
+2026-10-23T10:43:12.692 | MARK GRACE_CANCEL 138456261
+2026-10-23T10:43:13.111 | EXPECT candidate=1 (DISCONNECT)
+2026-10-23T10:43:15.111 | TX show
+2026-10-23T10:43:15.192 | CFG type=1 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T10:43:15.192 | STATE confirmed=1/0 candidate=1/0 grace=0 adc_inject=-1 adc_fail=0
+2026-10-23T10:43:15.193 | # RESULT cycle 1 CONNECT expect 2 got (2, 0) ok
+2026-10-23T10:43:15.193 | # RESULT cycle 1 DISCONNECT expect 1 got (1, 0) ok
+2026-10-23T10:43:15.193 | # RESULT cycle 2 CONNECT expect 2 got (2, 0) ok
+2026-10-23T10:43:15.193 | # RESULT cycle 2 DISCONNECT expect 1 got (1, 0) ok
+2026-10-23T10:43:15.193 | # RESULT cycle 3 CONNECT expect 2 got (2, 0) ok
+2026-10-23T10:43:15.193 | # RESULT cycle 3 DISCONNECT expect 1 got (1, 0) ok
+2026-10-23T10:43:15.193 | # RESULT cycle 4 CONNECT expect 2 got (2, 0) ok
+2026-10-23T10:43:15.193 | # RESULT cycle 4 DISCONNECT expect 1 got (1, 0) ok
+2026-10-23T10:43:15.193 | # RESULT cycle 5 CONNECT expect 2 got (2, 0) ok
+2026-10-23T10:43:15.193 | # RESULT cycle 5 DISCONNECT expect 1 got (1, 0) ok
+2026-10-23T10:43:15.193 | # RESULT TC-02 PASS

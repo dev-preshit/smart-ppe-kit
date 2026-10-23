@@ -27,3 +27,4 @@
 2026-10-23 | .gitignore: exception so test_logs/S2/*.log is tracked (*.log rule kept for everything else) | A-11 evidence logs must be in the repo
 2026-10-23 | TC-06d run at 45fd6f0 is invalid: scenario d started from WORN (left by scenario c), so trial 0 was a cancelled grace start; the analyzer passed a run with a missing CONFIRM; summary row removed, log moved to test_logs/invalid/ | setup error plus analyzer gap, not a node fault
 2026-10-23 | grace tests: driver sets NOT_WORN and checks show confirmed=1/0 before trial 1, aborts if not; refuses to append to an existing log; analyzer scenarios a and d fail unless each trial ends in CONFIRM with no GRACE_CANCEL | fix for the invalid TC-06d run; boot episodes still ignored by default
+2026-10-23 | glove contact: closed reads pin LOW (owner-confirmed); default closed-level 0 kept, no build change | answers open question 7.3 Q1 / B-02
