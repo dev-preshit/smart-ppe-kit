@@ -58,3 +58,6 @@ test/host/build/
 test/host/gen/
 __pycache__/
 *.pyc
+
+# S2 bench evidence is committed (A-11)
+!test_logs/S2/*.log

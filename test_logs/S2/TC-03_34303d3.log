@@ -1,0 +1,85 @@
+# tc=TC-03
+# sha=34303d3
+# date=2026-10-23T07:27:35.500
+# tool=logger.py
+2026-10-23T07:27:36.058 | TX show
+2026-10-23T07:27:36.106 | CFG type=0 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T07:27:36.106 | STATE confirmed=0/0 candidate=1/0 grace=1 adc_inject=800 adc_fail=0
+2026-10-23T07:27:36.121 | # RESULT TC-03 step2 PASS (power-on count 800, candidate 1/0, adc_inject 800)
+# tc=TC-03
+# sha=34303d3
+# date=2026-10-23T07:28:53.929
+# tool=logger.py
+2026-10-23T07:28:54.467 | TX set settle 0
+2026-10-23T07:28:54.467 | TX adc 0
+2026-10-23T07:28:54.518 | CFG type=0 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T07:28:54.519 | OK set settle
+2026-10-23T07:28:54.519 | OK adc 0
+2026-10-23T07:28:54.768 | TX show
+2026-10-23T07:28:54.844 | CFG type=0 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T07:28:54.844 | STATE confirmed=0/0 candidate=1/0 grace=1 adc_inject=0 adc_fail=0
+2026-10-23T07:28:54.854 | TX adc 88
+2026-10-23T07:28:54.952 | OK adc 88
+2026-10-23T07:28:55.155 | TX show
+2026-10-23T07:28:55.170 | CFG type=0 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T07:28:55.170 | STATE confirmed=0/0 candidate=1/0 grace=1 adc_inject=88 adc_fail=0
+2026-10-23T07:28:55.176 | TX adc 89
+2026-10-23T07:28:55.280 | OK adc 89
+2026-10-23T07:28:55.476 | TX show
+2026-10-23T07:28:55.499 | CFG type=0 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T07:28:55.499 | STATE confirmed=0/0 candidate=1/0 grace=1 adc_inject=89 adc_fail=0
+2026-10-23T07:28:55.518 | TX adc 800
+2026-10-23T07:28:55.608 | OK adc 800
+2026-10-23T07:28:55.819 | TX show
+2026-10-23T07:28:55.824 | CFG type=0 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T07:28:55.824 | STATE confirmed=0/0 candidate=1/0 grace=1 adc_inject=800 adc_fail=0
+2026-10-23T07:28:55.840 | TX adc 1536
+2026-10-23T07:28:55.934 | OK adc 1536
+2026-10-23T07:28:56.141 | TX show
+2026-10-23T07:28:56.153 | CFG type=0 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T07:28:56.153 | STATE confirmed=0/0 candidate=1/0 grace=1 adc_inject=1536 adc_fail=0
+2026-10-23T07:28:56.162 | TX adc 1537
+2026-10-23T07:28:56.262 | OK adc 1537
+2026-10-23T07:28:56.263 | MARK RAW 4856005 state=2 fault=0
+2026-10-23T07:28:56.263 | MARK CAND 4856056 state=2 fault=0
+2026-10-23T07:28:56.263 | [4856] I node: candidate state=2 fault=0
+2026-10-23T07:28:56.263 | MARK GRACE_START 4856254
+2026-10-23T07:28:56.463 | TX show
+2026-10-23T07:28:56.479 | CFG type=0 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T07:28:56.479 | STATE confirmed=0/0 candidate=2/0 grace=1 adc_inject=1537 adc_fail=0
+2026-10-23T07:28:56.485 | TX adc 4095
+2026-10-23T07:28:56.588 | OK adc 4095
+2026-10-23T07:28:56.785 | TX show
+2026-10-23T07:28:56.806 | CFG type=0 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T07:28:56.806 | STATE confirmed=0/0 candidate=2/0 grace=1 adc_inject=4095 adc_fail=0
+2026-10-23T07:28:56.806 | TX adc 1536
+2026-10-23T07:28:56.916 | OK adc 1536
+2026-10-23T07:28:57.107 | TX show
+2026-10-23T07:28:57.133 | CFG type=0 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T07:28:57.134 | STATE confirmed=0/0 candidate=2/0 grace=1 adc_inject=1536 adc_fail=0
+2026-10-23T07:28:57.149 | TX adc 89
+2026-10-23T07:28:57.241 | OK adc 89
+2026-10-23T07:28:57.449 | TX show
+2026-10-23T07:28:57.459 | CFG type=0 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T07:28:57.459 | STATE confirmed=0/0 candidate=2/0 grace=1 adc_inject=89 adc_fail=0
+2026-10-23T07:28:57.470 | TX adc 88
+2026-10-23T07:28:57.568 | OK adc 88
+2026-10-23T07:28:57.568 | MARK RAW 6156005 state=1 fault=0
+2026-10-23T07:28:57.568 | MARK CAND 6156056 state=1 fault=0
+2026-10-23T07:28:57.568 | [6156] I node: candidate state=1 fault=0
+2026-10-23T07:28:57.568 | MARK GRACE_START 6156248
+2026-10-23T07:28:57.772 | TX show
+2026-10-23T07:28:57.787 | CFG type=0 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T07:28:57.787 | STATE confirmed=0/0 candidate=1/0 grace=1 adc_inject=88 adc_fail=0
+2026-10-23T07:28:57.812 | # RESULT count 0 expect state 1 got (1, 0) ok
+2026-10-23T07:28:57.812 | # RESULT count 88 expect state 1 got (1, 0) ok
+2026-10-23T07:28:57.812 | # RESULT count 89 expect state 1 got (1, 0) ok
+2026-10-23T07:28:57.812 | # RESULT count 800 expect state 1 got (1, 0) ok
+2026-10-23T07:28:57.812 | # RESULT count 1536 expect state 1 got (1, 0) ok
+2026-10-23T07:28:57.813 | # RESULT count 1537 expect state 2 got (2, 0) ok
+2026-10-23T07:28:57.813 | # RESULT count 4095 expect state 2 got (2, 0) ok
+2026-10-23T07:28:57.813 | # RESULT count 1536 expect state 2 got (2, 0) ok
+2026-10-23T07:28:57.813 | # RESULT count 89 expect state 2 got (2, 0) ok
+2026-10-23T07:28:57.813 | # RESULT count 88 expect state 1 got (1, 0) ok
+2026-10-23T07:28:57.813 | # RESULT step 2 (power-on 800 gives NOT_WORN) PASS, found in this log
+2026-10-23T07:28:57.813 | # RESULT TC-03 PASS
