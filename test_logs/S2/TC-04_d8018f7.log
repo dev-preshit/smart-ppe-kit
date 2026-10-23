@@ -1,0 +1,45 @@
+# tc=TC-04
+# sha=d8018f7
+# date=2026-10-23T10:50:14.471
+# tool=logger.py
+2026-10-23T10:50:20.421 | EXPECT candidate=1 (crown=0 strap=0)
+2026-10-23T10:50:22.422 | TX show
+2026-10-23T10:50:22.439 | CFG type=2 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T10:50:22.439 | STATE confirmed=1/0 candidate=1/0 grace=0 adc_inject=-1 adc_fail=0
+2026-10-23T10:50:41.742 | EXPECT candidate=1 (crown=1 strap=0)
+2026-10-23T10:50:43.743 | TX show
+2026-10-23T10:50:43.816 | CFG type=2 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T10:50:43.816 | STATE confirmed=1/0 candidate=1/0 grace=0 adc_inject=-1 adc_fail=0
+2026-10-23T10:50:48.714 | EXPECT candidate=1 (crown=0 strap=1)
+2026-10-23T10:50:50.714 | TX show
+2026-10-23T10:50:50.784 | CFG type=2 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T10:50:50.784 | STATE confirmed=1/0 candidate=1/0 grace=0 adc_inject=-1 adc_fail=0
+2026-10-23T10:50:53.231 | MARK RAW 91406004 state=2 fault=0
+2026-10-23T10:50:53.231 | MARK CAND 91406058 state=2 fault=0
+2026-10-23T10:50:53.231 | [91406] I node: candidate state=2 fault=0
+2026-10-23T10:50:53.231 | MARK GRACE_START 91406259
+2026-10-23T10:50:53.231 | MARK RAW 91456003 state=1 fault=0
+2026-10-23T10:50:53.231 | MARK CAND 91456056 state=1 fault=0
+2026-10-23T10:50:53.231 | [91456] I node: candidate state=1 fault=0
+2026-10-23T10:50:53.343 | MARK GRACE_CANCEL 91456252
+2026-10-23T10:50:53.343 | MARK RAW 91506005 state=2 fault=0
+2026-10-23T10:50:53.343 | MARK CAND 91506058 state=2 fault=0
+2026-10-23T10:50:53.343 | [91506] I node: candidate state=2 fault=0
+2026-10-23T10:50:53.343 | MARK GRACE_START 91506258
+2026-10-23T10:50:54.160 | EXPECT candidate=2 (crown=1 strap=1)
+2026-10-23T10:50:55.423 | MARK RAW 93606006 state=1 fault=0
+2026-10-23T10:50:55.423 | MARK CAND 93606059 state=1 fault=0
+2026-10-23T10:50:55.423 | [93606] I node: candidate state=1 fault=0
+2026-10-23T10:50:55.423 | MARK GRACE_CANCEL 93606253
+2026-10-23T10:50:55.532 | MARK RAW 93756005 state=2 fault=0
+2026-10-23T10:50:55.532 | MARK CAND 93756057 state=2 fault=0
+2026-10-23T10:50:55.532 | [93756] I node: candidate state=2 fault=0
+2026-10-23T10:50:55.532 | MARK GRACE_START 93756252
+2026-10-23T10:50:56.160 | TX show
+2026-10-23T10:50:56.185 | CFG type=2 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-10-23T10:50:56.185 | STATE confirmed=1/0 candidate=2/0 grace=1 adc_inject=-1 adc_fail=0
+2026-10-23T10:50:56.201 | # RESULT crown=0 strap=0 expect 1 got (1, 0) ok
+2026-10-23T10:50:56.201 | # RESULT crown=1 strap=0 expect 1 got (1, 0) ok
+2026-10-23T10:50:56.201 | # RESULT crown=0 strap=1 expect 1 got (1, 0) ok
+2026-10-23T10:50:56.201 | # RESULT crown=1 strap=1 expect 2 got (2, 0) ok
+2026-10-23T10:50:56.201 | # RESULT TC-04 PASS
