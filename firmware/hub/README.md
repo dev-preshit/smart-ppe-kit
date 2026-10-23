@@ -52,14 +52,27 @@ supervisor task (1 s poll): scanner active and host synced?  10 s no -> restart,
 
 ## Build and upload (Windows, PowerShell, repo root)
 
+**Two USB connectors (ESP32-S3-WROOM-1 N16R8 devkit).** The hub's `Serial` goes to exactly one of them, chosen at build time by
+`CDCOnBoot`. Build for the connector the cable is in:
+
+| Connector on the board | Chip | CDCOnBoot | Port on the bench PC |
+|---|---|---|---|
+| COM | CH343 UART bridge | `default` (Disabled) | COM3 (the S3 bench uses this one) |
+| USB | native USB | `cdc` (Enabled) | COM5 in earlier sessions |
+
+A `cdc` build with the cable in the COM connector prints only the ROM text and answers no hook command (observed 2026-10-23). The S3
+bench uses the COM connector: its port number stays stable across resets, and boot messages and crashes still print. Port numbers
+can change after replugging: check Device Manager. The spare ESP32-C3 (injector, beacon) uses its native USB and stays on `cdc`.
+
 ```powershell
 # release build (no hooks): compiles, then refuses to run (no provisioning yet)
 arduino-cli compile --fqbn esp32:esp32:esp32s3:CDCOnBoot=cdc --library common firmware\hub
 
-# bench build with hooks
+# bench build with hooks, bench connector = COM port (CH343, COM3, CDCOnBoot=default)
 copy firmware\hub\build_opt.h.bench firmware\hub\build_opt.h
-arduino-cli compile --fqbn esp32:esp32:esp32s3:CDCOnBoot=cdc --library common firmware\hub
-arduino-cli upload  -p COM5 --fqbn esp32:esp32:esp32s3:CDCOnBoot=cdc firmware\hub
+arduino-cli compile --fqbn esp32:esp32:esp32s3:CDCOnBoot=default --library common firmware\hub
+arduino-cli upload  -p COM3 --fqbn esp32:esp32:esp32s3:CDCOnBoot=default firmware\hub
+# native USB connector instead: CDCOnBoot=cdc and that port's number (COM5 in earlier sessions)
 
 # bench build with the Wi-Fi recheck: copy build_opt.h.bench_wifi and wifi_secrets.example.h -> wifi_secrets.h (edit it)
 ```
@@ -93,7 +106,7 @@ One serial log per test at `test_logs\S3\<TC>_<sha7>.log` plus one row in `test_
 
 ```powershell
 python tools\s3_capture.py path --tc TC-22                       # prints the log path (use it as inject.py --log)
-python tools\s3_capture.py capture --port COM5 --tc TC-21 --seconds 120 --send-after 5:"stall 1" --send-after 60:dump
+python tools\s3_capture.py capture --port COM3 --tc TC-21 --seconds 120 --send-after 5:"stall 1" --send-after 60:dump
 python tools\s3_capture.py analyze --tc TC-20 --expected 120 --node 5     # TC-20 and TC-72 pass rules
 python tools\s3_capture.py result --tc TC-20 --result PASS --note "119 of 120"
 ```
@@ -182,7 +195,7 @@ about every 30 s and the log shows `WIFI http code=200`.
 
 ## Build figures for planning (sprint S3 build, arduino-cli 1.5.2-rc.1 with esp32 core 3.0.7 and NimBLE-Arduino 2.5.1)
 
-FQBN for every hub build: `esp32:esp32:esp32s3:CDCOnBoot=cdc`. Partition scheme: `default` (the core's
+FQBN for the build figures below: `esp32:esp32:esp32s3:CDCOnBoot=cdc` (native USB). A bench build for the COM connector uses `CDCOnBoot=default` and is smaller: compiled on the bench PC on 2026-10-23, bench `cdc` 566,629 bytes and bench `default` 538,580 bytes. The table was not re-measured with `default`. Partition scheme: `default` (the core's
 "Default 4MB with spiffs (1.2MB APP/1.5MB SPIFFS)", flash 4 MB, app maximum 1310720 bytes). The bench and Wi-Fi builds
 need the same scheme; no custom partition table exists in the repo yet.
 
