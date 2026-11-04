@@ -13,7 +13,7 @@ Smart PPE Compliance Kit is an embedded safety-compliance system built around an
 ## Toolchain
 
 - Arduino IDE 2.3.10
-- ESP32 Arduino core 3.0.7
+- ESP32 Arduino core 3.0.7 (S3 bench PC: 3.3.12, see docs/CHANGES.md)
 - NimBLE-Arduino 2.5.1
 
 ## Branching

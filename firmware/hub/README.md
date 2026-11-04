@@ -195,7 +195,7 @@ about every 30 s and the log shows `WIFI http code=200`.
 
 ## Build figures for planning (sprint S3 build, arduino-cli 1.5.2-rc.1 with esp32 core 3.0.7 and NimBLE-Arduino 2.5.1)
 
-FQBN for the build figures below: `esp32:esp32:esp32s3:CDCOnBoot=cdc` (native USB). A bench build for the COM connector uses `CDCOnBoot=default` and is smaller: compiled on the bench PC on 2026-10-23, bench `cdc` 566,629 bytes and bench `default` 538,580 bytes. The table was not re-measured with `default`. Partition scheme: `default` (the core's
+FQBN for the build figures below: `esp32:esp32:esp32s3:CDCOnBoot=cdc` (native USB). The figures below were measured with esp32 core 3.0.7. Since 2026-10-23 the bench PC builds with esp32 core 3.3.12 (docs/CHANGES.md); measured there: release 558,449 bytes and bench 562,329 bytes (both `cdc`), bench for the COM connector (`CDCOnBoot=default`) 538,580 bytes. Partition scheme: `default` (the core's
 "Default 4MB with spiffs (1.2MB APP/1.5MB SPIFFS)", flash 4 MB, app maximum 1310720 bytes). The bench and Wi-Fi builds
 need the same scheme; no custom partition table exists in the repo yet.
 
