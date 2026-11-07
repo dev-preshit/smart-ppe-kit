@@ -29,6 +29,18 @@ SPRINT = "S3"
 TC_RE = re.compile(r"^TC-\d{2}$")
 
 
+def open_serial(port, baud, timeout=0.2):
+    """Open a port with DTR and RTS low. pyserial raises both on open, and on the ESP32-S3 that resets the board
+    (bench finding 2026-10-21: the hub rebooted on every capture open, before its first print)."""
+    import serial
+    s = serial.Serial(None, baud, timeout=timeout)
+    s.port = port
+    s.dtr = False
+    s.rts = False
+    s.open()
+    return s
+
+
 def now_iso(sec=False):
     return datetime.datetime.now().astimezone().isoformat(timespec="seconds" if sec else "milliseconds")
 
@@ -174,7 +186,6 @@ def analyze_tc72(text, min_count=1000):
 
 # ---------------------------------------------------------------- commands
 def cmd_capture(a):
-    import serial
     path = a.out or log_path(ROOT, a.tc, sha7())
     append_line(path, "# RUN %s tc=%s device=%s port=%s label=%s%s" % (now_iso(), a.tc, a.device, a.port, a.label,
                                                                     "  (working tree has uncommitted changes)" if dirty() else ""))
@@ -183,7 +194,7 @@ def cmd_capture(a):
         sec, _, cmd = item.partition(":")
         sends.append((float(sec), cmd))
     sends.sort(key=lambda x: x[0])
-    s = serial.Serial(a.port, a.baud, timeout=0.2)
+    s = open_serial(a.port, a.baud)
     t0 = time.time()
     print("capturing %s -> %s (Ctrl-C to stop)" % (a.port, path))
     buf = b""
@@ -205,7 +216,7 @@ def cmd_capture(a):
                 deadline = time.time() + 30
                 while time.time() < deadline:
                     try:
-                        s = serial.Serial(a.port, a.baud, timeout=0.2)
+                        s = open_serial(a.port, a.baud)
                         append_line(path, "# %s port back" % now_iso())
                         break
                     except (serial.SerialException, OSError):

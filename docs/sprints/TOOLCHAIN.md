@@ -10,6 +10,8 @@ Single source of truth for the build environment. Update whenever anything chang
 | NimBLE-Arduino | 2.5.1 |
 | Fallback (Config B) | older NimBLE that worked before - not needed, version never recovered |
 
+Note 2026-10-23: the S3 bench PC builds with esp32 core 3.3.12 (NimBLE-Arduino 2.5.1 unchanged); the rows above are the S0-accepted pin and are not rewritten. See docs/CHANGES.md.
+
 ## Board settings
 | Target | Board | Notes |
 |---|---|---|
