@@ -62,3 +62,5 @@ __pycache__/
 # S3: bench build flags and Wi-Fi credentials never go into the repo
 firmware/hub/build_opt.h
 firmware/hub/wifi_secrets.h
+# S2 bench evidence is committed (A-11)
+!test_logs/S2/*.log
