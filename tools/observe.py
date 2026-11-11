@@ -29,6 +29,9 @@ def parse(path):
     pk, end, lost = [], 0, 0
     with open(path, encoding="utf-8") as f:
         for ln in f:
+            if "| OK reset" in ln:      # a capture starts with RESET: whatever came before it does not count
+                pk, end, lost = [], 0, 0
+                continue
             m = PKT.search(ln)
             if m:
                 us = int(m.group(1)) * 1000000 + int(m.group(2))
@@ -139,8 +142,10 @@ def cmd_calibrate(a):
     out.append("bursts=%d spacings=%d mean=%.2f ms min=%.1f max=%.1f stdev=%.2f" % (len(per), len(sp), statistics.mean(sp), min(sp), max(sp), statistics.pstdev(sp)))
     out.append("OBSERVER_ERROR_MS max=%.1f mean=%.2f (spacing seen minus nominal; the injector's own jitter is included)" % (max(err), statistics.mean(err)))
     out.append("pdus_per_burst min=%d max=%d mean=%.1f" % (min(per), max(per), statistics.mean(per)))
+    if lost:
+        out.append("FINDING observer queue overflow, lost=%d: these numbers are not valid" % lost)
     emit(path, out)
-    return 0
+    return 1 if lost else 0
 
 
 def cmd_result(a):
@@ -159,6 +164,7 @@ def cmd_capture(a):
     inj = None
     try:
         time.sleep(0.5)
+        cap.send("RESET"); time.sleep(0.3)
         if a.filter:
             cap.send("FILTER %d" % a.filter); time.sleep(0.3)
         t0 = time.time()

@@ -73,4 +73,14 @@ class T(unittest.TestCase):
         buf = io.StringIO()
         with contextlib.redirect_stdout(buf): rc = observe.cmd_calibrate(A(make_log(copies=20, tweak=lambda k, s: s + (7000 if k % 2 else 0))))
         self.assertEqual(rc, 0); self.assertIn("OBSERVER_ERROR_MS max=7.0", buf.getvalue())
+    def test_packets_before_reset_are_ignored(self):
+        p = make_log(); body = open(p).read().split("\n")
+        junk = ["2026-11-11T10:00:00.500 | PKT 5.000000 21 3 -60 " + adv(ctr=99), "2026-11-11T10:00:00.600 | OK reset"]
+        open(p, "w").write("\n".join(body[:2] + junk + body[2:]))
+        rc, out = self.run_(p); self.assertEqual(rc, 0, out); self.assertNotIn("ctr=99", out)
+    def test_calibrate_fails_when_packets_were_lost(self):
+        import io, contextlib
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf): rc = observe.cmd_calibrate(A(make_log(copies=20, lost=3)))
+        self.assertEqual(rc, 1); self.assertIn("lost=3: these numbers are not valid", buf.getvalue())
 if __name__ == "__main__": unittest.main()
