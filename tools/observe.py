@@ -169,12 +169,21 @@ def cmd_capture(a):
             time.sleep(max(0.0, a.adv_after - (time.time() - t0)))
             cap.note("INJECT ADV %s" % a.adv)
             inj.write(("ADV %s\n" % a.adv).encode())
-            t_end = time.time() + 120
-            while time.time() < t_end:
+            parts = a.adv.split()
+            wait = (int(parts[1]) * int(parts[2]) / 1000.0 if len(parts) >= 3 else 5.0) + 10.0   # all bursts plus 10 s, never longer
+            t_cmd = time.time()
+            got_ok = False
+            while time.time() < t_cmd + wait:
                 ln = inj.readline().decode("utf-8", "replace").strip()
                 if ln:
+                    print("injector:", ln)
                     cap.note("INJECTOR %s" % ln)
+                    got_ok = got_ok or ln.startswith("OK")
                 if ln.startswith("DONE") or ln.startswith("ERR"):
+                    break
+                if not got_ok and time.time() > t_cmd + 5.0:
+                    print("STOP waiting: the injector gave no OK within 5 s")
+                    cap.note("INJECTOR no OK within 5 s")
                     break
         time.sleep(max(0.0, a.seconds - (time.time() - t0)))
         cap.send("TIME"); time.sleep(0.3)
