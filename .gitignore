@@ -64,3 +64,5 @@ firmware/hub/build_opt.h
 firmware/hub/wifi_secrets.h
 # S2 bench evidence is committed (A-11)
 !test_logs/S2/*.log
+# S4 bench evidence is committed (A-11)
+!test_logs/S4/*.log

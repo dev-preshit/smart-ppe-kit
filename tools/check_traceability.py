@@ -5,7 +5,8 @@
   3. every test-plan Pass line equals the SRS acceptance criterion word for word (first listed requirement)
   4. every state-machine transition cites valid requirement IDs and test IDs
   5. no pending marker and no reference to an old document name in any of the five documents
-  6. with --sprint Sn: test_logs/summary.csv has a valid row for every TC assigned to that sprint
+  6. with --sprint Sn: test_logs/summary_<sn>.csv (or, when that file does not exist, the shared test_logs/summary.csv
+     used by S1 and S3) has a valid row for every TC assigned to that sprint
 Documents are found in --docs under either name style (SRS_v1.2.md or SRS_v1_2.md). Documents are read only."""
 import argparse, csv, os, re, sys
 
@@ -100,13 +101,14 @@ def main(argv=None):
     # sprint summary
     if a.sprint:
         assigned = [m.group(1) for m in re.finditer(r"^\|\s*(TC-\d+)\s*\|\s*%s\s*\|" % a.sprint, T["plan"], re.M)]
-        sp = os.path.join(a.test_logs, "summary.csv")
+        sp = os.path.join(a.test_logs, "summary_%s.csv" % a.sprint.lower())      # A-11: one file per story
+        if not os.path.exists(sp): sp = os.path.join(a.test_logs, "summary.csv")  # S1 and S3 keep the shared file
         if not os.path.exists(sp): errs.append("%s missing" % sp); rows = []
         else: rows = list(csv.DictReader(open(sp, newline="")))
         for t in assigned:
             hit = [r for r in rows if r.get("TC") == t and r.get("sprint") == a.sprint]
-            if not hit: errs.append("summary.csv has no %s row for %s" % (a.sprint, t))
-            elif any(r.get("result") not in ("PASS", "FAIL", "BLOCKED", "N/A") for r in hit): errs.append("summary.csv bad result for " + t)
+            if not hit: errs.append("%s has no %s row for %s" % (os.path.basename(sp), a.sprint, t))
+            elif any(r.get("result") not in ("PASS", "FAIL", "BLOCKED", "N/A") for r in hit): errs.append(os.path.basename(sp) + " bad result for " + t)
         notes.append("sprint %s TCs: %s" % (a.sprint, ", ".join(assigned)))
     n_req = len(srs); n_ok = len([r for r in srs if trace.get(r)])
     print("requirements=%d with_test=%d (%.0f%%) test_cases=%d transitions=%d" % (n_req, n_ok, 100.0 * n_ok / max(n_req, 1), len(tcs), nrows))
