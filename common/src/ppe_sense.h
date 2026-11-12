@@ -16,7 +16,7 @@
 #define PPE_ADC_MAX 4095
 
 typedef enum { PPE_WEAR_NONE = 0, PPE_WEAR_NOT_WORN = 1, PPE_WEAR_WORN = 2 } ppe_wear_t;
-typedef enum { PPE_NODE_FOOT = 0, PPE_NODE_GLOVE = 1, PPE_NODE_HELMET = 2 } ppe_node_type_t;
+typedef enum { PPE_NTYPE_FOOT = 0, PPE_NTYPE_GLOVE = 1, PPE_NTYPE_HELMET = 2 } ppe_node_type_t;   // S4: renamed from PPE_NODE_*, which collided with ppe_proto.h (PPE_NODE_HELMET)
 typedef struct { ppe_wear_t state; uint8_t fault; } ppe_raw_t;      // the monitored pair
 
 static inline bool ppe_raw_eq(ppe_raw_t a, ppe_raw_t b) { return a.state == b.state && a.fault == b.fault; }

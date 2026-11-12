@@ -67,10 +67,10 @@ PPE_TEST(mark_lines_have_the_exact_format_the_timing_script_reads, "TC-06") {
 
 PPE_TEST(cfg_line_prints_the_parameters_and_nothing_secret, "TC-06") {
   ppe_cfg_t c; ppe_cfg_defaults(&c); char b[128];
-  ppe_cfg_fmt(b, sizeof b, PPE_NODE_FOOT, &c);
+  ppe_cfg_fmt(b, sizeof b, PPE_NTYPE_FOOT, &c);
   CHECK(strcmp(b, "CFG type=0 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1") == 0);
   ppe_cfg_set_grace(&c, 10); ppe_cfg_set_settle(&c, 500);
-  ppe_cfg_fmt(b, sizeof b, PPE_NODE_HELMET, &c);
+  ppe_cfg_fmt(b, sizeof b, PPE_NTYPE_HELMET, &c);
   CHECK(strcmp(b, "CFG type=2 settle_ms=500 grace_s=10 heartbeat_s=360 n=16 hooks=1") == 0);
 }
 
