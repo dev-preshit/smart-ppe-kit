@@ -4,6 +4,7 @@
 #include "esp_system.h"
 #include "hub_nvs.h"
 #include "src/hub_scan_supervisor.h"
+#include "src/hub_msg.h"
 #ifdef PPE_TEST_HOOKS
 #include "src/hub_dump.h"
 #endif
@@ -28,6 +29,29 @@ static QueueHandle_t g_rxq = nullptr;
 static volatile uint32_t g_queue_full = 0, g_queue_max = 0;
 static HubRxStats g_rx;
 static HubScanSupervisor g_sup;
+
+// ---- hub messages (S5): serial line per message; the S7 uplink queue replaces the sink ---------------------------
+class SerialSink : public HubSink {
+ public:
+  void emit(const HubMsg& m) override {
+    char b[200];
+    hub_msg_format(m, b, sizeof b);
+    Serial.println(b);
+  }
+};
+static SerialSink g_serial_sink;
+static HubSink* g_sink = &g_serial_sink;
+void hub_set_sink(HubSink* sink) { g_sink = sink ? sink : &g_serial_sink; }
+
+// Take the pending messages under the lock, emit them after releasing it (serial output takes milliseconds and
+// holding the lock made the receive task wait, bench finding 2026-10-20).
+static void emit_pending() {
+  HubMsg m[HUB_MSG_QUEUE_DEPTH];
+  xSemaphoreTake(g_pipe_mx, portMAX_DELAY);
+  uint32_t n = g_pipe.take_messages(m, HUB_MSG_QUEUE_DEPTH);
+  xSemaphoreGive(g_pipe_mx);
+  for (uint32_t i = 0; i < n; i++) g_sink->emit(m[i]);
+}
 static volatile uint32_t g_scan_end_reason = 0, g_scan_end_count = 0;
 #ifdef PPE_TEST_HOOKS
 static volatile bool g_rxlog = false;          // default off (manager decision: keep it off during TC-72)
@@ -68,9 +92,9 @@ static void log_result(const RxEntry& e, const HubResult& r, uint32_t now_ms) {
   (void)e;
 #ifdef PPE_TEST_HOOKS
   if (g_time && r.verdict == HUB_V_ACCEPT)
-    Serial.printf("ACC t_ms=%lu t_us=%llu node=%u ctr=%lu state=%u batt=%u flags=0x%02X missed=%lu\n", (unsigned long)now_ms,
+    Serial.printf("ACC t_ms=%lu t_us=%llu node=%u ctr=%lu state=%u batt=%u flags=0x%02X missed=%lu prev=%s now=%s\n", (unsigned long)now_ms,
                   (unsigned long long)esp_timer_get_time(), r.node_id, (unsigned long)r.counter, r.state, r.battery, r.flags,
-                  (unsigned long)r.missed);
+                  (unsigned long)r.missed, hub_node_state_name(r.prev_state), r.state ? "WORN" : "NOT_WORN");
 #endif
   if (r.verdict == HUB_V_REPLAY && r.anomaly_report)
     Serial.printf("ANOMALY t_ms=%lu node=%u received=%lu last=%lu\n", (unsigned long)now_ms, r.node_id,
@@ -98,6 +122,19 @@ static void process_entry(const RxEntry& e) {
   if (dt > 10000u) g_rx.over_10ms = g_rx.over_10ms + 1;
   g_rx.sum_us = g_rx.sum_us + dt;
   log_result(e, r, now_ms);
+  if (r.verdict == HUB_V_ACCEPT) emit_pending();       // COMPLIANCE on a vest-level change; after the timing above (TC-72)
+}
+
+// ---- offline tick (FR-27, spec 8.2): evaluated every HUB_TICK_MS, independent of the scan and of Wi-Fi ----------
+static void tick_task(void*) {
+  TickType_t last = xTaskGetTickCount();
+  for (;;) {
+    vTaskDelayUntil(&last, pdMS_TO_TICKS(HUB_TICK_MS));
+    xSemaphoreTake(g_pipe_mx, portMAX_DELAY);
+    g_pipe.tick((uint32_t)(esp_timer_get_time() / 1000));   // clock read inside the lock: no packet can be stamped after it
+    xSemaphoreGive(g_pipe_mx);
+    emit_pending();                                    // NODE_OFFLINE and COMPLIANCE lines
+  }
 }
 
 static void rx_task(void*) {
@@ -171,7 +208,10 @@ bool hub_ble_start(uint8_t vest_id, const uint8_t* key32, HubStore* store) {
     Serial.printf("BOOT node %u last_counter=%lu state=%s\n", i, (unsigned long)g_pipe.node(i).last_counter,
                   hub_node_state_name(g_pipe.node(i).state));
 
+  g_pipe.note_boot((uint32_t)esp_reset_reason(), (uint32_t)(esp_timer_get_time() / 1000));   // B-05: HUB_BOOT first
+  emit_pending();
   xTaskCreate(rx_task, "ppe_rx", 6144, nullptr, 10, nullptr);
+  xTaskCreate(tick_task, "ppe_tick", 4096, nullptr, 4, nullptr);
 
   NimBLEDevice::init("");
   NimBLEScan* scan = NimBLEDevice::getScan();
@@ -241,6 +281,21 @@ void hub_hook_dump() {
   xSemaphoreGive(g_pipe_mx);
   hub_dump_emit(snap, x, dump_emit, nullptr);
 }
+
+static void set_timing(bool margin, uint32_t v) {
+  xSemaphoreTake(g_pipe_mx, portMAX_DELAY);
+  uint32_t hb = g_pipe.heartbeat_s(), mg = g_pipe.margin_s();
+  if (margin) mg = v; else hb = v;
+  bool ok = g_pipe.set_offline_timing(hb, mg);
+  hb = g_pipe.heartbeat_s(); mg = g_pipe.margin_s();
+  uint32_t to = g_pipe.offline_timeout_s();
+  xSemaphoreGive(g_pipe_mx);
+  Serial.printf("PPE_HOOK set %s %lu %s heartbeat_s=%lu margin_s=%lu offline_timeout_s=%lu t_ms=%lu\n", margin ? "margin" : "heartbeat",
+                (unsigned long)v, ok ? "ok" : "REFUSED(out of bounds: heartbeat 60..3600, margin 0..300)", (unsigned long)hb,
+                (unsigned long)mg, (unsigned long)to, (unsigned long)(esp_timer_get_time() / 1000));
+}
+void hub_hook_set_margin(uint32_t s) { set_timing(true, s); }
+void hub_hook_set_heartbeat(uint32_t s) { set_timing(false, s); }
 
 void hub_hook_time_now() {
   Serial.printf("PPE_HOOK time t_ms=%lu t_us=%llu\n", (unsigned long)(esp_timer_get_time() / 1000), (unsigned long long)esp_timer_get_time());

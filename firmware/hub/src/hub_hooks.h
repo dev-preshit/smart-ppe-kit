@@ -16,7 +16,9 @@ enum HubHookType {
   HUB_HOOK_TIME_ON,      // time on|off       -> time stamp on every accepted packet (default on)
   HUB_HOOK_TIME_OFF,
   HUB_HOOK_RXLOG_ON,     // rxlog on|off      -> every received advertisement before filtering (default off)
-  HUB_HOOK_RXLOG_OFF
+  HUB_HOOK_RXLOG_OFF,
+  HUB_HOOK_SET_MARGIN,   // set margin <s>    -> OFFLINE_MARGIN_S (bounds are checked by the pipeline, 0..300)
+  HUB_HOOK_SET_HEARTBEAT // set heartbeat <s> -> HEARTBEAT_S for the hub (bounds are checked by the pipeline, 60..3600)
 };
 
 struct HubHookCmd {
@@ -24,6 +26,7 @@ struct HubHookCmd {
   uint8_t data[HUB_RX_ADV_MAX];   // inject payload
   uint8_t len;                    // inject length (0 allowed: the zero-length defect)
   uint8_t n;                      // stall count 1..9
+  uint32_t val;                   // set margin / set heartbeat value (digits only, up to 6)
 };
 
 HubHookCmd hub_hook_parse(const char* line);

@@ -13,3 +13,14 @@
 #define HUB_PERSIST_QUEUE_DEPTH 32u       // task -> NVS writer queue
 #define HUB_SCAN_INTERVAL_MS    100u      // FR-20: continuous scan, window == interval (tuned in the Wi-Fi recheck)
 #define HUB_SCAN_WINDOW_MS      100u
+
+// S5 (hub logic): offline timing, tick, message queue
+#define HUB_HEARTBEAT_S_DEFAULT 360u      // protocol spec 1.1
+#define HUB_HEARTBEAT_S_MIN     60u
+#define HUB_HEARTBEAT_S_MAX     3600u
+#define HUB_MARGIN_S_DEFAULT    60u       // OFFLINE_MARGIN_S default, tuned at test (D-06)
+#define HUB_MARGIN_S_MAX        300u
+#define HUB_OFFLINE_MISSED      2u        // missed heartbeats before OFFLINE (spec 1.1)
+#define HUB_TICK_MS             1000u     // spec 8.2: timeout evaluated at least once per second
+#define HUB_MSG_QUEUE_DEPTH     16u       // pending hub messages between the pipeline and the sink
+#define HUB_FW_ID               "s5-hub-logic"
