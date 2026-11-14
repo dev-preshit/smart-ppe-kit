@@ -56,6 +56,8 @@ static uint8_t       g_fault = FAULT_NONE;
 static bool          g_radio_up = false;
 static uint8_t       g_adv[PPE_ADV_LEN];
 static uint32_t      g_tx_seq = 0;
+static uint32_t      g_boot_ms = 0;        // millis() at the very start of setup(): the boot grace is counted from here (TC-08)
+static uint32_t      g_first_tx_us = 0;    // micros() at the first copy start since boot; 0 = none yet
 
 #ifdef PPE_TEST_HOOKS
 #ifndef PPE_TEST_ADC_BOOT
@@ -158,7 +160,7 @@ static bool start_copy(uint8_t k) {
   if (!ok) return false;
   char name[8]; snprintf(name, sizeof name, "COPY%u", (unsigned)k);
   mark_us(name, us);
-  if (k == 0) pulse();                                        // marker hook: the first copy start
+  if (k == 0) { pulse(); if (!g_first_tx_us) g_first_tx_us = us ? us : 1u; }   // marker hook: the first copy start
   return true;
 }
 
@@ -238,10 +240,11 @@ static ppe_raw_t sample_raw() {
 
 #ifdef PPE_TEST_HOOKS
 static void print_node() {
-  Serial.printf("NODE run=%s prov=%d node=%u vest=%u key=%s fault=%s radio=%d ctr=%lu ceil=%lu tx_state=%d skip=%u\n",
+  Serial.printf("NODE run=%s prov=%d node=%u vest=%u key=%s fault=%s radio=%d ctr=%lu ceil=%lu tx_state=%d skip=%u boot_us=%lu first_tx_us=%lu\n",
                 g_run == RUN_ACTIVE ? "active" : (g_run == RUN_FAULT ? "fault" : "unprovisioned"), (int)ppe_ident_valid(&ident),
                 (unsigned)ident.node_id, (unsigned)ident.vest_id, ident.has_key ? "yes" : "no", FAULT_NAME[g_fault], (int)g_radio_up,
-                (unsigned long)counter.counter(), (unsigned long)counter.ceiling(), (int)txs.state, (unsigned)g_skip_n);
+                (unsigned long)counter.counter(), (unsigned long)counter.ceiling(), (int)txs.state, (unsigned)g_skip_n,
+                (unsigned long)(g_boot_ms * 1000u), (unsigned long)g_first_tx_us);
 }
 
 static void handle_line(const char* line) {
@@ -342,19 +345,19 @@ static void begin_run() {
   uint32_t now = millis();
   last_raw = sample_raw();
   ppe_settle_init(&settle, last_raw);                     // N-04: candidate = first raw, no settle
-  ppe_confirm_cold_start(&confirm, now);                  // N-20: boot grace starts
+  ppe_confirm_cold_start(&confirm, g_boot_ms);            // N-20: the 25 s boot grace counts from the start of setup(), not from after the radio and NVS init
   next_poll = now + POLL_MS;
   PPE_LOGI("node", "COLD_START type=%d node=%u vest=%u", (int)PPE_BUILD_NODE_TYPE, (unsigned)ident.node_id, (unsigned)ident.vest_id);
 #ifdef PPE_TEST_HOOKS
   print_cfg();
   mark_raw("COLD_START", last_raw);
-  mark("GRACE_START");
+  mark_us("GRACE_START", g_boot_ms * 1000u);
 #endif
 }
 
 void setup() {
+  g_boot_ms = millis();                                   // first thing: the TC-08 clock (the ROM and bootloader time before this is not counted)
   Serial.begin(115200);
-  delay(500);
   if (!prefs.begin(NVS_NS, false)) { Serial.println("FAULT nvs open failed"); g_run = RUN_FAULT; g_fault = FAULT_NVS; return; }
   load_ident();
   if (!ppe_ident_valid(&ident)) {                         // N-01: UNPROVISIONED, no radio, no packet
