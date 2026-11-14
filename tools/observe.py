@@ -3,14 +3,15 @@
 All times come from the observer's own esp_timer clock (PKT and TIME lines); the PC time only orders lines (A-01).
 
   capture   --port COM6 --tc TC-10 --seconds 60 [--filter 21] [--waived] [--header TEXT]
+            [--node COM9 --node-send "tx worn" --node-after 5]   (the node's own lines are logged as NODE ..., A-20)
             [--injector COM4 --adv "<hex> <copies> <spacing_ms>" --adv-after 3]   (calibration: the injector sends known bursts)
-  analyze   --tc TC-10 [--log PATH] [--copies 5] [--spacing 500] [--tol 50] [--quiet 10] [--expect-tx N]
+  analyze   --tc TC-10 [--log PATH] [--copies 5] [--spacing 500] [--tol 50] [--quiet 10] [--expect-tx N] [--need-marks]
             [--len 21] [--prefix 14ffffff] [--gap 0.2]       one 'copy' = one burst of PDUs (A-15); exit 0 = PASS, 1 = FAIL
   calibrate --tc OBS-CAL [--log PATH] --spacing 500        measured spacing error of the observer against the injector (no verdict)
   result    --tc TC-10 --result PASS|FAIL|BLOCKED          one row in test_logs/summary_s4.csv
 
 Log: test_logs/S4/<TC>_<sha7>.log. A log is never appended to by a second capture. Never run two programs on one COM port."""
-import argparse, os, re, statistics, sys, time
+import argparse, os, re, statistics, sys, threading, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import logger
 
@@ -18,6 +19,8 @@ SPRINT = "S4"
 PKT = re.compile(r"\| PKT (\d+)\.(\d{6}) (\d+) (\d+) (-?\d+) ([0-9a-f]*)\s*$")
 TIME = re.compile(r"\| TIME (\d+)\.(\d{6})\s*$")
 LOSS = re.compile(r"\| (?:LOST (\d+)|STAT .*lost=(\d+))")
+NODE_MARK = re.compile(r"\| NODE MARK COPY(\d) (\d+)")
+NODE_TX = re.compile(r"\| NODE .*TX seq=(\d+) type=(event|heartbeat) ctr=(\d+) state=(\d+) boot=(\d) fault=(\d)")
 
 
 def log_file(a):
@@ -43,6 +46,25 @@ def parse(path):
             if m:
                 lost = int(m.group(1) or m.group(2))
     return pk, end, lost
+
+
+def parse_node(path):
+    """Lines the node printed during the capture: its copy-start marks (own micros clock) and its TX lines."""
+    seqs, cur, tx = [], None, []
+    with open(path, encoding="utf-8") as f:
+        for ln in f:
+            m = NODE_MARK.search(ln)
+            if m:
+                k, us = int(m.group(1)), int(m.group(2))
+                if k == 0:
+                    cur = []; seqs.append(cur)
+                if cur is not None:
+                    cur.append((k, us))
+                continue
+            m = NODE_TX.search(ln)
+            if m:
+                tx.append((int(m.group(1)), m.group(2), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6))))
+    return seqs, tx
 
 
 def bursts(pdus, gap_us):
@@ -102,6 +124,9 @@ def cmd_analyze(a):
         errs.append("%d PDUs are not ADV_NONCONN_IND (evt 3), first evt=%d" % (len(wrong), wrong[0][2]))
     if a.expect_tx is not None and len(tx) != a.expect_tx:
         errs.append("expected %d transmissions, found %d" % (a.expect_tx, len(tx)))
+    nseqs, ntx = parse_node(path)
+    need = getattr(a, "need_marks", False)
+    judge_obs = not nseqs        # A-20: with node marks present the node decides the spacing; the observer error is about +/- 40 ms
     prev_start = None
     for i, (h, bs) in enumerate(tx, 1):
         sp = spacings_ms(bs)
@@ -110,7 +135,7 @@ def cmd_analyze(a):
         if a.copies and len(bs) != a.copies:
             errs.append("TX %d: %d copies, expected %d" % (i, len(bs), a.copies))
         for k, s in enumerate(sp, 1):
-            if abs(s - a.spacing) > a.tol:
+            if judge_obs and abs(s - a.spacing) > a.tol:
                 errs.append("TX %d: copy %d starts %.1f ms after copy %d, limit %d +/- %d" % (i, k + 1, s, k, a.spacing, a.tol))
         last_pdu = bs[-1][-1][0]
         quiet = (end - last_pdu) / 1000000.0
@@ -119,6 +144,27 @@ def cmd_analyze(a):
         if prev_start is not None:
             out.append("TX %d first copy %.3f s after the first copy of TX %d" % (i, (bs[0][0][0] - prev_start) / 1e6, i - 1))
         prev_start = bs[0][0][0]
+    if need and not nseqs:
+        errs.append("no node copy marks in the log (A-20: the spacing is judged from the node's own marks)")
+    for i, sq in enumerate(nseqs, 1):
+        nsp = [((sq[j][1] - sq[j - 1][1]) & 0xFFFFFFFF) / 1000.0 for j in range(1, len(sq))]
+        out.append("NODE seq %d marks=%d start_to_start_ms=%s (node clock, judged)" % (i, len(sq), ["%.1f" % s for s in nsp]))
+        if [k for k, _ in sq] != list(range(len(sq))):
+            errs.append("node seq %d: copy marks out of order or missing: %s" % (i, [k for k, _ in sq]))
+        if a.copies and len(sq) != a.copies:
+            errs.append("node seq %d: %d copy marks, expected %d" % (i, len(sq), a.copies))
+        for k, s in enumerate(nsp, 1):
+            if abs(s - a.spacing) > a.tol:
+                errs.append("node seq %d: copy %d starts %.1f ms after copy %d, limit %d +/- %d" % (i, k + 1, s, k, a.spacing, a.tol))
+    if nseqs and len(nseqs) != len(tx):
+        errs.append("node sent %d sequences, the observer saw %d transmissions" % (len(nseqs), len(tx)))
+    for i, (n, (h, _bs)) in enumerate(zip(ntx, tx), 1):        # what the node says it sent against what is on the air
+        b = bytes.fromhex(h)
+        _seq, typ, ctr, st, boot, flt = n
+        want = (0x20 if typ == "event" else 0, 0x10 if boot else 0, 0x04 if flt else 0, 1 if st == 2 else 0, ctr)
+        got = (b[4] & 0x20, b[4] & 0x10, b[4] & 0x04, b[7], int.from_bytes(b[9:13], "little"))
+        if want != got:
+            errs.append("TX %d: the node log says %s ctr=%d state=%d boot=%d fault=%d, the air has %s" % (i, typ, ctr, st, boot, flt, decode(h)))
     for e in errs:
         out.append("FINDING " + e)
     out.append("RESULT %s" % ("PASS" if not errs else "FAIL (%d)" % len(errs)))
@@ -154,20 +200,48 @@ def cmd_result(a):
     return 0
 
 
+def node_reader(ser, cap, stop):
+    buf = b""
+    while not stop.is_set():
+        try:
+            chunk = ser.read(256)
+        except Exception:
+            return
+        if not chunk:
+            continue
+        buf += chunk
+        while b"\n" in buf:
+            raw, buf = buf.split(b"\n", 1)
+            cap.note("NODE " + raw.decode("utf-8", "replace").rstrip("\r"))
+
+
 def cmd_capture(a):
     path = log_file(a)
     if os.path.exists(path):
         sys.exit("STOP: %s already exists (a log is never appended to). Move it to test_logs/invalid/ or change HEAD." % path)
     header = logger.header_lines(a.tc, a.waived) + ["via=observe.py", "observer_port=%s" % a.port] + a.header
+    if a.node:
+        header.append("node_port=%s" % a.node)
     cap = logger.Capture(a.port, a.baud, path, header)
     print("logging to", path)
     inj = None
+    nd = None
+    stop = threading.Event()
     try:
         time.sleep(0.5)
         cap.send("RESET"); time.sleep(0.3)
         if a.filter:
             cap.send("FILTER %d" % a.filter); time.sleep(0.3)
         t0 = time.time()
+        if a.node:                                          # the node under test: its lines go into the same log as NODE ...
+            import serial
+            nd = serial.Serial(); nd.port = a.node; nd.baudrate = 115200; nd.timeout = 0.2; nd.dtr = False; nd.rts = False; nd.open()
+            threading.Thread(target=node_reader, args=(nd, cap, stop), daemon=True).start()
+            time.sleep(max(0.0, a.node_after - (time.time() - t0)))
+            for c in a.node_send:
+                cap.note("NODETX %s" % c)
+                nd.write((c + "\n").encode())
+                time.sleep(a.node_gap)
         if a.injector:
             import serial
             inj = serial.Serial(); inj.port = a.injector; inj.baudrate = 115200; inj.timeout = 0.2
@@ -197,6 +271,9 @@ def cmd_capture(a):
     except KeyboardInterrupt:
         pass
     finally:
+        stop.set()
+        if nd:
+            nd.close()
         if inj:
             inj.close()
         cap.close()
@@ -212,6 +289,10 @@ def main():
     c.add_argument("--filter", type=int, default=0); c.add_argument("--waived", action="store_true")
     c.add_argument("--header", action="append", default=[]); c.add_argument("--log")
     c.add_argument("--injector"); c.add_argument("--adv"); c.add_argument("--adv-after", type=float, default=3.0)
+    c.add_argument("--node", help="COM port of the node under test (hook commands are sent to it)")
+    c.add_argument("--node-send", action="append", default=[], help="a hook line for the node; repeat for several")
+    c.add_argument("--node-after", type=float, default=5.0, help="seconds after the start before the first node command")
+    c.add_argument("--node-gap", type=float, default=1.0, help="seconds between node commands")
     for name in ("analyze", "calibrate"):
         p = sub.add_parser(name)
         p.add_argument("--tc", required=True); p.add_argument("--log")
@@ -221,6 +302,7 @@ def main():
         if name == "analyze":
             p.add_argument("--copies", type=int, default=5); p.add_argument("--tol", type=int, default=50)
             p.add_argument("--quiet", type=float, default=10.0); p.add_argument("--expect-tx", type=int)
+            p.add_argument("--need-marks", action="store_true", help="the log must hold the node's MARK COPY lines (A-20)")
     r = sub.add_parser("result")
     r.add_argument("--tc", required=True); r.add_argument("--result", required=True, choices=["PASS", "FAIL", "BLOCKED"])
     a = ap.parse_args()

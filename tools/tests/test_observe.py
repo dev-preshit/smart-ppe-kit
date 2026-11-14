@@ -83,4 +83,36 @@ class T(unittest.TestCase):
         buf = io.StringIO()
         with contextlib.redirect_stdout(buf): rc = observe.cmd_calibrate(A(make_log(copies=20, lost=3)))
         self.assertEqual(rc, 1); self.assertIn("lost=3: these numbers are not valid", buf.getvalue())
+    # ---- node lines in the log (A-20): the node's own marks judge the spacing, the observer judges the counts
+    def _with_node(self, p, starts_ms, tx_line=None, seqs=1):
+        lines = open(p).read().split("\n")
+        extra = []
+        for sq in range(seqs):
+            if tx_line: extra.append("2026-11-11T10:00:05.000 | NODE [1] I node: " + tx_line)
+            for k, ms in enumerate(starts_ms):
+                extra.append("2026-11-11T10:00:05.100 | NODE MARK COPY%d %d" % (k, 1000000 + sq * 30000000 + ms * 1000))
+        open(p, "w").write("\n".join(lines[:2] + extra + lines[2:]))
+        return p
+    def test_node_marks_inside_tolerance_pass_even_if_the_observer_error_would_not(self):
+        p = make_log(tweak=lambda k, s: s + (60000 if k == 3 else 0))      # the observer sees a 560 ms spacing (its error is +/- 40 ms)
+        self._with_node(p, [0, 500, 1000, 1500, 2000])
+        rc, out = self.run_(p, need_marks=True); self.assertEqual(rc, 0, out); self.assertIn("judged", out)
+    def test_node_marks_outside_tolerance_fail(self):
+        p = make_log(); self._with_node(p, [0, 500, 1000, 1580, 2080])
+        rc, out = self.run_(p, need_marks=True); self.assertEqual(rc, 1); self.assertIn("node seq 1: copy 4 starts 580.0 ms", out)
+    def test_missing_node_marks_fail_when_they_are_needed(self):
+        rc, out = self.run_(make_log(), need_marks=True); self.assertEqual(rc, 1); self.assertIn("no node copy marks", out)
+    def test_node_with_four_marks_fails(self):
+        p = make_log(); self._with_node(p, [0, 500, 1000, 1500])
+        rc, out = self.run_(p, need_marks=True); self.assertEqual(rc, 1); self.assertIn("4 copy marks, expected 5", out)
+    def test_node_and_observer_must_agree_on_the_number_of_sequences(self):
+        p = make_log(); self._with_node(p, [0, 500, 1000, 1500, 2000], seqs=2)
+        rc, out = self.run_(p, need_marks=True); self.assertEqual(rc, 1); self.assertIn("node sent 2 sequences, the observer saw 1 transmissions", out)
+    def test_node_tx_line_must_match_the_packet_on_the_air(self):
+        p = make_log(); self._with_node(p, [0, 500, 1000, 1500, 2000], tx_line="TX seq=1 type=event ctr=258 state=2 boot=0 fault=0")
+        rc, out = self.run_(p, need_marks=True); self.assertEqual(rc, 0, out)
+        p = make_log(); self._with_node(p, [0, 500, 1000, 1500, 2000], tx_line="TX seq=1 type=event ctr=259 state=2 boot=0 fault=0")
+        rc, out = self.run_(p, need_marks=True); self.assertEqual(rc, 1); self.assertIn("the node log says event ctr=259", out)
+        p = make_log(); self._with_node(p, [0, 500, 1000, 1500, 2000], tx_line="TX seq=1 type=event ctr=258 state=1 boot=1 fault=0")
+        rc, out = self.run_(p, need_marks=True); self.assertEqual(rc, 1)
 if __name__ == "__main__": unittest.main()
