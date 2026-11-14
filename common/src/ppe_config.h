@@ -3,12 +3,25 @@
 #pragma once
 #include <stdint.h>
 
+// Guarded (S4): ppe_proto.h defines the same bounds; whichever header comes first wins, the values are identical.
+#ifndef PPE_SETTLE_MS_MIN
 #define PPE_SETTLE_MS_MIN 0
+#endif
+#ifndef PPE_SETTLE_MS_MAX
 #define PPE_SETTLE_MS_MAX 1000
+#endif
+#ifndef PPE_GRACE_S_MIN
 #define PPE_GRACE_S_MIN 1
+#endif
+#ifndef PPE_GRACE_S_MAX
 #define PPE_GRACE_S_MAX 120
+#endif
+#ifndef PPE_HEARTBEAT_S_MIN
 #define PPE_HEARTBEAT_S_MIN 60
+#endif
+#ifndef PPE_HEARTBEAT_S_MAX
 #define PPE_HEARTBEAT_S_MAX 3600
+#endif
 
 #ifndef PPE_SETTLE_MS_DEFAULT
 #define PPE_SETTLE_MS_DEFAULT 0
