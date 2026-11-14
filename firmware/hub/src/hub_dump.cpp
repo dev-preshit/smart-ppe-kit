@@ -5,10 +5,12 @@
 #define UL(x) ((unsigned long)(x))
 
 void hub_dump_emit(const HubPipeline& h, const HubDumpExtra& x, HubDumpEmit emit, void* ctx) {
-  char b[200];
+  char b[256];
   const HubGlobalCounters& g = h.global();
   snprintf(b, sizeof b, "DUMP begin t_ms=%lu", UL(x.now_ms)); emit(ctx, b);
-  snprintf(b, sizeof b, "DUMP hub vest=0x%02X accept_enabled=%d registry_ok=%d", h.vest_id(), h.accept_enabled(), h.registry_ok());
+  snprintf(b, sizeof b, "DUMP hub vest=0x%02X accept_enabled=%d registry_ok=%d vest_state=%s alert_active=%d heartbeat_s=%lu margin_s=%lu offline_timeout_s=%lu msg_pending=%lu msg_dropped=%lu",
+           h.vest_id(), h.accept_enabled(), h.registry_ok(), h.vest_compliant() ? "COMPLIANT" : "NON_COMPLIANT", h.alert_active() ? 1 : 0,
+           UL(h.heartbeat_s()), UL(h.margin_s()), UL(h.offline_timeout_s()), UL(h.messages_pending()), UL(h.messages_dropped()));
   emit(ctx, b);
   snprintf(b, sizeof b, "DUMP global rx_total=%lu drop_len=%lu drop_ver=%lu drop_vest=%lu drop_node=%lu drop_state=%lu scan_quiet_60s=%lu",
            UL(g.rx_total), UL(g.drop_len), UL(g.drop_ver), UL(g.drop_vest), UL(g.drop_node), UL(g.drop_state), UL(g.scan_quiet_60s));

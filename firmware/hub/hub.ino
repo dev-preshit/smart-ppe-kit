@@ -48,7 +48,7 @@ void setup() {
 }
 
 #ifdef PPE_TEST_HOOKS
-// Serial test hooks: inject <hex> | stall <n> | dump | time [on|off] | rxlog on|off  (one command per line)
+// Serial test hooks: inject <hex> | stall <n> | dump | time [on|off] | rxlog on|off | set margin <s> | set heartbeat <s>  (one command per line)
 static char g_line[256];
 static size_t g_line_len = 0;
 
@@ -66,7 +66,9 @@ static void run_hook(const char* line) {
     case HUB_HOOK_TIME_OFF: hub_hook_set_time(false); break;
     case HUB_HOOK_RXLOG_ON: hub_hook_set_rxlog(true); break;
     case HUB_HOOK_RXLOG_OFF: hub_hook_set_rxlog(false); break;
-    default: Serial.println("PPE_HOOK error: commands are inject <hex>, stall <1-9>, dump, time [on|off], rxlog on|off"); break;
+    case HUB_HOOK_SET_MARGIN: hub_hook_set_margin(c.val); break;
+    case HUB_HOOK_SET_HEARTBEAT: hub_hook_set_heartbeat(c.val); break;
+    default: Serial.println("PPE_HOOK error: commands are inject <hex>, stall <1-9>, dump, time [on|off], rxlog on|off, set margin <s>, set heartbeat <s>"); break;
   }
 }
 

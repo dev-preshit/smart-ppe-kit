@@ -4,6 +4,7 @@
 #pragma once
 #include <Arduino.h>
 #include "src/hub_pipeline.h"
+#include "src/hub_msg.h"
 
 struct HubRxStats {              // callback entry -> processing finished, per advertisement (TC-72)
   volatile uint32_t count;       // advertisements processed by the rx task
@@ -15,6 +16,10 @@ struct HubRxStats {              // callback entry -> processing finished, per a
 // Initialises the pipeline from the provisioning data, loads the registry from `store`, starts the rx task,
 // the supervisor task and the continuous scan. Returns false if the scan could not be started.
 bool hub_ble_start(uint8_t vest_id, const uint8_t* key32, HubStore* store);
+
+// Where hub messages (COMPLIANCE, NODE_OFFLINE, HUB_BOOT, HUB_FAULT) go. Default: one serial line each (S5).
+// S7 plugs its uplink queue in here; nothing else in S5 changes.
+void hub_set_sink(HubSink* sink);
 
 HubPipeline& hub_pipeline();                 // the one pipeline instance (dump reads it under the lock)
 void hub_pipeline_lock();
@@ -35,4 +40,6 @@ void hub_hook_dump();                                   // registry, counters, q
 void hub_hook_time_now();
 void hub_hook_set_time(bool on);                        // time stamp on every accepted packet (default on)
 void hub_hook_set_rxlog(bool on);                       // every received advertisement before filtering (default off)
+void hub_hook_set_margin(uint32_t s);                   // OFFLINE_MARGIN_S 0..300 (hub provisioning is S6)
+void hub_hook_set_heartbeat(uint32_t s);                // HEARTBEAT_S 60..3600
 #endif

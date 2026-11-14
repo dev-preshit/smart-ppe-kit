@@ -10,11 +10,14 @@ HubStartResult hub_startup_check(uint8_t vest_id, bool key_present) {
 }
 
 HubPipeline::HubPipeline()
-    : vest_id_(0), key_ok_(false), registry_ok_(false), accept_enabled_(false) {
+    : vest_id_(0), key_ok_(false), registry_ok_(false), accept_enabled_(false),
+      heartbeat_s_(HUB_HEARTBEAT_S_DEFAULT), margin_s_(HUB_MARGIN_S_DEFAULT), vest_compliant_(false),
+      msg_n_(0), msg_dropped_(0) {
   memset(key_, 0, sizeof key_);
   memset(&g_, 0, sizeof g_);
   memset(node_, 0, sizeof node_);
   memset(&dummy_, 0, sizeof dummy_);
+  memset(msgq_, 0, sizeof msgq_);
 }
 
 bool HubPipeline::init(uint8_t vest_id, const uint8_t* key32) {
@@ -30,6 +33,9 @@ bool HubPipeline::init(uint8_t vest_id, const uint8_t* key32) {
 bool HubPipeline::load_registry(HubStore* store, uint32_t boot_ms) {
   memset(&g_, 0, sizeof g_);
   memset(node_, 0, sizeof node_);
+  vest_compliant_ = false;          // C-01: the initial NON_COMPLIANT at hub boot is not a transition, no message
+  msg_n_ = 0;                       // a restart forgets undelivered messages (the RAM queue is lost, X-07)
+  msg_dropped_ = 0;
   registry_ok_ = (store != nullptr);
   for (uint8_t id = 1; id <= HUB_NODE_SLOTS; id++) {
     HubNode& n = node_[id];
@@ -83,15 +89,17 @@ HubResult HubPipeline::process(const uint8_t* adv, size_t len, bool pdu_nonconn,
   uint32_t missed = 0;
   switch (ppe_counter_check(n.last_counter, p.counter, &missed)) {
     case PPE_CTR_ACCEPT:
+      r.prev_state = n.state;
       n.last_counter = p.counter;                    // RAM first; HubPersist writes NVS after dispatch
       n.last_seen_ms = now_ms;                       // once per transmission: only the accepted copy
-      n.state = (p.state == PPE_WORN) ? HUB_NODE_WORN : HUB_NODE_NOT_WORN;
+      n.state = (p.state == PPE_WORN) ? HUB_NODE_WORN : HUB_NODE_NOT_WORN;   // H-02, H-03, H-05, H-06, H-08, H-09, H-11, H-12
       n.battery = p.battery;
       n.flags = p.flags;
       n.c.accepted++;
       n.c.gap_count += missed;
       r.verdict = HUB_V_ACCEPT; r.missed = missed;
       r.state = p.state; r.battery = p.battery; r.flags = p.flags;
+      eval_compliance(now_ms);                       // X-R1: node FSM, then compliance, then the caller reads alert_active()
       break;
     case PPE_CTR_DUPLICATE:
       n.c.dup_count++;                               // silent; last_seen unchanged (spec 6.2, P-11)
@@ -111,11 +119,111 @@ HubResult HubPipeline::process(const uint8_t* adv, size_t len, bool pdu_nonconn,
   return r;
 }
 
+bool HubPipeline::set_offline_timing(uint32_t heartbeat_s, uint32_t margin_s) {
+  if (heartbeat_s < HUB_HEARTBEAT_S_MIN || heartbeat_s > HUB_HEARTBEAT_S_MAX || margin_s > HUB_MARGIN_S_MAX) return false;
+  heartbeat_s_ = heartbeat_s;
+  margin_s_ = margin_s;
+  return true;
+}
+
+void HubPipeline::push_msg(const HubMsg& m) {
+  if (msg_n_ >= HUB_MSG_QUEUE_DEPTH) {              // full: drop the oldest, count it (never block the processing task)
+    for (uint32_t i = 1; i < msg_n_; i++) msgq_[i - 1] = msgq_[i];
+    msg_n_--;
+    msg_dropped_++;
+  }
+  msgq_[msg_n_++] = m;
+}
+
+uint8_t HubPipeline::nodes_not_ok_mask() const {
+  uint8_t mask = 0;
+  for (uint8_t id = 1; id <= HUB_NODE_SLOTS; id++)
+    if (node_[id].state != HUB_NODE_WORN) mask = (uint8_t)(mask | (1u << id));
+  return mask;
+}
+
+bool HubPipeline::alert_active() const {
+  for (uint8_t id = 1; id <= HUB_NODE_SLOTS; id++)
+    if (node_[id].state == HUB_NODE_NOT_WORN || node_[id].state == HUB_NODE_OFFLINE) return true;
+  return false;
+}
+
+void HubPipeline::eval_compliance(uint32_t now_ms) {
+  const bool now_ok = (nodes_not_ok_mask() == 0);
+  if (now_ok == vest_compliant_) return;            // C-04: no change, no message
+  vest_compliant_ = now_ok;
+  HubMsg m;
+  memset(&m, 0, sizeof m);
+  m.type = HUB_MSG_COMPLIANCE;
+  m.vest_id = vest_id_;
+  m.compliant = now_ok ? 1 : 0;
+  m.nodes_not_ok = nodes_not_ok_mask();
+  m.t_ms = now_ms;
+  push_msg(m);                                      // C-02 / C-03: exactly one message per vest-level change
+}
+
+uint32_t HubPipeline::tick(uint32_t now_ms) {
+  const uint32_t timeout_ms = offline_timeout_s() * 1000u;
+  uint32_t went_offline = 0;
+  for (uint8_t id = 1; id <= HUB_NODE_SLOTS; id++) {
+    HubNode& n = node_[id];
+    if (n.state == HUB_NODE_OFFLINE) continue;      // H-13: no repeated NODE_OFFLINE
+    // Signed difference: 32-bit wrap safe, and a last_seen stamped a moment AFTER this tick read its clock (the rx task
+    // ran between the two) gives a negative age, which is "just seen", never a false OFFLINE.
+    const int32_t diff = (int32_t)(now_ms - n.last_seen_ms);
+    if (diff <= 0) continue;
+    const uint32_t age_ms = (uint32_t)diff;
+    if (age_ms <= timeout_ms) continue;             // spec 8.2: "more than" the timeout
+    n.state = HUB_NODE_OFFLINE;                     // H-04 (UNKNOWN), H-07 (WORN), H-10 (NOT_WORN)
+    HubMsg m;
+    memset(&m, 0, sizeof m);
+    m.type = HUB_MSG_NODE_OFFLINE;
+    m.vest_id = vest_id_;
+    m.node_id = id;
+    m.last_seen_age_s = age_ms / 1000u;
+    m.t_ms = now_ms;
+    push_msg(m);
+    went_offline++;
+  }
+  if (went_offline) eval_compliance(now_ms);
+  return went_offline;
+}
+
+void HubPipeline::note_boot(uint32_t reset_reason, uint32_t now_ms) {
+  HubMsg m;
+  memset(&m, 0, sizeof m);
+  m.type = HUB_MSG_HUB_BOOT;
+  m.vest_id = vest_id_;
+  m.reset_reason = reset_reason;
+  m.t_ms = now_ms;
+  push_msg(m);
+}
+
+void HubPipeline::note_fault(uint8_t fault_code, uint32_t now_ms) {
+  HubMsg m;
+  memset(&m, 0, sizeof m);
+  m.type = HUB_MSG_HUB_FAULT;
+  m.vest_id = vest_id_;
+  m.fault_code = fault_code;
+  m.t_ms = now_ms;
+  push_msg(m);
+}
+
+uint32_t HubPipeline::take_messages(HubMsg* out, uint32_t max) {
+  if (!out) return 0;
+  uint32_t k = (msg_n_ < max) ? msg_n_ : max;
+  for (uint32_t i = 0; i < k; i++) out[i] = msgq_[i];
+  for (uint32_t i = k; i < msg_n_; i++) msgq_[i - k] = msgq_[i];
+  msg_n_ -= k;
+  return k;
+}
+
 const char* hub_node_state_name(uint8_t s) {
   switch (s) {
     case HUB_NODE_UNKNOWN: return "UNKNOWN";
     case HUB_NODE_NOT_WORN: return "NOT_WORN";
     case HUB_NODE_WORN: return "WORN";
+    case HUB_NODE_OFFLINE: return "OFFLINE";
     default: return "?";
   }
 }
