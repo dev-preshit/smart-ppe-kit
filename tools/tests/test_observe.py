@@ -115,4 +115,51 @@ class T(unittest.TestCase):
         rc, out = self.run_(p, need_marks=True); self.assertEqual(rc, 1); self.assertIn("the node log says event ctr=259", out)
         p = make_log(); self._with_node(p, [0, 500, 1000, 1500, 2000], tx_line="TX seq=1 type=event ctr=258 state=1 boot=1 fault=0")
         rc, out = self.run_(p, need_marks=True); self.assertEqual(rc, 1)
+    # ---- TC-07 / TC-10 run: boot event, wear/remove events, heartbeats
+    def _run_log(self, packets, **kw):
+        hexes = [adv(flags=f, state=s, ctr=c) for (f, s, c) in packets]
+        return make_log(hexes=hexes, **kw)
+    GOOD = [(0x30, 1, 10), (0x20, 0, 11), (0x20, 1, 12), (0x20, 0, 13), (0x20, 1, 14), (0x00, 1, 15), (0x00, 1, 16)]
+    def test_run_boot_events_and_heartbeats_pass(self):
+        rc, out = self.run_(self._run_log(self.GOOD), cycles=2, heartbeats=2); self.assertEqual(rc, 0, out); self.assertIn("2 wear + 2 remove events and 2 heartbeats", out)
+    def test_run_counter_gap_fails(self):
+        p = list(self.GOOD); p[3] = (0x20, 0, 20)
+        rc, out = self.run_(self._run_log(p), cycles=2, heartbeats=2); self.assertEqual(rc, 1); self.assertIn("counter 20 after 12, it must be +1", out)
+    def test_run_state_that_does_not_alternate_fails(self):
+        p = list(self.GOOD); p[2] = (0x20, 0, 12)
+        rc, out = self.run_(self._run_log(p), cycles=2, heartbeats=2); self.assertEqual(rc, 1); self.assertIn("it must alternate", out)
+    def test_run_missing_boot_flag_fails(self):
+        p = list(self.GOOD); p[0] = (0x20, 1, 10)
+        rc, out = self.run_(self._run_log(p), cycles=2, heartbeats=2); self.assertEqual(rc, 1); self.assertIn("TX 1 must be the BOOT=1 event", out)
+    def test_run_boot_flag_on_a_later_event_fails(self):
+        p = list(self.GOOD); p[2] = (0x30, 1, 12)
+        rc, out = self.run_(self._run_log(p), cycles=2, heartbeats=2); self.assertEqual(rc, 1); self.assertIn("event with BOOT=0", out)
+    def test_run_missing_or_extra_transmission_fails(self):
+        rc, out = self.run_(self._run_log(self.GOOD[:-1]), cycles=2, heartbeats=2); self.assertEqual(rc, 1); self.assertIn("expected 7 transmissions", out)
+        rc, out = self.run_(self._run_log(self.GOOD + [(0x00, 1, 17)]), cycles=2, heartbeats=2); self.assertEqual(rc, 1)
+    def test_run_heartbeat_with_the_wrong_state_or_type_fails(self):
+        p = list(self.GOOD); p[5] = (0x00, 0, 15)
+        rc, out = self.run_(self._run_log(p), cycles=2, heartbeats=2); self.assertEqual(rc, 1); self.assertIn("heartbeat state 0", out)
+        p = list(self.GOOD); p[6] = (0x20, 1, 16)
+        rc, out = self.run_(self._run_log(p), cycles=2, heartbeats=2); self.assertEqual(rc, 1); self.assertIn("must be a heartbeat", out)
+    def test_plan_generator_writes_timed_hook_lines_and_the_loader_reads_them_back(self):
+        import io, contextlib, argparse
+        d = tempfile.mkdtemp(); f = os.path.join(d, "plan.txt")
+        ns = argparse.Namespace(cycles=2, hold=6.0, first=32.0, grace=2, hb=60, heartbeats=20, out=f)
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf): self.assertEqual(observe.cmd_plan(ns), 0)
+        plan = observe.load_plan(f)
+        self.assertEqual(plan[0], (30.0, "set grace 2"))
+        self.assertEqual([c for _t, c in plan[1:5]], ["adc 50", "adc 2000", "adc 50", "adc 2000"])
+        self.assertEqual(plan[1][0], 32.0); self.assertEqual(plan[2][0], 38.0); self.assertEqual(plan[4][0], 50.0)
+        self.assertEqual([c for _t, c in plan[-2:]], ["set hb 60", "tx hb"])
+        self.assertIn("run at least --seconds", buf.getvalue())
+    def test_plan_loader_refuses_anything_that_looks_like_a_key(self):
+        d = tempfile.mkdtemp(); f = os.path.join(d, "p.txt")
+        open(f, "w").write("5 ident keyload\n")
+        with self.assertRaises(SystemExit): observe.load_plan(f)
+        open(f, "w").write("5 " + "a" * 64 + "\n")
+        with self.assertRaises(SystemExit): observe.load_plan(f)
+        open(f, "w").write("5 ident testkey\n6 adc 50\n")
+        self.assertEqual(observe.load_plan(f), [(5.0, "ident testkey"), (6.0, "adc 50")])
 if __name__ == "__main__": unittest.main()

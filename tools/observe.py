@@ -8,6 +8,7 @@ All times come from the observer's own esp_timer clock (PKT and TIME lines); the
   analyze   --tc TC-10 [--log PATH] [--copies 5] [--spacing 500] [--tol 50] [--quiet 10] [--expect-tx N] [--need-marks]
             [--len 21] [--prefix 14ffffff] [--gap 0.2]       one 'copy' = one burst of PDUs (A-15); exit 0 = PASS, 1 = FAIL
   calibrate --tc OBS-CAL [--log PATH] --spacing 500        measured spacing error of the observer against the injector (no verdict)
+  plan      --out plan.txt [--cycles 20 --hold 6 --grace 2 --hb 60 --heartbeats 20]   timed hook lines for a FOOT run (adc hook)
   result    --tc TC-10 --result PASS|FAIL|BLOCKED          one row in test_logs/summary_s4.csv
 
 Log: test_logs/S4/<TC>_<sha7>.log. A log is never appended to by a second capture. Never run two programs on one COM port."""
@@ -97,6 +98,12 @@ def decode(h):
         b[7], b[8], int.from_bytes(b[9:13], "little"))
 
 
+def dec(h):
+    b = bytes.fromhex(h)
+    return {"event": bool(b[4] & 0x20), "boot": bool(b[4] & 0x10), "fault": bool(b[4] & 0x04), "state": b[7], "node": b[6],
+            "ctr": int.from_bytes(b[9:13], "little")}
+
+
 def spacings_ms(bs):
     return [(bs[i][0][0] - bs[i - 1][0][0]) / 1000.0 for i in range(1, len(bs))]
 
@@ -165,6 +172,36 @@ def cmd_analyze(a):
         got = (b[4] & 0x20, b[4] & 0x10, b[4] & 0x04, b[7], int.from_bytes(b[9:13], "little"))
         if want != got:
             errs.append("TX %d: the node log says %s ctr=%d state=%d boot=%d fault=%d, the air has %s" % (i, typ, ctr, st, boot, flt, decode(h)))
+    cyc, hbn = getattr(a, "cycles", 0), getattr(a, "heartbeats", 0)
+    if cyc or hbn:                       # TC-07 / TC-10 run: boot event, N x (remove, wear) events, then heartbeats, counter +1 every time
+        want = 1 + 2 * cyc + hbn
+        if len(tx) != want:
+            errs.append("expected %d transmissions (1 boot event + %d events + %d heartbeats), found %d" % (want, 2 * cyc, hbn, len(tx)))
+        d = [dec(h) for h, _bs in tx]
+        for i, x in enumerate(d):
+            if i and x["node"] != d[0]["node"]:
+                errs.append("TX %d: node %d, the first packet was node %d" % (i + 1, x["node"], d[0]["node"]))
+            if i and x["ctr"] != d[i - 1]["ctr"] + 1:
+                errs.append("TX %d: counter %d after %d, it must be +1" % (i + 1, x["ctr"], d[i - 1]["ctr"]))
+            if i == 0:
+                if not (x["event"] and x["boot"]):
+                    errs.append("TX 1 must be the BOOT=1 event")
+            elif i <= 2 * cyc:
+                if not x["event"] or x["boot"]:
+                    errs.append("TX %d must be an event with BOOT=0" % (i + 1))
+                if x["state"] != 1 - d[i - 1]["state"]:
+                    errs.append("TX %d: state %d after state %d, it must alternate" % (i + 1, x["state"], d[i - 1]["state"]))
+            else:
+                if x["event"] or x["boot"]:
+                    errs.append("TX %d must be a heartbeat with BOOT=0" % (i + 1))
+                if x["state"] != d[2 * cyc]["state"]:
+                    errs.append("TX %d: heartbeat state %d, the last confirmed state was %d" % (i + 1, x["state"], d[2 * cyc]["state"]))
+        if hbn and len(nseqs) == len(tx):
+            hb_t = [nseqs[i][0][1] for i in range(2 * cyc + 1, len(nseqs))]
+            gaps = [((hb_t[j] - hb_t[j - 1]) & 0xFFFFFFFF) / 1e6 for j in range(1, len(hb_t))]
+            if gaps:
+                out.append("HEARTBEAT first copy to first copy, node clock: min %.3f s mean %.3f s max %.3f s over %d gaps (reported, not judged here)" % (min(gaps), sum(gaps) / len(gaps), max(gaps), len(gaps)))
+        out.append("RUN %d wear + %d remove events and %d heartbeats checked against the air" % (cyc, cyc, hbn))
     for e in errs:
         out.append("FINDING " + e)
     out.append("RESULT %s" % ("PASS" if not errs else "FAIL (%d)" % len(errs)))
@@ -200,6 +237,38 @@ def cmd_result(a):
     return 0
 
 
+def load_plan(path):
+    """Lines of '<seconds from the start> <hook command>'. Never a key: a command longer than 40 characters is refused."""
+    out = []
+    with open(path, encoding="utf-8") as f:
+        for ln in f:
+            ln = ln.strip()
+            if not ln or ln.startswith("#"):
+                continue
+            t, cmd = ln.split(None, 1)
+            if len(cmd) > 40 or "key" in cmd.lower().replace("testkey", ""):
+                sys.exit("STOP: plan command not allowed (too long or key-like): %.12s..." % cmd)
+            out.append((float(t), cmd))
+    return out
+
+
+def cmd_plan(a):
+    """TC-07 / TC-10 run for a node that boots WORN (FOOT build with --adc-boot 2000, adc hook): N x (remove, wear), then heartbeats."""
+    lines = ["# plan for observe.py capture --node-plan (seconds from the start of the capture, then the hook line)",
+             "%g set grace %d" % (a.first - 2, a.grace)]
+    t = a.first
+    for _ in range(a.cycles):
+        lines.append("%g adc 50" % t); lines.append("%g adc 2000" % (t + a.hold)); t += 2 * a.hold
+    if a.hb:
+        lines.append("%g set hb %d" % (t + 3, a.hb)); lines.append("%g tx hb" % (t + 4)); t += 4
+    with open(a.out, "w", newline="\n") as f:
+        f.write("\n".join(lines) + "\n")
+    hb_end = t + (a.heartbeats - 1) * a.hb if a.hb else t
+    print("plan written: %s, %d commands, last command at %g s; run at least --seconds %d (last heartbeat %g s + 2.1 s copies + 10 s silence + 15 s margin)"
+          % (a.out, len(lines) - 1, t, int(hb_end + 2.1 + 10 + 15) + 1, hb_end))
+    return 0
+
+
 def node_reader(ser, cap, stop):
     buf = b""
     while not stop.is_set():
@@ -222,6 +291,8 @@ def cmd_capture(a):
     header = logger.header_lines(a.tc, a.waived) + ["via=observe.py", "observer_port=%s" % a.port] + a.header
     if a.node:
         header.append("node_port=%s" % a.node)
+        if a.node_plan:
+            header += ["plan %g %s" % (t, c) for t, c in load_plan(a.node_plan)]
     cap = logger.Capture(a.port, a.baud, path, header)
     print("logging to", path)
     inj = None
@@ -237,11 +308,14 @@ def cmd_capture(a):
             import serial
             nd = serial.Serial(); nd.port = a.node; nd.baudrate = 115200; nd.timeout = 0.2; nd.dtr = False; nd.rts = False; nd.open()
             threading.Thread(target=node_reader, args=(nd, cap, stop), daemon=True).start()
-            time.sleep(max(0.0, a.node_after - (time.time() - t0)))
-            for c in a.node_send:
+            plan = [(a.node_after + i * a.node_gap, c) for i, c in enumerate(a.node_send)]
+            if a.node_plan:
+                plan += load_plan(a.node_plan)
+            plan.sort(key=lambda x: x[0])
+            for t_cmd, c in plan:
+                time.sleep(max(0.0, t_cmd - (time.time() - t0)))
                 cap.note("NODETX %s" % c)
                 nd.write((c + "\n").encode())
-                time.sleep(a.node_gap)
         if a.injector:
             import serial
             inj = serial.Serial(); inj.port = a.injector; inj.baudrate = 115200; inj.timeout = 0.2
@@ -293,6 +367,7 @@ def main():
     c.add_argument("--node-send", action="append", default=[], help="a hook line for the node; repeat for several")
     c.add_argument("--node-after", type=float, default=5.0, help="seconds after the start before the first node command")
     c.add_argument("--node-gap", type=float, default=1.0, help="seconds between node commands")
+    c.add_argument("--node-plan", help="file of timed hook lines made by the plan command")
     for name in ("analyze", "calibrate"):
         p = sub.add_parser(name)
         p.add_argument("--tc", required=True); p.add_argument("--log")
@@ -303,12 +378,19 @@ def main():
             p.add_argument("--copies", type=int, default=5); p.add_argument("--tol", type=int, default=50)
             p.add_argument("--quiet", type=float, default=10.0); p.add_argument("--expect-tx", type=int)
             p.add_argument("--need-marks", action="store_true", help="the log must hold the node's MARK COPY lines (A-20)")
+            p.add_argument("--cycles", type=int, default=0, help="TC-07: boot event then N x (remove, wear); counter +1 and the state alternates")
+            p.add_argument("--heartbeats", type=int, default=0, help="TC-10: N heartbeats after the events")
+    pl = sub.add_parser("plan")
+    pl.add_argument("--cycles", type=int, default=20); pl.add_argument("--hold", type=float, default=6.0)
+    pl.add_argument("--first", type=float, default=32.0); pl.add_argument("--grace", type=int, default=2)
+    pl.add_argument("--hb", type=int, default=60); pl.add_argument("--heartbeats", type=int, default=20)
+    pl.add_argument("--out", required=True)
     r = sub.add_parser("result")
     r.add_argument("--tc", required=True); r.add_argument("--result", required=True, choices=["PASS", "FAIL", "BLOCKED"])
     a = ap.parse_args()
     if a.cmd == "capture" and bool(a.injector) != bool(a.adv):
         ap.error("--injector and --adv go together")
-    return {"capture": cmd_capture, "analyze": cmd_analyze, "calibrate": cmd_calibrate, "result": cmd_result}[a.cmd](a)
+    return {"capture": cmd_capture, "analyze": cmd_analyze, "calibrate": cmd_calibrate, "result": cmd_result, "plan": cmd_plan}[a.cmd](a)
 
 
 if __name__ == "__main__":
