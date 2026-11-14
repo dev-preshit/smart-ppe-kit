@@ -162,4 +162,13 @@ class T(unittest.TestCase):
         with self.assertRaises(SystemExit): observe.load_plan(f)
         open(f, "w").write("5 ident testkey\n6 adc 50\n")
         self.assertEqual(observe.load_plan(f), [(5.0, "ident testkey"), (6.0, "adc 50")])
+    # ---- TC-01: node_id from the air, and silence from an unprovisioned board
+    def test_node_id_on_the_air_must_match_the_provisioned_one(self):
+        rc, out = self.run_(make_log(), node_id=3); self.assertEqual(rc, 0, out)
+        rc, out = self.run_(make_log(), node_id=2); self.assertEqual(rc, 1); self.assertIn("node_id 3 on the air, provisioned as 2", out)
+    def test_an_unprovisioned_board_must_send_nothing(self):
+        rc, out = self.run_(make_log(copies=0), expect_tx=0); self.assertEqual(rc, 0, out)
+        rc, out = self.run_(make_log(), expect_tx=0); self.assertEqual(rc, 1); self.assertIn("expected 0 transmissions, found 1", out)
+    def test_an_empty_log_without_expect_tx_zero_still_fails(self):
+        rc, out = self.run_(make_log(copies=0)); self.assertEqual(rc, 1); self.assertIn("no matching transmission", out)
 if __name__ == "__main__": unittest.main()

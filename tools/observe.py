@@ -5,7 +5,7 @@ All times come from the observer's own esp_timer clock (PKT and TIME lines); the
   capture   --port COM6 --tc TC-10 --seconds 60 [--filter 21] [--waived] [--header TEXT]
             [--node COM9 --node-send "tx worn" --node-after 5]   (the node's own lines are logged as NODE ..., A-20)
             [--injector COM4 --adv "<hex> <copies> <spacing_ms>" --adv-after 3]   (calibration: the injector sends known bursts)
-  analyze   --tc TC-10 [--log PATH] [--copies 5] [--spacing 500] [--tol 50] [--quiet 10] [--expect-tx N] [--need-marks]
+  analyze   --tc TC-10 [--log PATH] [--copies 5] [--spacing 500] [--tol 50] [--quiet 10] [--expect-tx N] [--need-marks] [--node-id N]
             [--len 21] [--prefix 14ffffff] [--gap 0.2]       one 'copy' = one burst of PDUs (A-15); exit 0 = PASS, 1 = FAIL
   calibrate --tc OBS-CAL [--log PATH] --spacing 500        measured spacing error of the observer against the injector (no verdict)
   plan      --out plan.txt [--cycles 20 --hold 6 --grace 2 --hb 60 --heartbeats 20]   timed hook lines for a FOOT run (adc hook)
@@ -122,7 +122,7 @@ def cmd_analyze(a):
     tx = transmissions(pdus, int(a.gap * 1000000))
     errs, out = [], ["analyze %s: observer PDUs=%d, matching %d-byte PDUs=%d, transmissions=%d, lost=%d" % (
         os.path.basename(path), len(pk), a.len, len(pdus), len(tx), lost)]
-    if not tx:
+    if not tx and a.expect_tx != 0:                  # --expect-tx 0 = TC-01 step 5: an unprovisioned board must send nothing
         errs.append("no matching transmission in the log")
     if lost:
         errs.append("observer queue overflow, lost=%d" % lost)
@@ -131,6 +131,11 @@ def cmd_analyze(a):
         errs.append("%d PDUs are not ADV_NONCONN_IND (evt 3), first evt=%d" % (len(wrong), wrong[0][2]))
     if a.expect_tx is not None and len(tx) != a.expect_tx:
         errs.append("expected %d transmissions, found %d" % (a.expect_tx, len(tx)))
+    nid = getattr(a, "node_id", None)
+    if nid is not None:                              # TC-01: the node_id decoded from the air must be the provisioned one
+        for i, (h, _bs) in enumerate(tx, 1):
+            if dec(h)["node"] != nid:
+                errs.append("TX %d: node_id %d on the air, provisioned as %d" % (i, dec(h)["node"], nid))
     nseqs, ntx = parse_node(path)
     need = getattr(a, "need_marks", False)
     judge_obs = not nseqs        # A-20: with node marks present the node decides the spacing; the observer error is about +/- 40 ms
@@ -378,6 +383,7 @@ def main():
             p.add_argument("--copies", type=int, default=5); p.add_argument("--tol", type=int, default=50)
             p.add_argument("--quiet", type=float, default=10.0); p.add_argument("--expect-tx", type=int)
             p.add_argument("--need-marks", action="store_true", help="the log must hold the node's MARK COPY lines (A-20)")
+            p.add_argument("--node-id", type=int, help="TC-01: every transmission must carry this node_id")
             p.add_argument("--cycles", type=int, default=0, help="TC-07: boot event then N x (remove, wear); counter +1 and the state alternates")
             p.add_argument("--heartbeats", type=int, default=0, help="TC-10: N heartbeats after the events")
     pl = sub.add_parser("plan")
