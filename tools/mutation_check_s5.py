@@ -8,6 +8,24 @@ import mutation_check
 
 P = "firmware/hub/src/hub_pipeline.cpp"
 H = "firmware/hub/src/hub_pipeline.h"
+C = "firmware/hub/src/hub_config.h"
+M = "firmware/hub/src/hub_motor.cpp"
+MOTOR = [  # S5 part 2: motor FSM (TC-29, TC-30, TC-74)
+ ("s5m: alert ON 400 ms instead of 300", C, "HUB_MOTOR_ON_US        300000u", "HUB_MOTOR_ON_US        400000u"),
+ ("s5m: alert OFF 600 ms instead of 700", C, "HUB_MOTOR_OFF_US       700000u", "HUB_MOTOR_OFF_US       600000u"),
+ ("s5m: guard at 500 ms instead of 400", C, "HUB_MOTOR_GUARD_US     400000u", "HUB_MOTOR_GUARD_US     500000u"),
+ ("s5m: key pattern with 2 pulses", C, "HUB_KEY_PULSES         3u", "HUB_KEY_PULSES         2u"),
+ ("s5m: key rest 1500 ms", C, "HUB_KEY_REST_US       1700000u", "HUB_KEY_REST_US       1500000u"),
+ ("s5m: guard never acts", M, "if (!guard_armed_ || !due(now_us, guard_dl_)) return;", "return;"),
+ ("s5m: guard not armed by an ON edge", M, "    guard_armed_ = true;\n  } else {", "  } else {"),
+ ("s5m: alert clear does not stop the motor at once", M, "    set_out(false, now_us);                        // M-06: low at once, timers cancelled\n", ""),
+ ("s5m: late step bursts instead of resync", M, "(late > HUB_MOTOR_RESYNC_US) ? now_us : dl_", "((late > HUB_MOTOR_RESYNC_US) ? dl_ : dl_)"),
+ ("s5m: boot leaves the output as it was", M, "  out_ = false; alert_ = false; key_ = false;", "  alert_ = false; key_ = false;"),
+ ("s5m: deadline compare not wrap safe", M, "return (int32_t)(now - deadline) >= 0;", "return now >= deadline;"),
+ ("s5m: guard trip never reported", M, "  trip_pending_ = true;\n", ""),
+ ("s5m: re-alert while idle does not start", M, "  if (active && state_ == M_IDLE) {", "  if (false) {"),
+]
+
 mutation_check.MUTANTS = [  # (name, file, old, new)
  ("s5: timeout is >= instead of >", P, "if (age_ms <= timeout_ms) continue;", "if (age_ms < timeout_ms) continue;"),
  ("s5: OFFLINE message repeats (H-13)", P, "if (n.state == HUB_NODE_OFFLINE) continue;      // H-13", "if (false) continue;      // H-13"),
@@ -24,4 +42,5 @@ mutation_check.MUTANTS = [  # (name, file, old, new)
  ("s5: boot does not clear queued messages", P, "  msg_n_ = 0;                       // a restart", "  // msg_n_ = 0;                       // a restart"),
  ("s5: queue overflow keeps the newest out", P, "    for (uint32_t i = 1; i < msg_n_; i++) msgq_[i - 1] = msgq_[i];\n    msg_n_--;\n    msg_dropped_++;", "    return;"),
 ]
+mutation_check.MUTANTS = mutation_check.MUTANTS + MOTOR
 if __name__ == "__main__": sys.exit(mutation_check.main())

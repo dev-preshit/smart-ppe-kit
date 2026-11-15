@@ -13,8 +13,8 @@ TESTSRC  := ppe_test_main.cpp sha256_portable.cpp test_proto.cpp test_filter.cpp
             test_sense.cpp test_confirm.cpp test_rtcctx.cpp test_hooks.cpp \
             test_hub_pipeline.cpp test_hub_persist.cpp test_hub_scan.cpp test_hub_hooks.cpp test_hub_tc.cpp
 # S5 hub logic (own lines so a merge with the S4 node test list stays trivial)
-HUBLIB   += $(HUB)/hub_msg.cpp
-TESTSRC  += test_hub_fsm.cpp test_hub_compliance.cpp test_hub_offline.cpp test_hub_msg.cpp
+HUBLIB   += $(HUB)/hub_msg.cpp $(HUB)/hub_motor.cpp
+TESTSRC  += test_hub_fsm.cpp test_hub_compliance.cpp test_hub_offline.cpp test_hub_msg.cpp test_hub_motor.cpp
 BIN      := build/ppe_host_tests
 
 .PHONY: test list clean release_check release_check_node

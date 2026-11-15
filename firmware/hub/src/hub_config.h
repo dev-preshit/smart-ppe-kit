@@ -24,3 +24,13 @@
 #define HUB_TICK_MS             1000u     // spec 8.2: timeout evaluated at least once per second
 #define HUB_MSG_QUEUE_DEPTH     16u       // pending hub messages between the pipeline and the sink
 #define HUB_FW_ID               "s5-hub-logic"
+
+// S5 part 2: motor timing (state machines 2.6, spec 8.3, FR-29, FR-30, NFR-05)
+#define HUB_MOTOR_ON_US        300000u    // alert ON  300 +/- 30 ms
+#define HUB_MOTOR_OFF_US       700000u    // alert OFF 700 +/- 30 ms
+#define HUB_MOTOR_GUARD_US     400000u    // independent guard: output forced low 400 ms after the ON edge
+#define HUB_KEY_ON_US          100000u    // KEY_FAULT pulse ON  100 +/- 20 ms
+#define HUB_KEY_OFF_US         100000u    // KEY_FAULT pulse OFF 100 +/- 20 ms
+#define HUB_KEY_REST_US       1700000u    // after the third pulse (V12-05: the low time is K_OFF + K_REST = 1800 ms)
+#define HUB_KEY_PULSES         3u
+#define HUB_MOTOR_RESYNC_US     20000u    // a pattern step later than this schedules from now, not from the nominal edge
