@@ -100,6 +100,16 @@ ppe_hook_t ppe_hook_parse(const char* line, ppe_hook_cmd_t* out) {
     else if (!strcmp(t[1], "show")) d.cmd = PPE_HOOK_IDENT_SHOW;
     else d.cmd = PPE_HOOK_BAD_ARG;
   }
+  else if (!strcmp(t[0], "sleep") && n == 2) {
+    if (!strcmp(t[1], "on")) d.cmd = PPE_HOOK_SLEEP_ON;
+    else if (!strcmp(t[1], "off")) d.cmd = PPE_HOOK_SLEEP_OFF;
+    else d.cmd = PPE_HOOK_BAD_ARG;
+  }
+  else if (!strcmp(t[0], "adcat") && n == 3) {                 // the injected ADC reading becomes <value> after <seconds> (survives sleep)
+    d.cmd = (to_long(t[1], &d.arg) && d.arg >= 1 && d.arg <= 86400 && to_long(t[2], &d.arg2) && d.arg2 >= 0 && d.arg2 <= 4095) ? PPE_HOOK_ADCAT : PPE_HOOK_BAD_ARG;
+  }
+  else if (!strcmp(t[0], "adcat") && n == 2) d.cmd = !strcmp(t[1], "clear") ? PPE_HOOK_ADCAT_CLEAR : PPE_HOOK_BAD_ARG;
+  else if (!strcmp(t[0], "wakelog") && n == 1) d.cmd = PPE_HOOK_WAKELOG;
   else d.cmd = PPE_HOOK_UNKNOWN;
   if (out) *out = d;
   return d.cmd;

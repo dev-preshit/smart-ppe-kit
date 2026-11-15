@@ -171,4 +171,16 @@ class T(unittest.TestCase):
         rc, out = self.run_(make_log(), expect_tx=0); self.assertEqual(rc, 1); self.assertIn("expected 0 transmissions, found 1", out)
     def test_an_empty_log_without_expect_tx_zero_still_fails(self):
         rc, out = self.run_(make_log(copies=0)); self.assertEqual(rc, 1); self.assertIn("no matching transmission", out)
+    # ---- a sleeping node: the port goes away, commands can be lost
+    def test_a_command_that_could_not_be_sent_fails_the_run(self):
+        p = make_log(); lines = open(p).read().split("\n")
+        lines.insert(2, "2026-11-11T10:00:05.000 | NODETX FAILED (the node was asleep or its port closed): adc 50")
+        open(p, "w").write("\n".join(lines))
+        rc, out = self.run_(p); self.assertEqual(rc, 1); self.assertIn("a node command was lost: (the node was asleep or its port closed): adc 50", out)
+    def test_node_port_notes_do_not_disturb_the_analysis(self):
+        p = make_log(); lines = open(p).read().split("\n")
+        lines.insert(2, "2026-11-11T10:00:05.000 | NODEPORT closed (node asleep or restarting)")
+        lines.insert(3, "2026-11-11T10:00:06.000 | NODEPORT open")
+        open(p, "w").write("\n".join(lines))
+        rc, out = self.run_(p); self.assertEqual(rc, 0, out)
 if __name__ == "__main__": unittest.main()

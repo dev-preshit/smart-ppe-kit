@@ -91,6 +91,26 @@ PPE_TEST(s4_hook_ident_has_four_forms_and_checks_node_and_vest_ranges, "TC-01") 
   CHECK_EQ(ppe_hook_parse("ident", &h), PPE_HOOK_UNKNOWN);
 }
 
+PPE_TEST(s4_hook_sleep_adcat_and_wakelog, "TC-14") {
+  ppe_hook_cmd_t h;
+  CHECK_EQ(ppe_hook_parse("sleep on", &h), PPE_HOOK_SLEEP_ON);
+  CHECK_EQ(ppe_hook_parse("sleep off", &h), PPE_HOOK_SLEEP_OFF);
+  CHECK_EQ(ppe_hook_parse("sleep now", &h), PPE_HOOK_BAD_ARG);
+  CHECK_EQ(ppe_hook_parse("sleep", &h), PPE_HOOK_UNKNOWN);
+  CHECK_EQ(ppe_hook_parse("adcat 40 50", &h), PPE_HOOK_ADCAT);   CHECK_EQ(h.arg, 40);   CHECK_EQ(h.arg2, 50);
+  CHECK_EQ(ppe_hook_parse("adcat 86400 4095", &h), PPE_HOOK_ADCAT);
+  CHECK_EQ(ppe_hook_parse("adcat 1 0", &h), PPE_HOOK_ADCAT);
+  CHECK_EQ(ppe_hook_parse("adcat 0 50", &h), PPE_HOOK_BAD_ARG);
+  CHECK_EQ(ppe_hook_parse("adcat 86401 50", &h), PPE_HOOK_BAD_ARG);
+  CHECK_EQ(ppe_hook_parse("adcat 40 4096", &h), PPE_HOOK_BAD_ARG);
+  CHECK_EQ(ppe_hook_parse("adcat 40 -1", &h), PPE_HOOK_BAD_ARG);
+  CHECK_EQ(ppe_hook_parse("adcat clear", &h), PPE_HOOK_ADCAT_CLEAR);
+  CHECK_EQ(ppe_hook_parse("adcat 40", &h), PPE_HOOK_BAD_ARG);
+  CHECK_EQ(ppe_hook_parse("adcat", &h), PPE_HOOK_UNKNOWN);
+  CHECK_EQ(ppe_hook_parse("wakelog", &h), PPE_HOOK_WAKELOG);
+  CHECK_EQ(ppe_hook_parse("wakelog all", &h), PPE_HOOK_UNKNOWN);
+}
+
 PPE_TEST(s4_hook_unknown_commands_still_fall_through, "TC-78") {
   ppe_hook_cmd_t h;
   CHECK_EQ(ppe_hook_parse("reboot", &h), PPE_HOOK_UNKNOWN);

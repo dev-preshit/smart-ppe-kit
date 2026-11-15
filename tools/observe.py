@@ -54,6 +54,9 @@ def parse_node(path):
     seqs, cur, tx = [], None, []
     with open(path, encoding="utf-8") as f:
         for ln in f:
+            if "NODETX FAILED" in ln:
+                tx.append(("FAILED", ln.split("FAILED", 1)[1].strip()))
+                continue
             m = NODE_MARK.search(ln)
             if m:
                 k, us = int(m.group(1)), int(m.group(2))
@@ -137,6 +140,9 @@ def cmd_analyze(a):
             if dec(h)["node"] != nid:
                 errs.append("TX %d: node_id %d on the air, provisioned as %d" % (i, dec(h)["node"], nid))
     nseqs, ntx = parse_node(path)
+    for lost_cmd in [x for x in ntx if x[0] == "FAILED"]:      # a hook command that never reached the node makes the run meaningless
+        errs.append("a node command was lost: %s" % lost_cmd[1])
+    ntx = [x for x in ntx if x[0] != "FAILED"]
     need = getattr(a, "need_marks", False)
     judge_obs = not nseqs        # A-20: with node marks present the node decides the spacing; the observer error is about +/- 40 ms
     prev_start = None
@@ -274,13 +280,31 @@ def cmd_plan(a):
     return 0
 
 
-def node_reader(ser, cap, stop):
+def node_reader(port, cap, stop, holder):
+    """Reads the node's lines into the log and reopens the port whenever it comes back: a sleeping node's USB port disappears."""
+    import serial
+    ser = holder.get("ser")
     buf = b""
     while not stop.is_set():
+        if ser is None:
+            try:
+                ser = serial.Serial(); ser.port = port; ser.baudrate = 115200; ser.timeout = 0.2; ser.dtr = False; ser.rts = False; ser.open()
+                holder["ser"] = ser
+                cap.note("NODEPORT open")
+            except Exception:
+                ser = None; holder["ser"] = None
+                time.sleep(0.3)
+                continue
         try:
             chunk = ser.read(256)
         except Exception:
-            return
+            try:
+                ser.close()
+            except Exception:
+                pass
+            ser = None; holder["ser"] = None; buf = b""
+            cap.note("NODEPORT closed (node asleep or restarting)")
+            continue
         if not chunk:
             continue
         buf += chunk
@@ -301,7 +325,7 @@ def cmd_capture(a):
     cap = logger.Capture(a.port, a.baud, path, header)
     print("logging to", path)
     inj = None
-    nd = None
+    holder = {"ser": None}
     stop = threading.Event()
     try:
         time.sleep(0.5)
@@ -310,9 +334,7 @@ def cmd_capture(a):
             cap.send("FILTER %d" % a.filter); time.sleep(0.3)
         t0 = time.time()
         if a.node:                                          # the node under test: its lines go into the same log as NODE ...
-            import serial
-            nd = serial.Serial(); nd.port = a.node; nd.baudrate = 115200; nd.timeout = 0.2; nd.dtr = False; nd.rts = False; nd.open()
-            threading.Thread(target=node_reader, args=(nd, cap, stop), daemon=True).start()
+            threading.Thread(target=node_reader, args=(a.node, cap, stop, holder), daemon=True).start()
             plan = [(a.node_after + i * a.node_gap, c) for i, c in enumerate(a.node_send)]
             if a.node_plan:
                 plan += load_plan(a.node_plan)
@@ -320,7 +342,10 @@ def cmd_capture(a):
             for t_cmd, c in plan:
                 time.sleep(max(0.0, t_cmd - (time.time() - t0)))
                 cap.note("NODETX %s" % c)
-                nd.write((c + "\n").encode())
+                try:
+                    holder["ser"].write((c + "\n").encode())
+                except Exception:
+                    cap.note("NODETX FAILED (the node was asleep or its port closed): %s" % c)
         if a.injector:
             import serial
             inj = serial.Serial(); inj.port = a.injector; inj.baudrate = 115200; inj.timeout = 0.2
@@ -351,8 +376,12 @@ def cmd_capture(a):
         pass
     finally:
         stop.set()
-        if nd:
-            nd.close()
+        time.sleep(0.5)
+        if holder.get("ser"):
+            try:
+                holder["ser"].close()
+            except Exception:
+                pass
         if inj:
             inj.close()
         cap.close()
