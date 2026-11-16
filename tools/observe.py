@@ -3,7 +3,7 @@
 All times come from the observer's own esp_timer clock (PKT and TIME lines); the PC time only orders lines (A-01).
 
   capture   --port COM6 --tc TC-10 --seconds 60 [--filter 21] [--waived] [--header TEXT]
-            [--node COM9 --node-send "tx worn" --node-after 5]   (the node's own lines are logged as NODE ..., A-20)
+            [--node COM9 --node-send "tx worn" --node-after 5] [--node-reset]   (the node's own lines are logged as NODE ..., A-20)
             [--injector COM4 --adv "<hex> <copies> <spacing_ms>" --adv-after 3]   (calibration: the injector sends known bursts)
   analyze   --tc TC-10 [--log PATH] [--copies 5] [--spacing 500] [--tol 50] [--quiet 10] [--expect-tx N] [--need-marks] [--node-id N]
             [--len 21] [--prefix 14ffffff] [--gap 0.2]       one 'copy' = one burst of PDUs (A-15); exit 0 = PASS, 1 = FAIL
@@ -139,6 +139,10 @@ def cmd_analyze(a):
         for i, (h, _bs) in enumerate(tx, 1):
             if dec(h)["node"] != nid:
                 errs.append("TX %d: node_id %d on the air, provisioned as %d" % (i, dec(h)["node"], nid))
+    whole = open(path, encoding="utf-8").read()
+    for bad in ("OBSERVER STALLED", "NODE RESET FAILED", "final TIME and STAT could not be sent"):
+        if bad in whole:
+            errs.append("the capture reports: %s" % bad)
     nseqs, ntx = parse_node(path)
     for lost_cmd in [x for x in ntx if x[0] == "FAILED"]:      # a hook command that never reached the node makes the run meaningless
         errs.append("a node command was lost: %s" % lost_cmd[1])
@@ -280,6 +284,41 @@ def cmd_plan(a):
     return 0
 
 
+def last_sec(path):
+    """The newest SEC number the observer wrote into the log (it prints one every second), or None."""
+    try:
+        with open(path, "rb") as f:
+            f.seek(0, 2); n = f.tell(); f.seek(max(0, n - 4096))
+            data = f.read().decode("utf-8", "replace")
+    except OSError:
+        return None
+    m = list(re.finditer(r"\| SEC (\d+) ", data))
+    return int(m[-1].group(1)) if m else None
+
+
+def observer_watchdog(path, cap, stop, stalled, limit=8.0, step=1.0):
+    """Stops a capture whose observer went quiet (USB drop, hub reset): such a run proves nothing."""
+    last, t_change = None, time.time()
+    while not stop.wait(step):
+        cur = last_sec(path)
+        if cur is not None and cur != last:
+            last, t_change = cur, time.time()
+        elif time.time() - t_change > limit:
+            cap.note("OBSERVER STALLED: no SEC line for %d s, the capture was stopped and the run is invalid" % int(limit))
+            stalled.set()
+            return
+
+
+def wait_until(t_abs, stalled):
+    while True:
+        left = t_abs - time.time()
+        if left <= 0:
+            return True
+        if stalled.is_set():
+            return False
+        time.sleep(min(0.5, left))
+
+
 def node_reader(port, cap, stop, holder):
     """Reads the node's lines into the log and reopens the port whenever it comes back: a sleeping node's USB port disappears."""
     import serial
@@ -327,20 +366,34 @@ def cmd_capture(a):
     inj = None
     holder = {"ser": None}
     stop = threading.Event()
+    stalled = threading.Event()
     try:
         time.sleep(0.5)
         cap.send("RESET"); time.sleep(0.3)
         if a.filter:
             cap.send("FILTER %d" % a.filter); time.sleep(0.3)
+        threading.Thread(target=observer_watchdog, args=(path, cap, stop, stalled), daemon=True).start()
         t0 = time.time()
         if a.node:                                          # the node under test: its lines go into the same log as NODE ...
             threading.Thread(target=node_reader, args=(a.node, cap, stop, holder), daemon=True).start()
+            if a.node_reset:                                # the node boots INSIDE the capture: its 25 s boot grace starts now
+                t_w = time.time()
+                while holder["ser"] is None and time.time() - t_w < 5.0:
+                    time.sleep(0.1)
+                try:
+                    holder["ser"].dtr = False; holder["ser"].rts = True; time.sleep(0.15); holder["ser"].rts = False
+                    cap.note("NODE RESET by RTS pulse")
+                except Exception:
+                    cap.note("NODE RESET FAILED (no node port): the run is invalid")
+                time.sleep(2.5)                             # the node's USB port goes away and comes back
+                t0 = time.time()
             plan = [(a.node_after + i * a.node_gap, c) for i, c in enumerate(a.node_send)]
             if a.node_plan:
                 plan += load_plan(a.node_plan)
             plan.sort(key=lambda x: x[0])
             for t_cmd, c in plan:
-                time.sleep(max(0.0, t_cmd - (time.time() - t0)))
+                if not wait_until(t0 + t_cmd, stalled):
+                    break
                 cap.note("NODETX %s" % c)
                 try:
                     holder["ser"].write((c + "\n").encode())
@@ -369,9 +422,12 @@ def cmd_capture(a):
                     print("STOP waiting: the injector gave no OK within 5 s")
                     cap.note("INJECTOR no OK within 5 s")
                     break
-        time.sleep(max(0.0, a.seconds - (time.time() - t0)))
-        cap.send("TIME"); time.sleep(0.3)
-        cap.send("STAT"); time.sleep(0.5)
+        wait_until(t0 + a.seconds, stalled)
+        try:
+            cap.send("TIME"); time.sleep(0.3)
+            cap.send("STAT"); time.sleep(0.5)
+        except Exception:
+            cap.note("final TIME and STAT could not be sent (the observer port is gone)")
     except KeyboardInterrupt:
         pass
     finally:
@@ -385,6 +441,9 @@ def cmd_capture(a):
         if inj:
             inj.close()
         cap.close()
+    if stalled.is_set():
+        print("OBSERVER STALLED: the capture was stopped early, the log is not usable as evidence (move it to test_logs/invalid/)")
+        return 2
     return 0
 
 
@@ -402,6 +461,7 @@ def main():
     c.add_argument("--node-after", type=float, default=5.0, help="seconds after the start before the first node command")
     c.add_argument("--node-gap", type=float, default=1.0, help="seconds between node commands")
     c.add_argument("--node-plan", help="file of timed hook lines made by the plan command")
+    c.add_argument("--node-reset", action="store_true", help="reset the node with an RTS pulse at the start, so its boot grace is inside the capture")
     for name in ("analyze", "calibrate"):
         p = sub.add_parser(name)
         p.add_argument("--tc", required=True); p.add_argument("--log")

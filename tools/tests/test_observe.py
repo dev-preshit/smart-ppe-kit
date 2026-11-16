@@ -183,4 +183,31 @@ class T(unittest.TestCase):
         lines.insert(3, "2026-11-11T10:00:06.000 | NODEPORT open")
         open(p, "w").write("\n".join(lines))
         rc, out = self.run_(p); self.assertEqual(rc, 0, out)
+    # ---- capture robustness: a quiet observer stops the run, a reported failure fails the analysis
+    def test_last_sec_reads_the_newest_number(self):
+        d = tempfile.mkdtemp(); p = os.path.join(d, "l.log")
+        open(p, "w").write("x | SEC 5 seen=1\nx | PKT 1.0 21 3 -50 aa\nx | SEC 6 seen=2\n")
+        self.assertEqual(observe.last_sec(p), 6)
+        open(p, "w").write("nothing here\n"); self.assertIsNone(observe.last_sec(p))
+        self.assertIsNone(observe.last_sec(os.path.join(d, "missing.log")))
+    def test_watchdog_stops_a_capture_when_the_observer_goes_quiet(self):
+        import threading
+        d = tempfile.mkdtemp(); p = os.path.join(d, "l.log"); open(p, "w").write("x | SEC 5 seen=1\n")
+        notes = []
+        class Cap:
+            def note(self, t): notes.append(t)
+        stop, stalled = threading.Event(), threading.Event()
+        th = threading.Thread(target=observe.observer_watchdog, args=(p, Cap(), stop, stalled, 0.3, 0.05)); th.start()
+        th.join(3.0); stop.set()
+        self.assertTrue(stalled.is_set()); self.assertIn("OBSERVER STALLED", notes[0])
+    def test_wait_until_returns_early_when_stalled_and_at_the_time_otherwise(self):
+        import threading, time
+        st = threading.Event(); st.set()
+        t = time.time(); self.assertFalse(observe.wait_until(time.time() + 5, st)); self.assertTrue(time.time() - t < 1.0)
+        st2 = threading.Event(); self.assertTrue(observe.wait_until(time.time() + 0.2, st2))
+    def test_a_stalled_observer_or_failed_reset_fails_the_analysis(self):
+        for note in ("OBSERVER STALLED: no SEC line for 8 s", "NODE RESET FAILED (no node port)", "final TIME and STAT could not be sent"):
+            p = make_log(); lines = open(p).read().split("\n"); lines.insert(2, "2026-11-11T10:00:05.000 | " + note)
+            open(p, "w").write("\n".join(lines))
+            rc, out = self.run_(p); self.assertEqual(rc, 1, note); self.assertIn("the capture reports", out)
 if __name__ == "__main__": unittest.main()
