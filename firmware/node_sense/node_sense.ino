@@ -170,7 +170,7 @@ static void wake_record(uint32_t now, uint8_t mode, uint32_t hb_rem) {
 }
 static void apply_adcat(uint32_t now) {
   for (uint8_t i = 0; i < 4; i++)
-    if (g_at[i].used && (int32_t)(now - g_at[i].due_ms) >= 0) { g_adc_inject = g_at[i].value; g_at[i].used = 0; }
+    if (g_at[i].used && (int32_t)(now - g_at[i].due_ms) >= 0) { g_adc_inject = g_at[i].value; g_at[i].used = 0; mark("ADCAT"); }   // the mark is the exact time the injected reading changed
 }
 #else
 static void mark(const char*) {}
@@ -378,7 +378,7 @@ static void go_to_sleep(uint32_t now) {
   if (out.mode == PPE_SLEEP_ABORT) { ppe_sleep_note_abort(&g_sleep); return; }   // N-07b: stay awake, decide again on the next pass
 #ifdef PPE_TEST_HOOKS
   wake_record(now, (uint8_t)out.mode, in.hb_remaining_ms);
-  if ((int32_t)(pnow_ms() - g_boot_ms) >= (int32_t)PPE_FLUSH_HOLD_MS) { flush_marks(); flush_wakelog(); Serial.flush(); }   // short wakes stay buffered in RTC memory
+  if ((int32_t)(pnow_ms() - g_boot_ms) >= (int32_t)PPE_FLUSH_HOLD_MS) { flush_marks(); flush_wakelog(); Serial.flush(); delay(250); }   // short wakes stay buffered in RTC memory; the wait lets the USB host read the tail before the chip sleeps
 #endif
   esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
   if (out.mode == PPE_SLEEP_FOREVER) {
@@ -463,7 +463,7 @@ static void handle_line(const char* line) {
       for (uint8_t i = 0; i < 4; i++) if (!g_at[i].used) { slot = i; break; }
       if (slot == 4) { Serial.println("ERR adcat: 4 entries are already waiting (adcat clear)"); break; }
       g_at[slot].due_ms = pnow_ms() + (uint32_t)h.arg * 1000u; g_at[slot].value = (int32_t)h.arg2; g_at[slot].used = 1;
-      Serial.printf("OK adcat in %ld s -> %ld\n", h.arg, h.arg2);
+      Serial.printf("OK adcat in %ld s -> %ld (now_ms=%lu due_ms=%lu)\n", h.arg, h.arg2, (unsigned long)pnow_ms(), (unsigned long)g_at[slot].due_ms);
       break;
     }
     case PPE_HOOK_ADCAT_CLEAR: memset(g_at, 0, sizeof g_at); Serial.println("OK adcat clear"); break;
