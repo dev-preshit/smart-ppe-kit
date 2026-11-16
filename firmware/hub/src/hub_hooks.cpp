@@ -62,6 +62,8 @@ HubHookCmd hub_hook_parse(const char* line) {
   } else if (wl == 5 && !strncmp(line, "rxlog", 5)) {
     if (al == 2 && !strncmp(arg, "on", 2)) c.type = HUB_HOOK_RXLOG_ON;
     else if (al == 3 && !strncmp(arg, "off", 3)) c.type = HUB_HOOK_RXLOG_OFF;
+  } else if (wl == 5 && !strncmp(line, "motor", 5)) {
+    if (al == 0) c.type = HUB_HOOK_MOTOR;
   } else if (wl == 3 && !strncmp(line, "set", 3)) {
     const char* k = arg; while (*k && !is_ws(*k)) k++;                       // end of the key word
     size_t kl = (size_t)(k - arg);

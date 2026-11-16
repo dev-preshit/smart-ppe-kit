@@ -34,3 +34,8 @@
 #define HUB_KEY_REST_US       1700000u    // after the third pulse (V12-05: the low time is K_OFF + K_REST = 1800 ms)
 #define HUB_KEY_PULSES         3u
 #define HUB_MOTOR_RESYNC_US     20000u    // a pattern step later than this schedules from now, not from the nominal edge
+#ifndef HUB_MOTOR_PIN
+#define HUB_MOTOR_PIN          5          // motor driver input (owner decision 2026-11-15; override with -DHUB_MOTOR_PIN=n)
+#endif
+#define HUB_MOTOR_TASK_PRIO    12u        // above the rx task (10): the pattern must not wait for packet processing (X-R5)
+#define HUB_MOTOR_GUARD_PERIOD_US 1000u   // the independent guard runs from its own esp_timer every 1 ms

@@ -18,7 +18,8 @@ enum HubHookType {
   HUB_HOOK_RXLOG_ON,     // rxlog on|off      -> every received advertisement before filtering (default off)
   HUB_HOOK_RXLOG_OFF,
   HUB_HOOK_SET_MARGIN,   // set margin <s>    -> OFFLINE_MARGIN_S (bounds are checked by the pipeline, 0..300)
-  HUB_HOOK_SET_HEARTBEAT // set heartbeat <s> -> HEARTBEAT_S for the hub (bounds are checked by the pipeline, 60..3600)
+  HUB_HOOK_SET_HEARTBEAT, // set heartbeat <s> -> HEARTBEAT_S for the hub (bounds are checked by the pipeline, 60..3600)
+  HUB_HOOK_MOTOR         // motor            -> one MOTOR status line (state, output, guard trips, longest ON)
 };
 
 struct HubHookCmd {

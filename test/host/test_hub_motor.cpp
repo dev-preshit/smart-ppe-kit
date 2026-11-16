@@ -5,6 +5,7 @@
 #include <vector>
 #include "hub_motor.h"
 #include "hub_config.h"
+#include "hub_hooks.h"
 
 struct Edge { uint32_t t; bool level; };
 
@@ -173,4 +174,12 @@ PPE_TEST(pattern_timing_is_exact_across_the_32_bit_microsecond_wrap, "TC-74") {
     if (s.e[i - 1].level) CHECK(within(d, 300000, 1000)); else CHECK(within(d, 700000, 1000));
   }
   CHECK_EQ(s.m.guard_trips(), 0);
+}
+
+PPE_TEST(motor_hook_parser, "TC-29") {
+  CHECK_EQ(hub_hook_parse("motor").type, HUB_HOOK_MOTOR);
+  CHECK_EQ(hub_hook_parse("  motor \r\n").type, HUB_HOOK_MOTOR);
+  CHECK_EQ(hub_hook_parse("motor 1").type, HUB_HOOK_ERROR);
+  CHECK_EQ(hub_hook_parse("motors").type, HUB_HOOK_ERROR);
+  CHECK_EQ(hub_hook_parse("dump").type, HUB_HOOK_DUMP);
 }

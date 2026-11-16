@@ -5,6 +5,7 @@
 #include <Arduino.h>
 #include "hub_nvs.h"
 #include "hub_ble.h"
+#include "hub_motor_out.h"
 #include "src/hub_pipeline.h"
 #include "hub_wifi_recheck.h"
 #ifdef PPE_TEST_HOOKS
@@ -20,6 +21,7 @@ static bool g_running = false;
 static uint32_t g_last_refuse_print = 0;
 
 void setup() {
+  hub_motor_early_init();            // B-01: the motor pin goes LOW before anything else can take time
   Serial.begin(115200);
   uint32_t t0 = millis();
   while (!Serial && millis() - t0 < 3000) delay(10);
@@ -48,7 +50,7 @@ void setup() {
 }
 
 #ifdef PPE_TEST_HOOKS
-// Serial test hooks: inject <hex> | stall <n> | dump | time [on|off] | rxlog on|off | set margin <s> | set heartbeat <s>  (one command per line)
+// Serial test hooks: inject <hex> | stall <n> | dump | time [on|off] | rxlog on|off | set margin <s> | set heartbeat <s> | motor  (one command per line)
 static char g_line[256];
 static size_t g_line_len = 0;
 
@@ -68,7 +70,8 @@ static void run_hook(const char* line) {
     case HUB_HOOK_RXLOG_OFF: hub_hook_set_rxlog(false); break;
     case HUB_HOOK_SET_MARGIN: hub_hook_set_margin(c.val); break;
     case HUB_HOOK_SET_HEARTBEAT: hub_hook_set_heartbeat(c.val); break;
-    default: Serial.println("PPE_HOOK error: commands are inject <hex>, stall <1-9>, dump, time [on|off], rxlog on|off, set margin <s>, set heartbeat <s>"); break;
+    case HUB_HOOK_MOTOR: hub_hook_motor(); break;
+    default: Serial.println("PPE_HOOK error: commands are inject <hex>, stall <1-9>, dump, time [on|off], rxlog on|off, set margin <s>, set heartbeat <s>, motor"); break;
   }
 }
 

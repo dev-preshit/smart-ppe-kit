@@ -3,6 +3,7 @@
 #include "esp_timer.h"
 #include "esp_system.h"
 #include "hub_nvs.h"
+#include "hub_motor_out.h"
 #include "src/hub_scan_supervisor.h"
 #include "src/hub_msg.h"
 #ifdef PPE_TEST_HOOKS
@@ -113,7 +114,9 @@ static void process_entry(const RxEntry& e) {
   uint32_t now_ms = (uint32_t)(esp_timer_get_time() / 1000);
   xSemaphoreTake(g_pipe_mx, portMAX_DELAY);
   HubResult r = g_pipe.process(e.data, e.len, e.nonconn != 0, now_ms);
+  const bool alert = g_pipe.alert_active();
   xSemaphoreGive(g_pipe_mx);
+  if (r.verdict == HUB_V_ACCEPT) hub_motor_set_alert(alert);                  // X-R1: node FSM, compliance, then the motor decision
   if (r.verdict == HUB_V_ACCEPT) hub_persist_enqueue(r.node_id, r.counter);   // after dispatch, never inline
   uint32_t dt = (uint32_t)((uint64_t)esp_timer_get_time() - e.us);            // callback entry -> dispatched
   g_rx.count = g_rx.count + 1;
@@ -131,9 +134,13 @@ static void tick_task(void*) {
   for (;;) {
     vTaskDelayUntil(&last, pdMS_TO_TICKS(HUB_TICK_MS));
     xSemaphoreTake(g_pipe_mx, portMAX_DELAY);
-    g_pipe.tick((uint32_t)(esp_timer_get_time() / 1000));   // clock read inside the lock: no packet can be stamped after it
+    const uint32_t now_ms = (uint32_t)(esp_timer_get_time() / 1000);   // clock read inside the lock: no packet can be stamped after it
+    g_pipe.tick(now_ms);
+    for (uint32_t n = hub_motor_take_guard_trips(); n > 0; n--) g_pipe.note_fault(HUB_FAULT_GUARD, now_ms);   // M-05 -> HUB_FAULT (GUARD)
+    const bool alert = g_pipe.alert_active();
     xSemaphoreGive(g_pipe_mx);
-    emit_pending();                                    // NODE_OFFLINE and COMPLIANCE lines
+    hub_motor_set_alert(alert);                        // OFFLINE starts the alert, a node that recovered stops it
+    emit_pending();                                    // NODE_OFFLINE, COMPLIANCE and HUB_FAULT lines
   }
 }
 
@@ -210,6 +217,7 @@ bool hub_ble_start(uint8_t vest_id, const uint8_t* key32, HubStore* store) {
 
   g_pipe.note_boot((uint32_t)esp_reset_reason(), (uint32_t)(esp_timer_get_time() / 1000));   // B-05: HUB_BOOT first
   emit_pending();
+  hub_motor_start();                                   // motor task and the independent guard (output stays low until an alert)
   xTaskCreate(rx_task, "ppe_rx", 6144, nullptr, 10, nullptr);
   xTaskCreate(tick_task, "ppe_tick", 4096, nullptr, 4, nullptr);
 

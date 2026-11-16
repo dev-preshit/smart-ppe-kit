@@ -26,7 +26,7 @@ release_check: release_check_node $(wildcard $(HUB)/*.cpp) $(wildcard $(HUB)/*.h
 	@mkdir -p build
 	$(CXX) -std=c++11 -Wall -Wextra -Werror -I$(SRC) -I$(HUB) -c $(HUB)/hub_hooks.cpp -o build/rel_hooks.o
 	$(CXX) -std=c++11 -Wall -Wextra -Werror -I$(SRC) -I$(HUB) -c $(HUB)/hub_dump.cpp -o build/rel_dump.o
-	@if strings build/rel_hooks.o build/rel_dump.o | grep -E "rxlog|PPE_HOOK|DUMP|inject|stall|margin|heartbeat" ; then echo "release_check FAIL: hook strings in the release objects"; exit 1; else echo "release_check PASS: no hook strings in the release objects"; fi
+	@if strings build/rel_hooks.o build/rel_dump.o | grep -E "rxlog|PPE_HOOK|DUMP|inject|stall|margin|heartbeat|MOTOR" ; then echo "release_check FAIL: hook strings in the release objects"; exit 1; else echo "release_check PASS: no hook strings in the release objects"; fi
 # TC-78: a build without -DPPE_TEST_HOOKS must contain no hook code (node side).
 release_check_node:
 	@mkdir -p build
