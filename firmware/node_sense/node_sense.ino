@@ -39,7 +39,7 @@
 #endif
 #define PPE_WAKE_LATENCY_MS 400u       // AS-17: boot after a GPIO wake takes about this long; it is taken off the grace time
 #define PPE_FAULT_AWAKE_MS 60000u      // V12-06: a faulted node stays awake 60 s for serial, then sleeps with no wake source
-#define PPE_FLUSH_HOLD_MS 2000u        // test builds: let USB re-enumerate before the buffered marks are printed and the node sleeps
+#define PPE_FLUSH_HOLD_MS 2000u        // test builds: marks and the wake log are printed only after a wake that lasted this long anyway (USB is back by then)
 
 // Pin map (B-01). GPIO4 is reserved for the S4 FSR wake comparator and is not used here (A-18: no comparator).
 static const uint8_t PIN_FSR = 0;        // ADC1_CH0
@@ -160,9 +160,12 @@ static void flush_wakelog() {
   g_wlog_n = 0;
 }
 static void wake_record(uint32_t now, uint8_t mode, uint32_t hb_rem) {
+  // A wake that only sampled the ADC and went back to sleep is counted but not logged: a FOOT node does that every second.
+  bool interesting = g_wake_kind != WAKE_TIMER || (now - g_boot_ms) > 1000u || g_sleep.gpio_noop_wakes || g_sleep.poll_mode;
+  if (!interesting) return;
   if (g_wlog_n >= WAKE_RING) { for (uint8_t i = 1; i < WAKE_RING; i++) g_wlog[i - 1] = g_wlog[i]; g_wlog_n = WAKE_RING - 1; }
   WakeRec& w = g_wlog[g_wlog_n++];
-  w.seq = ++g_wake_total; w.t_wake_ms = g_boot_ms; w.awake_ms = now - g_boot_ms; w.hb_rem_ms = hb_rem;
+  w.seq = g_wake_total; w.t_wake_ms = g_boot_ms; w.awake_ms = now - g_boot_ms; w.hb_rem_ms = hb_rem;
   w.cause = g_wake_kind; w.noop = g_sleep.gpio_noop_wakes; w.poll = g_sleep.poll_mode; w.mode = mode;
 }
 static void apply_adcat(uint32_t now) {
@@ -375,10 +378,7 @@ static void go_to_sleep(uint32_t now) {
   if (out.mode == PPE_SLEEP_ABORT) { ppe_sleep_note_abort(&g_sleep); return; }   // N-07b: stay awake, decide again on the next pass
 #ifdef PPE_TEST_HOOKS
   wake_record(now, (uint8_t)out.mode, in.hb_remaining_ms);
-  while ((int32_t)(pnow_ms() - g_boot_ms) < (int32_t)PPE_FLUSH_HOLD_MS) delay(10);   // the USB port needs a moment after a wake
-  flush_marks();
-  flush_wakelog();
-  Serial.flush();
+  if ((int32_t)(pnow_ms() - g_boot_ms) >= (int32_t)PPE_FLUSH_HOLD_MS) { flush_marks(); flush_wakelog(); Serial.flush(); }   // short wakes stay buffered in RTC memory
 #endif
   esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
   if (out.mode == PPE_SLEEP_FOREVER) {
@@ -546,6 +546,9 @@ static void resume_run(const ppe_rtc_fields_t& f) {
   if (g_cfg_valid) cfg = g_cfg_rtc;
 #endif
   g_resumed = true;
+#ifdef PPE_TEST_HOOKS
+  g_wake_total++;                                         // every wake is counted, only the interesting ones are logged
+#endif
   ppe_confirm_resume(&confirm, ppe_raw_make(f.confirmed_state, f.sensor_fault), f.boot_pending != 0, f.hb_set != 0, f.hb_deadline);
   counter.resume(f.counter, f.ceiling);
   ppe_fsr_seed(&fsr, f.confirmed_state);                  // A-08: the hysteresis memory is the confirmed state

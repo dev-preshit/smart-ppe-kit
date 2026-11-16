@@ -309,6 +309,24 @@ def observer_watchdog(path, cap, stop, stalled, limit=8.0, step=1.0):
             return
 
 
+def send_node(holder, cmd, cap, stalled, limit=20.0):
+    """Writes a hook line to the node. A sleeping node's port comes and goes: retry every 0.3 s for up to `limit` seconds."""
+    t_end = time.time() + limit
+    tries = 0
+    while True:
+        tries += 1
+        try:
+            holder["ser"].write((cmd + "\n").encode())
+            if tries > 1:
+                cap.note("NODETX sent after %d tries: %s" % (tries, cmd))
+            return True
+        except Exception:
+            if time.time() >= t_end or stalled.is_set():
+                cap.note("NODETX FAILED (the node was asleep or its port closed): %s" % cmd)
+                return False
+            time.sleep(0.3)
+
+
 def wait_until(t_abs, stalled):
     while True:
         left = t_abs - time.time()
@@ -395,10 +413,7 @@ def cmd_capture(a):
                 if not wait_until(t0 + t_cmd, stalled):
                     break
                 cap.note("NODETX %s" % c)
-                try:
-                    holder["ser"].write((c + "\n").encode())
-                except Exception:
-                    cap.note("NODETX FAILED (the node was asleep or its port closed): %s" % c)
+                send_node(holder, c, cap, stalled)
         if a.injector:
             import serial
             inj = serial.Serial(); inj.port = a.injector; inj.baudrate = 115200; inj.timeout = 0.2

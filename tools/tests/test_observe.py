@@ -210,4 +210,26 @@ class T(unittest.TestCase):
             p = make_log(); lines = open(p).read().split("\n"); lines.insert(2, "2026-11-11T10:00:05.000 | " + note)
             open(p, "w").write("\n".join(lines))
             rc, out = self.run_(p); self.assertEqual(rc, 1, note); self.assertIn("the capture reports", out)
+    def test_send_node_retries_until_the_port_is_back_and_then_notes_it(self):
+        import threading
+        notes = []
+        class Cap:
+            def note(self, t): notes.append(t)
+        class Ser:
+            def __init__(self): self.n = 0; self.sent = []
+            def write(self, b):
+                self.n += 1
+                if self.n < 3: raise OSError("port closed")
+                self.sent.append(b)
+        h = {"ser": Ser()}
+        self.assertTrue(observe.send_node(h, "adc 50", Cap(), threading.Event(), limit=5.0))
+        self.assertEqual(h["ser"].sent, [b"adc 50\n"]); self.assertIn("sent after 3 tries", notes[0])
+    def test_send_node_gives_up_and_logs_a_failure(self):
+        import threading
+        notes = []
+        class Cap:
+            def note(self, t): notes.append(t)
+        h = {"ser": None}
+        self.assertFalse(observe.send_node(h, "set hb 60", Cap(), threading.Event(), limit=0.5))
+        self.assertIn("NODETX FAILED", notes[-1])
 if __name__ == "__main__": unittest.main()
