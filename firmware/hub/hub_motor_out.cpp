@@ -40,6 +40,68 @@ static void guard_cb(void*) {                  // M-05: runs even when the motor
   if (trip) g_trips_unreported = g_trips_unreported + 1;
 }
 
+#ifdef PPE_TEST_HOOKS
+static esp_timer_handle_t g_marker_timer = nullptr, g_pulse_timer = nullptr;
+static volatile bool g_marker_on = false, g_pulse_level = false;
+static volatile uint32_t g_pulse_on_us = 0, g_pulse_off_us = 0, g_pulse_left = 0;
+
+static void marker_off_cb(void*) { digitalWrite(HUB_MARKER_PIN, LOW); }
+
+static void pulse_cb(void*) {
+  if (!g_pulse_level) {
+    if (g_pulse_left == 0) return;
+    digitalWrite(HUB_MARKER_PIN, HIGH);
+    g_pulse_level = true;
+    esp_timer_start_once(g_pulse_timer, g_pulse_on_us);
+  } else {
+    digitalWrite(HUB_MARKER_PIN, LOW);
+    g_pulse_level = false;
+    g_pulse_left = g_pulse_left - 1;
+    if (g_pulse_left > 0) esp_timer_start_once(g_pulse_timer, g_pulse_off_us);
+  }
+}
+
+static void test_pins_start() {
+  pinMode(HUB_MARKER_PIN, OUTPUT);
+  digitalWrite(HUB_MARKER_PIN, LOW);
+  esp_timer_create_args_t a = {};
+  a.dispatch_method = ESP_TIMER_TASK;
+  a.name = "ppe_marker"; a.callback = marker_off_cb;
+  esp_timer_create(&a, &g_marker_timer);
+  a.name = "ppe_pulse"; a.callback = pulse_cb;
+  esp_timer_create(&a, &g_pulse_timer);
+}
+
+void hub_marker_pulse() {
+  if (!g_marker_on || !g_marker_timer) return;
+  digitalWrite(HUB_MARKER_PIN, HIGH);
+  esp_timer_stop(g_marker_timer);
+  esp_timer_start_once(g_marker_timer, HUB_MARKER_PULSE_US);
+}
+
+void hub_hook_marker(bool on) {
+  if (g_pulse_timer) esp_timer_stop(g_pulse_timer);
+  g_pulse_left = 0; g_pulse_level = false;
+  digitalWrite(HUB_MARKER_PIN, LOW);
+  g_marker_on = on;
+  Serial.printf("PPE_HOOK marker %s ok pin=%d t_ms=%lu\n", on ? "on" : "off", (int)HUB_MARKER_PIN, (unsigned long)(esp_timer_get_time() / 1000));
+}
+
+void hub_hook_pulse(uint32_t on_ms, uint32_t off_ms, uint32_t count) {
+  if (!g_pulse_timer || on_ms == 0 || off_ms == 0 || on_ms > 5000 || off_ms > 5000 || count == 0 || count > 200) {
+    Serial.println("PPE_HOOK pulse REFUSED(on and off 1..5000 ms, count 1..200)");
+    return;
+  }
+  esp_timer_stop(g_pulse_timer);
+  g_marker_on = false;
+  digitalWrite(HUB_MARKER_PIN, LOW);
+  g_pulse_on_us = on_ms * 1000u; g_pulse_off_us = off_ms * 1000u; g_pulse_left = count; g_pulse_level = false;
+  esp_timer_start_once(g_pulse_timer, 500000);
+  Serial.printf("PPE_HOOK pulse %lu %lu %lu ok pin=%d t_ms=%lu\n", (unsigned long)on_ms, (unsigned long)off_ms, (unsigned long)count,
+                (int)HUB_MARKER_PIN, (unsigned long)(esp_timer_get_time() / 1000));
+}
+#endif
+
 void hub_motor_start() {
   esp_timer_create_args_t a = {};
   a.callback = guard_cb;
@@ -47,6 +109,9 @@ void hub_motor_start() {
   a.dispatch_method = ESP_TIMER_TASK;
   if (esp_timer_create(&a, &g_guard_timer) == ESP_OK) esp_timer_start_periodic(g_guard_timer, HUB_MOTOR_GUARD_PERIOD_US);
   else Serial.println("ERROR motor guard timer not created");
+#ifdef PPE_TEST_HOOKS
+  test_pins_start();
+#endif
   xTaskCreate(motor_task, "ppe_motor", 3072, nullptr, HUB_MOTOR_TASK_PRIO, nullptr);
 }
 

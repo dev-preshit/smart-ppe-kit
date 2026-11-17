@@ -39,3 +39,7 @@
 #endif
 #define HUB_MOTOR_TASK_PRIO    12u        // above the rx task (10): the pattern must not wait for packet processing (X-R5)
 #define HUB_MOTOR_GUARD_PERIOD_US 1000u   // the independent guard runs from its own esp_timer every 1 ms
+#ifndef HUB_MARKER_PIN
+#define HUB_MARKER_PIN         6          // bench only (PPE_TEST_HOOKS): accepted-packet marker and calibration pulses
+#endif
+#define HUB_MARKER_PULSE_US    1000u

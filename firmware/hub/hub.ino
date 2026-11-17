@@ -50,7 +50,7 @@ void setup() {
 }
 
 #ifdef PPE_TEST_HOOKS
-// Serial test hooks: inject <hex> | stall <n> | dump | time [on|off] | rxlog on|off | set margin <s> | set heartbeat <s> | motor  (one command per line)
+// Serial test hooks: inject <hex> | stall <n> | dump | time [on|off] | rxlog on|off | set margin <s> | set heartbeat <s> | motor | marker on|off | pulse <on> <off> <n>  (one command per line)
 static char g_line[256];
 static size_t g_line_len = 0;
 
@@ -71,7 +71,10 @@ static void run_hook(const char* line) {
     case HUB_HOOK_SET_MARGIN: hub_hook_set_margin(c.val); break;
     case HUB_HOOK_SET_HEARTBEAT: hub_hook_set_heartbeat(c.val); break;
     case HUB_HOOK_MOTOR: hub_hook_motor(); break;
-    default: Serial.println("PPE_HOOK error: commands are inject <hex>, stall <1-9>, dump, time [on|off], rxlog on|off, set margin <s>, set heartbeat <s>, motor"); break;
+    case HUB_HOOK_MARKER_ON: hub_hook_marker(true); break;
+    case HUB_HOOK_MARKER_OFF: hub_hook_marker(false); break;
+    case HUB_HOOK_PULSE: hub_hook_pulse(c.val, c.val2, c.val3); break;
+    default: Serial.println("PPE_HOOK error: commands are inject <hex>, stall <1-9>, dump, time [on|off], rxlog on|off, set margin <s>, set heartbeat <s>, motor, marker on|off, pulse <on_ms> <off_ms> <count>"); break;
   }
 }
 

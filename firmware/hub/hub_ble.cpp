@@ -37,7 +37,7 @@ class SerialSink : public HubSink {
   void emit(const HubMsg& m) override {
     char b[200];
     hub_msg_format(m, b, sizeof b);
-    Serial.println(b);
+    Serial.printf("%s\r\n", b);        // one write call: lines of two tasks never interleave
   }
 };
 static SerialSink g_serial_sink;
@@ -116,6 +116,9 @@ static void process_entry(const RxEntry& e) {
   HubResult r = g_pipe.process(e.data, e.len, e.nonconn != 0, now_ms);
   const bool alert = g_pipe.alert_active();
   xSemaphoreGive(g_pipe_mx);
+#ifdef PPE_TEST_HOOKS
+  if (r.verdict == HUB_V_ACCEPT) hub_marker_pulse();                           // bench marker: the accepted-packet point
+#endif
   if (r.verdict == HUB_V_ACCEPT) hub_motor_set_alert(alert);                  // X-R1: node FSM, compliance, then the motor decision
   if (r.verdict == HUB_V_ACCEPT) hub_persist_enqueue(r.node_id, r.counter);   // after dispatch, never inline
   uint32_t dt = (uint32_t)((uint64_t)esp_timer_get_time() - e.us);            // callback entry -> dispatched

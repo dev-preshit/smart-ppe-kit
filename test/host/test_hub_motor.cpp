@@ -183,3 +183,16 @@ PPE_TEST(motor_hook_parser, "TC-29") {
   CHECK_EQ(hub_hook_parse("motors").type, HUB_HOOK_ERROR);
   CHECK_EQ(hub_hook_parse("dump").type, HUB_HOOK_DUMP);
 }
+
+PPE_TEST(marker_and_pulse_hook_parser, "TC-29") {
+  CHECK_EQ(hub_hook_parse("marker on").type, HUB_HOOK_MARKER_ON);
+  CHECK_EQ(hub_hook_parse(" marker   off \r\n").type, HUB_HOOK_MARKER_OFF);
+  CHECK_EQ(hub_hook_parse("marker").type, HUB_HOOK_ERROR);
+  CHECK_EQ(hub_hook_parse("marker maybe").type, HUB_HOOK_ERROR);
+  HubHookCmd c = hub_hook_parse("pulse 300 700 20");
+  CHECK_EQ(c.type, HUB_HOOK_PULSE); CHECK_EQ(c.val, 300); CHECK_EQ(c.val2, 700); CHECK_EQ(c.val3, 20);
+  c = hub_hook_parse("  pulse   5  6   7  ");
+  CHECK_EQ(c.type, HUB_HOOK_PULSE); CHECK_EQ(c.val3, 7);
+  const char* bad[] = {"pulse", "pulse 300 700", "pulse 300 700 20 1", "pulse a 700 20", "pulse 300 -1 20", "pulse 1234567 1 1", "pulses 1 2 3"};
+  for (unsigned i = 0; i < sizeof bad / sizeof bad[0]; i++) CHECK_EQ(hub_hook_parse(bad[i]).type, HUB_HOOK_ERROR);
+}

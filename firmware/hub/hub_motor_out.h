@@ -16,4 +16,7 @@ void hub_motor_info(HubMotorInfo* info);
 
 #ifdef PPE_TEST_HOOKS
 void hub_hook_motor();                       // prints one MOTOR line
+void hub_marker_pulse();                     // rx task, at the accepted-packet point: 1 ms pulse on HUB_MARKER_PIN when marker mode is on
+void hub_hook_marker(bool on);
+void hub_hook_pulse(uint32_t on_ms, uint32_t off_ms, uint32_t count);   // known pulse train on HUB_MARKER_PIN, first edge after 0.5 s
 #endif
