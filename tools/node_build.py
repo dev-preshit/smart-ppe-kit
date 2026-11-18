@@ -18,6 +18,7 @@ SKETCH = os.path.join(REPO, "firmware", "node_sense")
 COMMON = os.path.join(REPO, "common")     # this checkout's own ppe_common, never the Arduino user-library link
 FQBN = "esp32:esp32:esp32c3:CDCOnBoot=cdc"
 TYPES = {"foot": 0, "glove": 1, "helmet": 2}
+ALLOWED_UPLOAD_PORTS = ("COM9", "COM6")   # S4 bench boards only (A-23): COM9 node, COM6 observer / stand-in. Check list_ports before every flash.
 
 
 def build_opt_lines(node_type, hooks, adc_boot=None, closed_level=None):
@@ -29,6 +30,23 @@ def build_opt_lines(node_type, hooks, adc_boot=None, closed_level=None):
     if closed_level is not None:
         lines.append("-DPPE_CONTACT_CLOSED_LEVEL=%d" % closed_level)
     return lines
+
+
+def fw_identity(repo=REPO):
+    """(tree hash of common/, tree hash of firmware/node_sense, dirty) at HEAD as numbers. dirty = 1 when the working tree differs
+    from HEAD in those two folders, or when git cannot tell. The node prints it and observe.py refuses a mismatch."""
+    def git(*args):
+        try:
+            r = subprocess.run(["git", "-C", repo] + list(args), capture_output=True, text=True, errors="replace")
+        except OSError:
+            return None
+        return r.stdout.strip() if r.returncode == 0 else None
+    a, b = git("rev-parse", "HEAD:common"), git("rev-parse", "HEAD:firmware/node_sense")
+    st = git("status", "--porcelain", "--", "common", "firmware/node_sense")
+    try:
+        return int(a[:8], 16), int(b[:8], 16), 0 if st == "" else 1
+    except (TypeError, ValueError):
+        return 0, 0, 1
 
 
 def used_library_path(output, name="ppe_common"):
@@ -69,7 +87,14 @@ def main(argv=None):
     a = ap.parse_args(argv)
     if a.adc_boot is not None and not a.hooks:
         ap.error("--adc-boot needs --hooks")
+    if a.upload and a.upload.upper() not in ALLOWED_UPLOAD_PORTS:
+        ap.error("refusing to flash %s: S4 may only flash %s (A-23). Check python -m serial.tools.list_ports -v first." % (a.upload, " or ".join(ALLOWED_UPLOAD_PORTS)))
     opts = build_opt_lines(a.type, a.hooks, a.adc_boot, a.closed_level)
+    ident = fw_identity()
+    opts += ["-DPPE_FW_COMMON=0x%08x" % ident[0], "-DPPE_FW_NODE=0x%08x" % ident[1], "-DPPE_FW_DIRTY=%d" % ident[2]]
+    print("firmware id: common=%08x node=%08x dirty=%d" % ident)
+    if ident[2]:
+        print("WARNING: common/ or firmware/node_sense differ from HEAD (or git failed): the node will report dirty=1 and observe.py capture will refuse it. Commit first.")
     tmp = tempfile.mkdtemp(prefix="node_build_")
     sk = os.path.join(tmp, "node_sense")
     bld = os.path.join(tmp, "build")

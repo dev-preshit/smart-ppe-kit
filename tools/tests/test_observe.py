@@ -232,4 +232,31 @@ class T(unittest.TestCase):
         h = {"ser": None}
         self.assertFalse(observe.send_node(h, "set hb 60", Cap(), threading.Event(), limit=0.5))
         self.assertIn("NODETX FAILED", notes[-1])
+    # ---- process rule 2: the node must run the firmware of HEAD
+    def _fw_log(self, found="common=aaaaaaaa node=bbbbbbbb dirty=0", expected="common=aaaaaaaa node=bbbbbbbb", required=True):
+        p = make_log(); lines = open(p).read().split("\n")
+        extra = []
+        if required: extra += ["# fw_check=required", "# fw_expected " + expected]
+        if found: extra.append("2026-11-11T10:00:05.000 | NODE FW " + found + " type=0 hooks=1")
+        open(p, "w").write("\n".join(lines[:1] + extra + lines[1:]))
+        return p
+    def test_fw_parse_and_problem(self):
+        self.assertEqual(observe.parse_fw("x | NODE FW common=0000000a node=0000000b dirty=0 type=0 hooks=1"), (10, 11, 0))
+        self.assertIsNone(observe.parse_fw("nothing"))
+        self.assertIsNone(observe.fw_problem((10, 11, 0), (10, 11, 0)))
+        self.assertIn("no firmware identity", observe.fw_problem(None, (1, 2, 0)))
+        self.assertIn("dirty=1", observe.fw_problem((1, 2, 1), (1, 2, 0)))
+        self.assertIn("HEAD is", observe.fw_problem((1, 3, 0), (1, 2, 0)))
+    def test_analysis_passes_when_the_node_reports_the_firmware_of_head(self):
+        rc, out = self.run_(self._fw_log()); self.assertEqual(rc, 0, out)
+    def test_analysis_fails_without_a_firmware_line_when_one_is_required(self):
+        rc, out = self.run_(self._fw_log(found=None)); self.assertEqual(rc, 1); self.assertIn("firmware identity: the node sent no firmware identity line", out)
+    def test_analysis_fails_on_another_firmware_or_a_dirty_build(self):
+        rc, out = self.run_(self._fw_log(found="common=aaaaaaaa node=cccccccc dirty=0")); self.assertEqual(rc, 1); self.assertIn("HEAD is", out)
+        rc, out = self.run_(self._fw_log(found="common=aaaaaaaa node=bbbbbbbb dirty=1")); self.assertEqual(rc, 1); self.assertIn("dirty=1", out)
+    def test_logs_without_the_requirement_are_not_checked(self):
+        rc, out = self.run_(self._fw_log(found=None, required=False)); self.assertEqual(rc, 0, out)
+    def test_a_reported_mismatch_note_fails_the_analysis(self):
+        p = make_log(); lines = open(p).read().split("\n"); lines.insert(2, "2026-11-11T10:00:05.000 | FIRMWARE MISMATCH: x")
+        open(p, "w").write("\n".join(lines)); rc, out = self.run_(p); self.assertEqual(rc, 1); self.assertIn("FIRMWARE MISMATCH", out)
 if __name__ == "__main__": unittest.main()

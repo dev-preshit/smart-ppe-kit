@@ -12,6 +12,7 @@
 #include <Preferences.h>
 #include <NimBLEDevice.h>
 #include <sys/time.h>
+#include <stdarg.h>
 #include <esp_sleep.h>
 #include <esp_system.h>
 #include <driver/gpio.h>
@@ -39,6 +40,16 @@
 #endif
 #define PPE_WAKE_LATENCY_MS 400u       // AS-17: boot after a GPIO wake takes about this long; it is taken off the grace time
 #define PPE_FAULT_AWAKE_MS 60000u      // V12-06: a faulted node stays awake 60 s for serial, then sleeps with no wake source
+// Firmware identity (process rule 2): tools/node_build.py passes the tree hashes of common/ and firmware/node_sense at HEAD and a dirty flag.
+#ifndef PPE_FW_COMMON
+#define PPE_FW_COMMON 0u
+#endif
+#ifndef PPE_FW_NODE
+#define PPE_FW_NODE 0u
+#endif
+#ifndef PPE_FW_DIRTY
+#define PPE_FW_DIRTY 1
+#endif
 #define PPE_FLUSH_HOLD_MS 2000u        // test builds: marks and the wake log are printed only after a wake that lasted this long anyway (USB is back by then)
 
 // Pin map (B-01). GPIO4 is reserved for the S4 FSR wake comparator and is not used here (A-18: no comparator).
@@ -103,6 +114,8 @@ struct MarkRec { char name[12]; uint32_t us; uint8_t has_raw, state, fault; };
 struct WakeRec { uint32_t seq, t_wake_ms, awake_ms, hb_rem_ms; uint8_t cause, noop, poll, mode; };
 #define MARK_RING 24
 #define WAKE_RING 12
+#define INFO_RING 10
+#define INFO_LEN 100
 RTC_DATA_ATTR static int32_t  g_adc_inject = PPE_TEST_ADC_BOOT;   // -1 = use the real ADC
 RTC_DATA_ATTR static uint8_t  g_adc_fail = 0;
 RTC_DATA_ATTR static uint8_t  g_marker_on = 1;
@@ -118,6 +131,9 @@ RTC_DATA_ATTR static uint8_t  g_marks_lost = 0;
 RTC_DATA_ATTR static WakeRec  g_wlog[WAKE_RING];
 RTC_DATA_ATTR static uint8_t  g_wlog_n = 0;
 RTC_DATA_ATTR static uint32_t g_wake_total = 0;
+RTC_DATA_ATTR static char     g_info[INFO_RING][INFO_LEN];   // text lines (TX lines, firmware id) buffered like the marks
+RTC_DATA_ATTR static uint8_t  g_info_n = 0;
+RTC_DATA_ATTR static uint8_t  g_info_lost = 0;
 static bool g_fail_nvs_write = false;
 static uint8_t g_fail_ble_starts = 0;
 static bool g_seq_suppressed = false;
@@ -126,7 +142,16 @@ static uint8_t g_len = 0;
 
 static void test_cold_init() {         // a cold boot starts every hook from its default
   g_adc_inject = PPE_TEST_ADC_BOOT; g_adc_fail = 0; g_marker_on = 1; g_nvslog = 0; g_skip_n = 0; g_sleep_on = 1; g_cfg_valid = 0;
-  memset(g_at, 0, sizeof g_at); g_marks_n = 0; g_marks_lost = 0; g_wlog_n = 0; g_wake_total = 0;
+  memset(g_at, 0, sizeof g_at); g_marks_n = 0; g_marks_lost = 0; g_wlog_n = 0; g_wake_total = 0; g_info_n = 0; g_info_lost = 0;
+}
+static void info_add(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
+static void info_add(const char* fmt, ...) {
+  if (g_info_n >= INFO_RING) { if (g_info_lost < 255) g_info_lost++; return; }
+  va_list ap; va_start(ap, fmt); vsnprintf(g_info[g_info_n], INFO_LEN, fmt, ap); va_end(ap);
+  g_info_n++;
+}
+static void fw_line(char* b, size_t n) {
+  snprintf(b, n, "FW common=%08lx node=%08lx dirty=%d type=%d hooks=1", (unsigned long)PPE_FW_COMMON, (unsigned long)PPE_FW_NODE, (int)PPE_FW_DIRTY, (int)PPE_BUILD_NODE_TYPE);
 }
 static void mark_add(const char* name, uint32_t us, bool has_raw, ppe_raw_t r) {
   if (g_marks_n >= MARK_RING) { if (g_marks_lost < 255) g_marks_lost++; return; }
@@ -150,6 +175,12 @@ static void flush_marks() {
   if (g_marks_lost) { Serial.printf("MARKS LOST %u (ring full)\n", (unsigned)g_marks_lost); g_marks_lost = 0; }
   g_marks_n = 0;
 }
+static void flush_info() {
+  for (uint8_t i = 0; i < g_info_n; i++) Serial.println(g_info[i]);
+  if (g_info_lost) { Serial.printf("INFO LOST %u (ring full)\n", (unsigned)g_info_lost); g_info_lost = 0; }
+  g_info_n = 0;
+}
+static void flush_buffered() { flush_info(); flush_marks(); }
 static void flush_wakelog() {
   for (uint8_t i = 0; i < g_wlog_n; i++) {
     const WakeRec& w = g_wlog[i];
@@ -281,8 +312,13 @@ static void on_build(ppe_tx_act_t act, uint32_t now) {
   g_tx_seq++;
   ppe_tx_begin(&txs, now);
   ppe_hb_on_sequence_start(&confirm, now, cfg.heartbeat_s);   // N-27
+#ifdef PPE_TEST_HOOKS
+  info_add("TX seq=%lu type=%s ctr=%lu state=%d boot=%d fault=%d", (unsigned long)g_tx_seq, is_event ? "event" : "heartbeat",
+           (unsigned long)ctr, (int)pair.state, (int)boot, (int)pair.fault);   // buffered: a sleeping node's USB port is mostly closed
+#else
   PPE_LOGI("node", "TX seq=%lu type=%s ctr=%lu state=%d boot=%d fault=%d", (unsigned long)g_tx_seq, is_event ? "event" : "heartbeat",
            (unsigned long)ctr, (int)pair.state, (int)boot, (int)pair.fault);
+#endif
 #ifdef PPE_TEST_HOOKS
   g_seq_suppressed = false;
   if (g_skip_n > 0) { g_skip_n--; g_seq_suppressed = true; Serial.println("TX suppressed (skiptx)"); }
@@ -378,7 +414,7 @@ static void go_to_sleep(uint32_t now) {
   if (out.mode == PPE_SLEEP_ABORT) { ppe_sleep_note_abort(&g_sleep); return; }   // N-07b: stay awake, decide again on the next pass
 #ifdef PPE_TEST_HOOKS
   wake_record(now, (uint8_t)out.mode, in.hb_remaining_ms);
-  if ((int32_t)(pnow_ms() - g_boot_ms) >= (int32_t)PPE_FLUSH_HOLD_MS) { flush_marks(); flush_wakelog(); Serial.flush(); delay(250); }   // short wakes stay buffered in RTC memory; the wait lets the USB host read the tail before the chip sleeps
+  if ((int32_t)(pnow_ms() - g_boot_ms) >= (int32_t)PPE_FLUSH_HOLD_MS) { flush_buffered(); flush_wakelog(); Serial.flush(); delay(250); }   // short wakes stay buffered in RTC memory; the wait lets the USB host read the tail before the chip sleeps
 #endif
   esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
   if (out.mode == PPE_SLEEP_FOREVER) {
@@ -423,6 +459,7 @@ static void handle_line(const char* line) {
     case PPE_HOOK_SET_HB:     ppe_cfg_set_heartbeat(&cfg, h.arg); g_cfg_rtc = cfg; g_cfg_valid = 1; print_cfg(); Serial.println("OK set hb"); break;
     case PPE_HOOK_SHOW:
       print_cfg();
+      { char fwb[96]; fw_line(fwb, sizeof fwb); Serial.println(fwb); }
       Serial.printf("STATE confirmed=%d/%d candidate=%d/%d grace=%d adc_inject=%ld adc_fail=%d\n",
                     (int)confirm.confirmed.state, (int)confirm.confirmed.fault,
                     (int)settle.candidate.state, (int)settle.candidate.fault,
@@ -467,7 +504,7 @@ static void handle_line(const char* line) {
       break;
     }
     case PPE_HOOK_ADCAT_CLEAR: memset(g_at, 0, sizeof g_at); Serial.println("OK adcat clear"); break;
-    case PPE_HOOK_WAKELOG:    flush_marks(); flush_wakelog(); Serial.println("OK wakelog"); break;
+    case PPE_HOOK_WAKELOG:    flush_buffered(); flush_wakelog(); Serial.println("OK wakelog"); break;
     case PPE_HOOK_BATT_SET:
     case PPE_HOOK_BATT_FAIL:
     case PPE_HOOK_BATT_REAL:  Serial.println("ERR batt hook: battery report comes with TC-13"); break;
@@ -522,6 +559,9 @@ static void begin_run() {
 #endif
   ppe_fsr_init(&fsr);                                     // COLD_START: no hysteresis history (R-5)
   ppe_sleep_state_init(&g_sleep);
+#ifdef PPE_TEST_HOOKS
+  { char fwb[96]; fw_line(fwb, sizeof fwb); info_add("%s", fwb); }   // firmware identity: printed with the first buffered lines
+#endif
   ppe_ctr_status_t st = counter.cold_boot();
   if (st != PPE_CTR_OK) { enter_fault(FAULT_NVS); return; }
   g_run = RUN_ACTIVE;
@@ -591,7 +631,7 @@ void loop() {
   if (g_run == RUN_ACTIVE) {
 #ifdef PPE_TEST_HOOKS
     apply_adcat(now);
-    if (g_marks_n && (int32_t)(now - g_boot_ms) >= (int32_t)(PPE_FLUSH_HOLD_MS - 500)) flush_marks();   // only once the port is likely back
+    if ((g_marks_n || g_info_n) && (int32_t)(now - g_boot_ms) >= (int32_t)(PPE_FLUSH_HOLD_MS - 500)) flush_buffered();   // only once the port is likely back
 #endif
     tx_pump(now);
     if (g_run == RUN_ACTIVE && (int32_t)(now - next_poll) >= 0) {

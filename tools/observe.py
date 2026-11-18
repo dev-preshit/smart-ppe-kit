@@ -21,6 +21,7 @@ PKT = re.compile(r"\| PKT (\d+)\.(\d{6}) (\d+) (\d+) (-?\d+) ([0-9a-f]*)\s*$")
 TIME = re.compile(r"\| TIME (\d+)\.(\d{6})\s*$")
 LOSS = re.compile(r"\| (?:LOST (\d+)|STAT .*lost=(\d+))")
 NODE_MARK = re.compile(r"\| NODE MARK COPY(\d) (\d+)")
+FWLINE = re.compile(r"\| NODE FW common=([0-9a-f]{8}) node=([0-9a-f]{8}) dirty=(\d) type=(\d) hooks=(\d)")
 NODE_TX = re.compile(r"\| NODE .*TX seq=(\d+) type=(event|heartbeat) ctr=(\d+) state=(\d+) boot=(\d) fault=(\d)")
 
 
@@ -140,9 +141,14 @@ def cmd_analyze(a):
             if dec(h)["node"] != nid:
                 errs.append("TX %d: node_id %d on the air, provisioned as %d" % (i, dec(h)["node"], nid))
     whole = open(path, encoding="utf-8").read()
-    for bad in ("OBSERVER STALLED", "NODE RESET FAILED", "final TIME and STAT could not be sent"):
+    for bad in ("OBSERVER STALLED", "NODE RESET FAILED", "final TIME and STAT could not be sent", "FIRMWARE MISMATCH"):
         if bad in whole:
             errs.append("the capture reports: %s" % bad)
+    if "# fw_check=required" in whole:               # process rule 2: this log must show the firmware of HEAD
+        m = re.search(r"# fw_expected common=([0-9a-f]{8}) node=([0-9a-f]{8})", whole)
+        prob = fw_problem(parse_fw(whole), (int(m.group(1), 16), int(m.group(2), 16), 0)) if m else "no fw_expected line in the header"
+        if prob:
+            errs.append("firmware identity: " + prob)
     nseqs, ntx = parse_node(path)
     for lost_cmd in [x for x in ntx if x[0] == "FAILED"]:      # a hook command that never reached the node makes the run meaningless
         errs.append("a node command was lost: %s" % lost_cmd[1])
@@ -337,6 +343,28 @@ def wait_until(t_abs, stalled):
         time.sleep(min(0.5, left))
 
 
+def parse_fw(text):
+    """(common tree hash, node tree hash, dirty) from the node's FW line, or None."""
+    m = FWLINE.search(text)
+    return None if not m else (int(m.group(1), 16), int(m.group(2), 16), int(m.group(3)))
+
+
+def fw_problem(found, expected):
+    """None when the node runs the firmware of HEAD (process rule 2), else the reason."""
+    if found is None:
+        return "the node sent no firmware identity line"
+    if found[2]:
+        return "the node's firmware was built from a working tree that differs from HEAD (dirty=1)"
+    if (found[0], found[1]) != (expected[0], expected[1]):
+        return "the node runs common=%08x node=%08x but HEAD is common=%08x node=%08x" % (found[0], found[1], expected[0], expected[1])
+    return None
+
+
+def expected_fw():
+    import node_build
+    return node_build.fw_identity()
+
+
 def node_reader(port, cap, stop, holder):
     """Reads the node's lines into the log and reopens the port whenever it comes back: a sleeping node's USB port disappears."""
     import serial
@@ -375,6 +403,14 @@ def cmd_capture(a):
     if os.path.exists(path):
         sys.exit("STOP: %s already exists (a log is never appended to). Move it to test_logs/invalid/ or change HEAD." % path)
     header = logger.header_lines(a.tc, a.waived) + ["via=observe.py", "observer_port=%s" % a.port] + a.header
+    expect_fw = None
+    if a.node and a.node_reset and not a.no_fw_check:
+        expect_fw = expected_fw()
+        if expect_fw[2]:
+            sys.exit("STOP: common/ or firmware/node_sense differ from HEAD. Commit them, rebuild and flash, then run (process rule 2).")
+        header += ["fw_check=required", "fw_expected common=%08x node=%08x" % expect_fw[:2]]
+    elif a.node:
+        header.append("fw_check=skipped")
     if a.node:
         header.append("node_port=%s" % a.node)
         if a.node_plan:
@@ -385,6 +421,7 @@ def cmd_capture(a):
     holder = {"ser": None}
     stop = threading.Event()
     stalled = threading.Event()
+    fw_msg = None
     try:
         time.sleep(0.5)
         cap.send("RESET"); time.sleep(0.3)
@@ -404,6 +441,21 @@ def cmd_capture(a):
                 except Exception:
                     cap.note("NODE RESET FAILED (no node port): the run is invalid")
                 time.sleep(2.5)                             # the node's USB port goes away and comes back
+                if expect_fw:                               # process rule 2: the flashed firmware must be the one of HEAD
+                    t_f = time.time(); problem = "the node sent no firmware identity line"
+                    while time.time() - t_f < 25.0 and not stalled.is_set():
+                        try:
+                            found = parse_fw(open(path, encoding="utf-8").read())
+                        except OSError:
+                            found = None
+                        if found is not None:
+                            problem = fw_problem(found, expect_fw)
+                            break
+                        time.sleep(0.5)
+                    if problem:
+                        fw_msg = "FIRMWARE MISMATCH: %s" % problem
+                        cap.note(fw_msg)
+                        stalled.set()
                 t0 = time.time()
             plan = [(a.node_after + i * a.node_gap, c) for i, c in enumerate(a.node_send)]
             if a.node_plan:
@@ -456,6 +508,9 @@ def cmd_capture(a):
         if inj:
             inj.close()
         cap.close()
+    if fw_msg:
+        print(fw_msg + ". The run was stopped before it started; flash the firmware of HEAD and try again (the log is not evidence).")
+        return 3
     if stalled.is_set():
         print("OBSERVER STALLED: the capture was stopped early, the log is not usable as evidence (move it to test_logs/invalid/)")
         return 2
@@ -476,6 +531,7 @@ def main():
     c.add_argument("--node-after", type=float, default=5.0, help="seconds after the start before the first node command")
     c.add_argument("--node-gap", type=float, default=1.0, help="seconds between node commands")
     c.add_argument("--node-plan", help="file of timed hook lines made by the plan command")
+    c.add_argument("--no-fw-check", action="store_true", help="skip the firmware identity check (never for evidence runs)")
     c.add_argument("--node-reset", action="store_true", help="reset the node with an RTS pulse at the start, so its boot grace is inside the capture")
     for name in ("analyze", "calibrate"):
         p = sub.add_parser(name)
