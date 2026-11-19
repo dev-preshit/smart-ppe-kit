@@ -267,6 +267,9 @@ def load_plan(path):
             if not ln or ln.startswith("#"):
                 continue
             t, cmd = ln.split(None, 1)
+            if cmd.startswith("say "):                          # a prompt for the person at the bench, never sent to the node
+                out.append((float(t), cmd))
+                continue
             if len(cmd) > 40 or "key" in cmd.lower().replace("testkey", ""):
                 sys.exit("STOP: plan command not allowed (too long or key-like): %.12s..." % cmd)
             out.append((float(t), cmd))
@@ -433,7 +436,10 @@ def cmd_capture(a):
             threading.Thread(target=node_reader, args=(a.node, cap, stop, holder), daemon=True).start()
             if a.node_reset:                                # the node boots INSIDE the capture: its 25 s boot grace starts now
                 t_w = time.time()
-                while holder["ser"] is None and time.time() - t_w < 5.0:
+                if a.wake_wait > 5.0:                       # a node that sleeps without a timer has no USB port: the button wakes it
+                    print("\a>>> Is the node asleep? TAP THE BUTTON ONCE to wake it (waiting up to %d s for its USB port)" % a.wake_wait)
+                    sys.stdout.flush()
+                while holder["ser"] is None and time.time() - t_w < a.wake_wait:
                     time.sleep(0.1)
                 try:
                     holder["ser"].dtr = False; holder["ser"].rts = True; time.sleep(0.15); holder["ser"].rts = False
@@ -464,6 +470,10 @@ def cmd_capture(a):
             for t_cmd, c in plan:
                 if not wait_until(t0 + t_cmd, stalled):
                     break
+                if c.startswith("say "):
+                    print("\a>>> %s   (t=%g s)" % (c[4:], t_cmd)); sys.stdout.flush()
+                    cap.note("PROMPT %s" % c[4:])
+                    continue
                 cap.note("NODETX %s" % c)
                 send_node(holder, c, cap, stalled)
         if a.injector:
@@ -531,6 +541,7 @@ def main():
     c.add_argument("--node-after", type=float, default=5.0, help="seconds after the start before the first node command")
     c.add_argument("--node-gap", type=float, default=1.0, help="seconds between node commands")
     c.add_argument("--node-plan", help="file of timed hook lines made by the plan command")
+    c.add_argument("--wake-wait", type=float, default=5.0, help="seconds to wait for the node's USB port before the reset (use 60 for a node that sleeps without a timer)")
     c.add_argument("--no-fw-check", action="store_true", help="skip the firmware identity check (never for evidence runs)")
     c.add_argument("--node-reset", action="store_true", help="reset the node with an RTS pulse at the start, so its boot grace is inside the capture")
     for name in ("analyze", "calibrate"):

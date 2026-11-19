@@ -259,4 +259,14 @@ class T(unittest.TestCase):
     def test_a_reported_mismatch_note_fails_the_analysis(self):
         p = make_log(); lines = open(p).read().split("\n"); lines.insert(2, "2026-11-11T10:00:05.000 | FIRMWARE MISMATCH: x")
         open(p, "w").write("\n".join(lines)); rc, out = self.run_(p); self.assertEqual(rc, 1); self.assertIn("FIRMWARE MISMATCH", out)
+    # ---- prompts for the person at the bench (glove and helmet runs)
+    def test_plan_say_lines_are_prompts_and_may_be_long(self):
+        d = tempfile.mkdtemp(); f = os.path.join(d, "p.txt")
+        txt = "PRESS and HOLD the button NOW (cycle 1: wear), keep it pressed until the next message appears"
+        open(f, "w").write("# c\n40 say " + txt + "\n50 adc 50\n")
+        self.assertEqual(observe.load_plan(f), [(40.0, "say " + txt), (50.0, "adc 50")])
+    def test_a_long_command_that_is_not_a_prompt_is_still_refused(self):
+        d = tempfile.mkdtemp(); f = os.path.join(d, "p.txt")
+        open(f, "w").write("40 adc " + "5" * 60 + "\n")
+        with self.assertRaises(SystemExit): observe.load_plan(f)
 if __name__ == "__main__": unittest.main()
