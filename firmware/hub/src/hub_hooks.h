@@ -22,7 +22,8 @@ enum HubHookType {
   HUB_HOOK_MOTOR,        // motor            -> one MOTOR status line (state, output, guard trips, longest ON)
   HUB_HOOK_MARKER_ON,    // marker on|off    -> pulse the marker pin (1 ms) at every accepted packet (edge recorder channel B)
   HUB_HOOK_MARKER_OFF,
-  HUB_HOOK_PULSE         // pulse <on_ms> <off_ms> <count> -> known pulse train on the marker pin (recorder calibration)
+  HUB_HOOK_PULSE,        // pulse <on_ms> <off_ms> <count> -> known pulse train on the marker pin (recorder calibration)
+  HUB_HOOK_FAULT         // fault wdt|nvs-read|nvs-write|registry|key|guard -> val = 1..6 in that order (TC-30)
 };
 
 struct HubHookCmd {

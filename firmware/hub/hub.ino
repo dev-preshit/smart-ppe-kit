@@ -34,15 +34,33 @@ void setup() {
   vest = HUB_TEST_VEST_ID;           // test constants only; real provisioning is S6, the real key is never in the repo
   key = PPE_TEST_KEY;
 #endif
+  uint32_t forces = 0;
+#ifdef PPE_TEST_HOOKS
+  forces = hub_take_boot_forces();   // TC-30: a one-shot fault chosen before the last restart
+  if (forces & HUB_FORCE_NO_KEY) { key = nullptr; Serial.println("BOOT PPE_HOOK fault key: this start treats the key as missing (one shot)"); }
+  hub_nvs_force_params_fail((forces & HUB_FORCE_PARAMS) != 0);
+#endif
   HubStartResult sr = hub_startup_check(vest, key != nullptr);
-  if (sr != HUB_START_OK) {          // fail safe: no scan, no accept (brief story 4)
-    Serial.printf("REFUSE start-up: %s (vest id 0x%02X)\n",
-                  sr == HUB_START_BAD_VEST ? "invalid hub vest id (valid is 0x01..0xFE)" : "no key provisioned", vest);
+  if (sr == HUB_START_BAD_VEST) {    // fail safe: no scan, no accept (brief story 4)
+    Serial.printf("REFUSE start-up: invalid hub vest id (valid is 0x01..0xFE) (vest id 0x%02X)\n", vest);
     return;
   }
-  if (!g_store.begin()) Serial.println("ERROR NVS open failed: registry unreadable, accept stays disabled");
+  // A missing key is not a refusal any more: B-04 runs the hub with accept disabled and the KEY_FAULT pattern (S5, TC-30).
+  const bool nvs_open = g_store.begin();
+  if (!nvs_open) Serial.println("ERROR NVS open failed: registry unreadable, accept stays disabled");
+  bool params_ok = true, found = false;
+  uint32_t hb = 0, mg = 0;
+  if (nvs_open) {
+    params_ok = g_store.read_params(&hb, &mg, &found);
+    if (!params_ok) params_ok = g_store.read_params(&hb, &mg, &found);      // X-03: retry once, then continue with the defaults
+  }
+  HubStore* store = &g_store;
+#ifdef PPE_TEST_HOOKS
+  if (forces & HUB_FORCE_REGISTRY) { store = nullptr; Serial.println("BOOT PPE_HOOK fault registry: this start treats the registry as unreadable (one shot)"); }
+#endif
   if (!hub_persist_start(&g_store)) Serial.println("ERROR persist task not started");
-  g_running = hub_ble_start(vest, key, &g_store);
+  g_running = hub_ble_start(vest, key, store, params_ok);
+  if (g_running && params_ok && found) hub_apply_params(hb, mg);
 #ifdef PPE_S3_WIFI_RECHECK
   if (g_running) hub_wifi_recheck_start();   // after the scan runs, so the recheck sees BLE and Wi-Fi together
 #endif
@@ -50,7 +68,7 @@ void setup() {
 }
 
 #ifdef PPE_TEST_HOOKS
-// Serial test hooks: inject <hex> | stall <n> | dump | time [on|off] | rxlog on|off | set margin <s> | set heartbeat <s> | motor | marker on|off | pulse <on> <off> <n>  (one command per line)
+// Serial test hooks: inject <hex> | stall <n> | dump | time [on|off] | rxlog on|off | set margin <s> | set heartbeat <s> | motor | marker on|off | pulse <on> <off> <n> | fault <kind>  (one command per line)
 static char g_line[256];
 static size_t g_line_len = 0;
 
@@ -71,10 +89,11 @@ static void run_hook(const char* line) {
     case HUB_HOOK_SET_MARGIN: hub_hook_set_margin(c.val); break;
     case HUB_HOOK_SET_HEARTBEAT: hub_hook_set_heartbeat(c.val); break;
     case HUB_HOOK_MOTOR: hub_hook_motor(); break;
+    case HUB_HOOK_FAULT: hub_hook_fault((uint8_t)c.val); break;
     case HUB_HOOK_MARKER_ON: hub_hook_marker(true); break;
     case HUB_HOOK_MARKER_OFF: hub_hook_marker(false); break;
     case HUB_HOOK_PULSE: hub_hook_pulse(c.val, c.val2, c.val3); break;
-    default: Serial.println("PPE_HOOK error: commands are inject <hex>, stall <1-9>, dump, time [on|off], rxlog on|off, set margin <s>, set heartbeat <s>, motor, marker on|off, pulse <on_ms> <off_ms> <count>"); break;
+    default: Serial.println("PPE_HOOK error: commands are inject <hex>, stall <1-9>, dump, time [on|off], rxlog on|off, set margin <s>, set heartbeat <s>, motor, marker on|off, pulse <on_ms> <off_ms> <count>, fault wdt|nvs-read|nvs-write|registry|key|guard"); break;
   }
 }
 

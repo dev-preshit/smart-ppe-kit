@@ -81,6 +81,12 @@ HubHookCmd hub_hook_parse(const char* line) {
   } else if (wl == 6 && !strncmp(line, "marker", 6)) {
     if (al == 2 && !strncmp(arg, "on", 2)) c.type = HUB_HOOK_MARKER_ON;
     else if (al == 3 && !strncmp(arg, "off", 3)) c.type = HUB_HOOK_MARKER_OFF;
+  } else if (wl == 5 && !strncmp(line, "fault", 5)) {
+    static const struct { const char* name; uint8_t id; } kinds[] = {
+      {"wdt", 1}, {"nvs-read", 2}, {"nvs-write", 3}, {"registry", 4}, {"key", 5}, {"guard", 6}};
+    for (unsigned i = 0; i < sizeof kinds / sizeof kinds[0]; i++) {
+      if (al == strlen(kinds[i].name) && !strncmp(arg, kinds[i].name, al)) { c.val = kinds[i].id; c.type = HUB_HOOK_FAULT; }
+    }
   } else if (wl == 5 && !strncmp(line, "pulse", 5)) {
     uint32_t v[3];
     if (parse_nums(arg, v, 3)) { c.val = v[0]; c.val2 = v[1]; c.val3 = v[2]; c.type = HUB_HOOK_PULSE; }

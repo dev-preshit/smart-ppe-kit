@@ -32,6 +32,11 @@ class HubSink {
   virtual void emit(const HubMsg& m) = 0;
 };
 
+// Faults reported after HUB_BOOT, in this order (B-05, B-05b, B-05c, X-07): the fault stored by the previous run
+// (SCAN_STALL) or a watchdog reset, NO_KEY, REGISTRY (key present, registry unreadable), NVS_READ.
+struct HubBootInfo { uint8_t rtc_fault; bool wdt_reset, key_ok, registry_ok, params_ok; };
+uint32_t hub_boot_faults(const HubBootInfo& b, uint8_t out[4]);   // returns how many codes were written
+
 const char* hub_fault_code_name(uint8_t code);
 // One line, field names from spec 10.1. Returns the length written (0 for an empty buffer), always NUL terminated.
 size_t hub_msg_format(const HubMsg& m, char* out, size_t cap);

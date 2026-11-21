@@ -72,6 +72,8 @@ class HubPipeline {
   HubPipeline();
   // Validates the provisioning data. Returns false (and stays disabled) on a bad vest id or null key.
   bool init(uint8_t vest_id, const uint8_t* key32);
+  bool init_no_key(uint8_t vest_id);       // B-04: no key, accept stays disabled, nodes still get slots and timers
+  bool key_ok() const { return key_ok_; }
   // Loads last_counter per node from the store; resets states to UNKNOWN, counters to 0,
   // last_seen to boot_ms. Returns false if the store was unreadable (accept stays disabled).
   bool load_registry(HubStore* store, uint32_t boot_ms);

@@ -11,6 +11,10 @@ class HubNvsStore : public HubStore {
   bool begin();                                   // false = NVS not usable: registry stays disabled
   HubStoreResult read_last_counter(uint8_t node_id, uint32_t* value) override;
   bool write_last_counter(uint8_t node_id, uint32_t value) override;
+  bool is_open() const { return open_; }
+  // Non-critical parameters (S6 provisions them): HEARTBEAT_S and OFFLINE_MARGIN_S. found=false when absent (defaults apply).
+  // false = NVS read error (X-03): the caller retries once and then continues with the compile-time defaults.
+  bool read_params(uint32_t* heartbeat_s, uint32_t* margin_s, bool* found);
  private:
   Preferences prefs_;
   bool open_ = false;
@@ -28,3 +32,8 @@ void hub_persist_enqueue(uint8_t node_id, uint32_t counter);   // non-blocking, 
 const HubPersistStats& hub_persist_stats();
 unsigned hub_persist_pending();
 uint32_t hub_persist_writes_failed();
+
+#ifdef PPE_TEST_HOOKS
+void hub_nvs_force_write_fail(uint32_t n);     // the next n writes fail (TC-30 fault nvs-write)
+void hub_nvs_force_params_fail(bool on);       // read_params fails until the next boot clears it (TC-30 fault nvs-read)
+#endif

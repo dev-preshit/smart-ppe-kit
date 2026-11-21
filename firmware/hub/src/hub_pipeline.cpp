@@ -30,6 +30,15 @@ bool HubPipeline::init(uint8_t vest_id, const uint8_t* key32) {
   return true;
 }
 
+bool HubPipeline::init_no_key(uint8_t vest_id) {
+  key_ok_ = false;
+  accept_enabled_ = false;
+  if (hub_startup_check(vest_id, true) != HUB_START_OK) return false;   // the vest id must still be valid
+  vest_id_ = vest_id;
+  memset(key_, 0, sizeof key_);
+  return true;
+}
+
 bool HubPipeline::load_registry(HubStore* store, uint32_t boot_ms) {
   memset(&g_, 0, sizeof g_);
   memset(node_, 0, sizeof node_);

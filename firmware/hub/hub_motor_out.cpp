@@ -1,10 +1,11 @@
 #include "hub_motor_out.h"
 #include "esp_timer.h"
+#include "esp_task_wdt.h"
 #include "src/hub_config.h"
 
 static HubMotor g_motor;
 static portMUX_TYPE g_mux = portMUX_INITIALIZER_UNLOCKED;
-static volatile bool g_alert_req = false;
+static volatile bool g_alert_req = false, g_key_req = false;
 static volatile uint32_t g_trips_unreported = 0;
 static esp_timer_handle_t g_guard_timer = nullptr;
 
@@ -16,17 +17,34 @@ void hub_motor_early_init() {
   digitalWrite(HUB_MOTOR_PIN, LOW);            // B-01: low as early as the firmware can; the external pull-down covers the time before
 }
 
+#ifdef PPE_TEST_HOOKS
+static volatile bool g_fault_guard = false;
+static bool g_stall_active = false;            // only the motor task touches these two
+static uint32_t g_stall_until = 0;
+void hub_motor_fault_guard() { g_fault_guard = true; }
+#endif
+
 static void motor_task(void*) {
+  esp_task_wdt_add(NULL);                      // X-02: a stuck motor task resets the chip (the pin is low again after the reset, B-01)
+  bool key_applied = false;
   TickType_t last = xTaskGetTickCount();
   for (;;) {
     vTaskDelayUntil(&last, 1);                 // 1 tick = 1 ms (arduino-esp32: CONFIG_FREERTOS_HZ = 1000)
     const uint32_t t = now_us();
-    const bool want = g_alert_req;
+    const bool want = g_alert_req, key = g_key_req;
     portENTER_CRITICAL(&g_mux);
+    if (key != key_applied) { key_applied = key; g_motor.set_key_fault(key, t); }   // M-09
     g_motor.set_alert(want, t);                // M-01 / M-06
+#ifdef PPE_TEST_HOOKS
+    if (g_fault_guard && g_motor.output()) { g_stall_active = true; g_stall_until = t + 1500000u; g_fault_guard = false; }
+    if (g_stall_active && (int32_t)(t - g_stall_until) >= 0) g_stall_active = false;
+    if (!g_stall_active) g_motor.pattern_step(t);   // M-02 / M-03 / M-04 (stalled on purpose by fault guard)
+#else
     g_motor.pattern_step(t);                   // M-02 / M-03 / M-04
+#endif
     drive();
     portEXIT_CRITICAL(&g_mux);
+    esp_task_wdt_reset();
   }
 }
 
@@ -116,6 +134,14 @@ void hub_motor_start() {
 }
 
 void hub_motor_set_alert(bool active) { g_alert_req = active; }
+void hub_motor_set_key_fault(bool on) { g_key_req = on; }
+
+void hub_motor_safe_off() {
+  portENTER_CRITICAL(&g_mux);
+  g_motor.boot();
+  drive();
+  portEXIT_CRITICAL(&g_mux);
+}
 
 uint32_t hub_motor_take_guard_trips() {
   portENTER_CRITICAL(&g_mux);

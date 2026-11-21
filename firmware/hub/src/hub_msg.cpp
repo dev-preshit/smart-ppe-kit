@@ -15,6 +15,16 @@ const char* hub_fault_code_name(uint8_t code) {
   }
 }
 
+uint32_t hub_boot_faults(const HubBootInfo& b, uint8_t out[4]) {
+  uint32_t n = 0;
+  if (b.rtc_fault) out[n++] = b.rtc_fault;                    // X-07: stored by the run that rebooted (SCAN_STALL)
+  else if (b.wdt_reset) out[n++] = HUB_FAULT_WDT_RESET;       // X-02: from the reset reason, nothing is stored
+  if (!b.key_ok) out[n++] = HUB_FAULT_NO_KEY;                 // B-04
+  else if (!b.registry_ok) out[n++] = HUB_FAULT_REGISTRY;     // B-04b: only with the key present
+  if (!b.params_ok) out[n++] = HUB_FAULT_NVS_READ;            // X-03: a non-critical read failed twice
+  return n;
+}
+
 size_t hub_msg_format(const HubMsg& m, char* out, size_t cap) {
   if (!out || cap == 0) return 0;
   const unsigned long t = (unsigned long)m.t_ms;

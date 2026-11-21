@@ -114,19 +114,19 @@ PPE_TEST(key_fault_owns_the_motor_alert_never_starts_the_alert_pattern, "TC-30")
   CHECK(s.e.size() > n);                                                         // the key pattern keeps running without alert
 }
 
-PPE_TEST(guard_forces_low_at_400_ms_when_the_pattern_task_is_stuck, "TC-74") {
+PPE_TEST(guard_forces_low_at_395_ms_when_the_pattern_task_is_stuck, "TC-74") {
   Sim s(1000);
   s.alert(true);
   s.stall_pattern = true;                                                        // pattern task hung right after the ON edge
   s.run(2000000);
   CHECK(s.m.guard_trips() >= 1);
-  CHECK(s.m.max_on_us() >= 400000u && s.m.max_on_us() <= 401000u);               // output low by the guard at 400 ms
+  CHECK(s.m.max_on_us() >= 395000u && s.m.max_on_us() <= 396000u);               // output low by the guard at 395 ms (NFR-05: a measured ON never exceeds 400 ms)
   CHECK(s.m.take_guard_trip()); CHECK(!s.m.take_guard_trip());                   // one report per trip (HUB_FAULT GUARD)
   CHECK(!s.m.output());
   s.stall_pattern = false;                                                       // the pattern resumes at the next ON edge
   size_t n = s.e.size(); s.run(1500000);
   CHECK(s.e.size() > n);
-  CHECK(s.m.max_on_us() <= 401000u);
+  CHECK(s.m.max_on_us() <= 396000u);
 }
 
 PPE_TEST(guard_also_limits_a_stuck_key_fault_pulse, "TC-74") {
@@ -134,11 +134,11 @@ PPE_TEST(guard_also_limits_a_stuck_key_fault_pulse, "TC-74") {
   s.key(true);
   s.stall_pattern = true;
   s.run(1000000);
-  CHECK(s.m.max_on_us() >= 400000u && s.m.max_on_us() <= 401000u);
+  CHECK(s.m.max_on_us() >= 395000u && s.m.max_on_us() <= 396000u);
   CHECK(s.m.guard_trips() >= 1);
 }
 
-PPE_TEST(random_alert_toggling_with_stalls_never_exceeds_400_ms_on, "TC-74") {
+PPE_TEST(random_alert_toggling_with_stalls_never_exceeds_400_ms_on_guard_395, "TC-74") {
   uint32_t rng = 987654321u;
   for (int run = 0; run < 20; run++) {
     Sim s(run == 0 ? 0xFFFFFFFFu - 3000000u : 1000u * run);                        // run 0 crosses the 32-bit wrap
@@ -152,8 +152,8 @@ PPE_TEST(random_alert_toggling_with_stalls_never_exceeds_400_ms_on, "TC-74") {
       if (r == 6 && run % 5 == 1) { CHECK(!s.m.output()); s.sample(); }
       s.run(((rng >> 4) % 50 + 1) * 1000u);
     }
-    CHECK(s.m.max_on_us() <= 401000u);                                             // NFR-05 with 1 ms steps
-    for (size_t i = 1; i < s.e.size(); i++) if (s.e[i - 1].level && !s.e[i].level) CHECK(s.e[i].t - s.e[i - 1].t <= 401000u);
+    CHECK(s.m.max_on_us() <= 396000u);                                             // NFR-05 with 1 ms steps
+    for (size_t i = 1; i < s.e.size(); i++) if (s.e[i - 1].level && !s.e[i].level) CHECK(s.e[i].t - s.e[i - 1].t <= 396000u);
   }
 }
 

@@ -4,6 +4,13 @@
 static const char* const kNs = "ppehub";
 static const char* const kKeys[HUB_NODE_SLOTS + 1] = {"", "lc1", "lc2", "lc3", "lc4", "lc5"};
 
+#ifdef PPE_TEST_HOOKS
+static volatile uint32_t g_force_write_fail = 0;
+static volatile bool g_force_params_fail = false;
+void hub_nvs_force_write_fail(uint32_t n) { g_force_write_fail = n; }
+void hub_nvs_force_params_fail(bool on) { g_force_params_fail = on; }
+#endif
+
 bool HubNvsStore::begin() {
   open_ = prefs_.begin(kNs, false);   // read/write so the namespace exists on first boot
   return open_;
@@ -16,7 +23,24 @@ HubStoreResult HubNvsStore::read_last_counter(uint8_t node_id, uint32_t* value) 
   return HUB_STORE_OK;
 }
 
+bool HubNvsStore::read_params(uint32_t* heartbeat_s, uint32_t* margin_s, bool* found) {
+  *found = false;
+#ifdef PPE_TEST_HOOKS
+  if (g_force_params_fail) return false;
+#endif
+  if (!open_) return false;
+  if (prefs_.isKey("hb_s") && prefs_.isKey("margin_s")) {
+    *heartbeat_s = prefs_.getUInt("hb_s", 0);
+    *margin_s = prefs_.getUInt("margin_s", 0);
+    *found = true;
+  }
+  return true;
+}
+
 bool HubNvsStore::write_last_counter(uint8_t node_id, uint32_t value) {
+#ifdef PPE_TEST_HOOKS
+  if (g_force_write_fail > 0) { g_force_write_fail = g_force_write_fail - 1; return false; }
+#endif
   if (!open_ || node_id < 1 || node_id > HUB_NODE_SLOTS) return false;
   return prefs_.putUInt(kKeys[node_id], value) == sizeof(uint32_t);   // putUInt commits
 }
