@@ -375,7 +375,7 @@ void hub_hook_fault(uint8_t which) {
     case 5: restart_with_force(HUB_FORCE_NO_KEY, "key"); break;
     case 6:
       hub_motor_fault_guard();
-      Serial.printf("PPE_HOOK fault guard: at the next ON edge the pattern task stalls for 1.5 s (needs an active alert) t_ms=%lu\n",
+      Serial.printf("PPE_HOOK fault guard: while the motor is ON the pattern task stalls for 1.5 s (needs an active alert) t_ms=%lu\n",
                     (unsigned long)(esp_timer_get_time() / 1000));
       break;
     default: break;

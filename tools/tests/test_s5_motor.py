@@ -306,5 +306,238 @@ class Dispatch(unittest.TestCase):
         self.assertEqual(m.analyze_text(text)[0], "PASS")
 
 
+# ---------------- TC-30 scenarios ----------------
+def pls(t, n, on=300000, off=700000, ch=0):
+    out = []
+    for _ in range(n):
+        out += ["E %d %d 1" % (t & 0xFFFFFFFF, ch), "E %d %d 0" % ((t + on) & 0xFFFFFFFF, ch)]
+        t += on + off
+    return out, t
+
+
+def keypulses(t, periods, on=100000, off=100000, low=1800000):
+    out = []
+    for _ in range(periods):
+        for k in range(3):
+            out += ["E %d 0 1" % t, "E %d 0 0" % (t + on)]
+            t += on + (off if k < 2 else low)
+    return out, t
+
+
+def fault_line(code, t_ms):
+    return "MSG msg_type=HUB_FAULT vest_id=1 code=%s t_ms=%d" % (code, t_ms)
+
+
+def boot_line(t_ms=343, reason=3):
+    return "MSG msg_type=HUB_BOOT vest_id=1 reset_reason=%d fw=s5-hub-logic t_ms=%d" % (reason, t_ms)
+
+
+def tc30a_log(cut=395000, nw_delay=900, gd_delay=1300, nw_msg=True, gd_msg=True, n_before=4, n_after=4, extra_long=False, cut_started_before_hook=False,
+              cut_ended_before_hook=False):
+    t = 5000000
+    L, t = pls(t, n_before)
+    L.append("PPE_HOOK fault nvs-write: the next NVS write fails t_ms=1000")
+    if nw_msg: L.append(fault_line("NVS_WRITE", 1000 + nw_delay))
+    p, t = pls(t, 3); L += p
+    guard_hook = "PPE_HOOK fault guard: while the motor is ON the pattern task stalls for 1.5 s (needs an active alert) t_ms=5000"
+    if cut_ended_before_hook:
+        L += ["E %d 0 1" % t, "E %d 0 0" % (t + cut), guard_hook]
+    elif cut_started_before_hook:
+        L += ["E %d 0 1" % t, guard_hook, "E %d 0 0" % (t + cut)]      # the real order: the motor was already ON when the fault arrived
+    else:
+        L += [guard_hook, "E %d 0 1" % t, "E %d 0 0" % (t + cut)]
+    t += cut + 1100000
+    if gd_msg: L.append(fault_line("GUARD", 5000 + gd_delay))
+    p, t = pls(t, n_after); L += p
+    if extra_long:
+        L += ["E %d 0 1" % t, "E %d 0 0" % (t + 420000)]
+    return "\n".join(L)
+
+
+class Tc30a(unittest.TestCase):
+    def test_pass(self):
+        v, msg = m.analyze_tc30a(tc30a_log())
+        self.assertEqual(v, "PASS", msg)
+
+    def test_missing_or_late_fault_messages_fail(self):
+        self.assertEqual(m.analyze_tc30a(tc30a_log(nw_msg=False))[0], "FAIL")
+        self.assertEqual(m.analyze_tc30a(tc30a_log(nw_delay=3500))[0], "FAIL")
+        self.assertEqual(m.analyze_tc30a(tc30a_log(gd_msg=False))[0], "FAIL")
+        self.assertEqual(m.analyze_tc30a(tc30a_log(gd_delay=4500))[0], "FAIL")
+
+    def test_guard_cut_limits(self):
+        self.assertEqual(m.analyze_tc30a(tc30a_log(cut=401000))[0], "FAIL")           # above 400 ms
+        self.assertEqual(m.analyze_tc30a(tc30a_log(cut=400000))[0], "PASS")
+        self.assertEqual(m.analyze_tc30a(tc30a_log(cut=379000))[0], "FAIL")           # not a guard cut, not a normal run
+        self.assertEqual(m.analyze_tc30a(tc30a_log(cut=300000))[0], "FAIL")           # the guard never cut anything
+
+    def test_a_cut_run_that_started_before_the_hook_line_is_the_normal_case(self):
+        self.assertEqual(m.analyze_tc30a(tc30a_log(cut_started_before_hook=True))[0], "PASS")
+
+    def test_a_long_run_that_ended_before_the_guard_fault_is_not_the_cut(self):
+        self.assertEqual(m.analyze_tc30a(tc30a_log(cut_ended_before_hook=True))[0], "FAIL")
+
+    def test_another_long_run_fails(self):
+        self.assertEqual(m.analyze_tc30a(tc30a_log(extra_long=True))[0], "FAIL")
+
+    def test_pattern_must_run_before_and_resume_after(self):
+        self.assertEqual(m.analyze_tc30a(tc30a_log(n_after=2))[0], "FAIL")
+
+    def test_no_hooks_or_no_motor_is_blocked(self):
+        self.assertEqual(m.analyze_tc30a("\n".join(pls(1000, 3)[0]))[0], "BLOCKED")
+
+
+def tc30b_log(codes=("WDT_RESET", "NVS_READ", "SCAN_STALL"), stray=False, no_boot=False, rearm=True, long_on=False):
+    kinds = ["PPE_HOOK fault wdt: a task stopped feeding the watchdog, reset in about 5000 ms t_ms=100",
+             "PPE_HOOK fault nvs-read: restarting, the next start takes the fault path (one shot) t_ms=200",
+             "PPE_HOOK stall 3 t_ms=300 scan stopped"]
+    L = ["PARAM case=tc30b faults=wdt,nvs-read,stall"]
+    t = 1000000
+    for i in range(3):
+        p, t = pls(t, 5); L += p
+        L.append(kinds[i])
+        if i == 0 and no_boot:
+            continue
+        L += ["BOOT reset_reason=3", boot_line(343 + i), fault_line(codes[i], 343 + i)]
+        if stray and i == 1:
+            L.append("E %d 0 1" % t); L.append("E %d 0 0" % (t + 300000))
+        if rearm: L.append("STEP rearm %d" % (i + 1))
+        t += 8000000
+    if long_on:
+        L += ["E %d 0 1" % t, "E %d 0 0" % (t + 450000)]
+    return "\n".join(L)
+
+
+class Tc30b(unittest.TestCase):
+    def test_pass(self):
+        v, msg = m.analyze_tc30b(tc30b_log())
+        self.assertEqual(v, "PASS", msg)
+
+    def test_wrong_code_fails(self):
+        self.assertEqual(m.analyze_tc30b(tc30b_log(codes=("WDT_RESET", "NVS_WRITE", "SCAN_STALL")))[0], "FAIL")
+        self.assertEqual(m.analyze_tc30b(tc30b_log(codes=("SCAN_STALL", "NVS_READ", "SCAN_STALL")))[0], "FAIL")
+
+    def test_no_reboot_fails(self):
+        self.assertEqual(m.analyze_tc30b(tc30b_log(no_boot=True))[0], "FAIL")
+
+    def test_motor_on_after_a_reboot_before_rearm_fails(self):
+        self.assertEqual(m.analyze_tc30b(tc30b_log(stray=True))[0], "FAIL")
+
+    def test_on_longer_than_400_ms_fails(self):
+        self.assertEqual(m.analyze_tc30b(tc30b_log(long_on=True))[0], "FAIL")
+
+    def test_missing_rearm_note_is_blocked(self):
+        self.assertEqual(m.analyze_tc30b(tc30b_log(rearm=False))[0], "BLOCKED")
+
+
+def tc30c_log(no_key_ms=343, periods_before=6, periods_after=2, on=100000, off=100000, low=1800000, alert_pulse=False,
+              offline=True, final_alert="1", final_accept="0", key_line="1", cleanup=True):
+    L = ["PARAM case=tc30c timeout_s=780", "PPE_HOOK fault key: restarting, the next start takes the fault path (one shot) t_ms=1",
+         boot_line(), fault_line("NO_KEY", no_key_ms)]
+    t = 2000000
+    p, t = keypulses(t, periods_before, on, off, low); L += p
+    if offline: L.append("MSG msg_type=NODE_OFFLINE vest_id=1 node_id=2 state=OFFLINE last_seen_age_s=780 t_ms=780500")
+    p, t = keypulses(t, periods_after, on, off, low); L += p
+    if alert_pulse:
+        L += ["E %d 0 1" % t, "E %d 0 0" % (t + 300000)]
+    L.append("DUMP hub vest=0x01 accept_enabled=%s registry_ok=1 vest_state=NON_COMPLIANT alert_active=%s heartbeat_s=360 margin_s=60 offline_timeout_s=780 msg_pending=0 msg_dropped=0" % (final_accept, final_alert))
+    L.append("MOTOR pin=5 state=K_ON out=1 alert=0 key_fault=%s pulse=3 guard_trips=0 max_on_us=100000 t_ms=9" % key_line)
+    if cleanup:
+        L += ["STEP cleanup: fault wdt returns the hub to a normal start", "PPE_HOOK fault wdt: x t_ms=5", boot_line(367, 6)]
+    return "\n".join(L)
+
+
+class Tc30c(unittest.TestCase):
+    def test_pass(self):
+        v, msg = m.analyze_tc30c(tc30c_log())
+        self.assertEqual(v, "PASS", msg)
+
+    def test_no_key_message_within_2_s(self):
+        self.assertEqual(m.analyze_tc30c(tc30c_log(no_key_ms=1999))[0], "PASS")
+        self.assertEqual(m.analyze_tc30c(tc30c_log(no_key_ms=2100))[0], "FAIL")
+
+    def test_pattern_tolerances(self):
+        self.assertEqual(m.analyze_tc30c(tc30c_log(on=121000))[0], "FAIL")
+        self.assertEqual(m.analyze_tc30c(tc30c_log(on=119000, off=119000))[0], "PASS")
+        self.assertEqual(m.analyze_tc30c(tc30c_log(off=121000))[0], "FAIL")
+        self.assertEqual(m.analyze_tc30c(tc30c_log(low=1950000))[0], "FAIL")           # low time 1800 +/- 100 (D5)
+        self.assertEqual(m.analyze_tc30c(tc30c_log(low=1705000))[0], "PASS")
+        self.assertEqual(m.analyze_tc30c(tc30c_log(low=1690000))[0], "FAIL")
+
+    def test_alert_pulse_after_offline_fails(self):
+        self.assertEqual(m.analyze_tc30c(tc30c_log(alert_pulse=True))[0], "FAIL")
+
+    def test_too_few_periods_or_no_offline_is_blocked_or_fails(self):
+        self.assertEqual(m.analyze_tc30c(tc30c_log(periods_before=3))[0], "FAIL")
+        self.assertEqual(m.analyze_tc30c(tc30c_log(offline=False))[0], "BLOCKED")
+        self.assertEqual(m.analyze_tc30c(tc30c_log(periods_after=0))[0], "BLOCKED")
+
+    def test_final_dump_and_motor_line_are_checked(self):
+        self.assertEqual(m.analyze_tc30c(tc30c_log(final_alert="0"))[0], "FAIL")
+        self.assertEqual(m.analyze_tc30c(tc30c_log(final_accept="1"))[0], "FAIL")
+        self.assertEqual(m.analyze_tc30c(tc30c_log(key_line="0"))[0], "FAIL")
+
+    def test_the_cleanup_reboot_is_not_part_of_the_result(self):
+        self.assertEqual(m.analyze_tc30c(tc30c_log(cleanup=True))[0], "PASS")
+        self.assertEqual(m.analyze_tc30c(tc30c_log(cleanup=False))[0], "PASS")
+
+
+def tc30d_log(first_off=780400, spread=0, nodes=(1, 2, 3, 4, 5), accept="0", reg="0", acc_after=False, early_motor=False, alert_runs=8,
+              fault="REGISTRY", cleanup=True, alert_on=300000):
+    L = ["PARAM case=tc30d timeout_s=780", "PPE_HOOK fault registry: restarting, the next start takes the fault path (one shot) t_ms=1",
+         boot_line(341), fault_line(fault, 341),
+         "DUMP hub vest=0x01 accept_enabled=%s registry_ok=%s vest_state=NON_COMPLIANT alert_active=0 heartbeat_s=360 margin_s=60 offline_timeout_s=780 msg_pending=0 msg_dropped=0" % (accept, reg)]
+    if acc_after:
+        L.append("ACC t_ms=5000 t_us=5000000 node=3 ctr=5 state=1 batt=90 flags=0x60 missed=0 prev=UNKNOWN now=WORN")
+    if early_motor:
+        L += ["E 1000000 0 1", "E 1300000 0 0"]
+    for i, n in enumerate(nodes):
+        L.append("MSG msg_type=NODE_OFFLINE vest_id=1 node_id=%d state=OFFLINE last_seen_age_s=780 t_ms=%d" % (n, first_off + 341 + i * spread))
+    p, _ = pls(900000000, alert_runs, on=alert_on); L += p
+    if cleanup:
+        L += ["STEP cleanup: fault wdt returns the hub to a normal start", boot_line(367, 6), fault_line("WDT_RESET", 367)]
+    return "\n".join(L)
+
+
+class Tc30d(unittest.TestCase):
+    def test_pass(self):
+        v, msg = m.analyze_tc30d(tc30d_log())
+        self.assertEqual(v, "PASS", msg)
+
+    def test_offline_window(self):
+        self.assertEqual(m.analyze_tc30d(tc30d_log(first_off=779900))[0], "FAIL")
+        self.assertEqual(m.analyze_tc30d(tc30d_log(first_off=785100))[0], "FAIL")
+        self.assertEqual(m.analyze_tc30d(tc30d_log(first_off=780000))[0], "PASS")
+        self.assertEqual(m.analyze_tc30d(tc30d_log(first_off=780500, spread=1000))[0], "PASS")      # last node at 784.5 s
+        self.assertEqual(m.analyze_tc30d(tc30d_log(first_off=780500, spread=1300))[0], "FAIL")     # last node at 785.7 s
+
+    def test_all_five_nodes_needed(self):
+        self.assertEqual(m.analyze_tc30d(tc30d_log(nodes=(1, 2, 3, 4)))[0], "FAIL")
+
+    def test_wrong_code_or_enabled_accept_fails(self):
+        self.assertEqual(m.analyze_tc30d(tc30d_log(fault="NO_KEY"))[0], "FAIL")
+        self.assertEqual(m.analyze_tc30d(tc30d_log(accept="1"))[0], "FAIL")
+        self.assertEqual(m.analyze_tc30d(tc30d_log(reg="1"))[0], "FAIL")
+
+    def test_an_accepted_packet_fails(self):
+        self.assertEqual(m.analyze_tc30d(tc30d_log(acc_after=True))[0], "FAIL")
+
+    def test_motor_before_offline_or_wrong_pattern_fails(self):
+        self.assertEqual(m.analyze_tc30d(tc30d_log(early_motor=True))[0], "FAIL")
+        self.assertEqual(m.analyze_tc30d(tc30d_log(alert_runs=3))[0], "FAIL")
+        self.assertEqual(m.analyze_tc30d(tc30d_log(alert_on=100000))[0], "FAIL")
+
+    def test_cleanup_is_ignored(self):
+        self.assertEqual(m.analyze_tc30d(tc30d_log(cleanup=False))[0], "PASS")
+
+
+class Tc30Dispatch(unittest.TestCase):
+    def test_analyze_text_dispatch(self):
+        self.assertEqual(m.analyze_text(tc30a_log() + "\nPARAM case=tc30a")[0], "PASS")
+        self.assertEqual(m.analyze_text(tc30b_log())[0], "PASS")
+        self.assertEqual(m.analyze_text(tc30c_log())[0], "PASS")
+        self.assertEqual(m.analyze_text(tc30d_log())[0], "PASS")
+
+
 if __name__ == "__main__":
     unittest.main()

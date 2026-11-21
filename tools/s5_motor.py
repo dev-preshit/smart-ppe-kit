@@ -15,6 +15,11 @@ on the marker pin (hub hook `pulse`); the measured error is reported in the log.
   python tools/s5_motor.py tc29c --tc TC-29c --hub COM3 --rec COM8    # step 5: OFFLINE trigger (about 13 min at the defaults)
   python tools/s5_motor.py result --tc TC-29a --result PASS --note "..."   # only after a PASS verdict
 
+  python tools/s5_motor.py tc30a --tc TC-30a --hub COM3 --rec COM8    # nvs-write and guard faults while the alert runs (about 45 s)
+  python tools/s5_motor.py tc30b --tc TC-30b --hub COM3 --rec COM8    # reboot faults: wdt, nvs-read, scan stall (about 3 min)
+  python tools/s5_motor.py tc30c --tc TC-30c --hub COM3 --rec COM8    # missing key: NO_KEY, KEY_FAULT pattern (about 13.5 min at the defaults)
+  python tools/s5_motor.py tc30d --tc TC-30d --hub COM3 --rec COM8    # unreadable registry: REGISTRY, OFFLINE, alert (about 13.5 min)
+
 Wiring for the calibration: recorder GPIO 3 <- hub GPIO 6, recorder GND <- hub GND (nothing else on GPIO 6).
 Wiring for TC-29: recorder GPIO 4 <- hub GPIO 5 (the node BEFORE the base resistor), recorder GPIO 3 <- hub GPIO 6 (marker), GND common.
 Timing is measured from the accepted packet (hub marker pin, hub hook `marker on`) to the motor pin: alternative equipment, the
@@ -258,6 +263,236 @@ def analyze_tc29c(text, node, ctr, timeout_s):
     return "PASS", msg
 
 
+# ---------------- TC-30: hub fault handling ------------------------------------------------------------------
+RE_FAULT = re.compile(bench.PFX + r"MSG msg_type=HUB_FAULT vest_id=\d+ code=(\w+) t_ms=(\d+)")
+RE_FHOOK = re.compile(bench.PFX + r"PPE_HOOK (?:fault ([a-z-]+)|(stall) \d+)\b.* t_ms=(\d+)")
+RE_DHUBF = re.compile(bench.PFX + r"DUMP hub vest=\S+ accept_enabled=(\d) registry_ok=(\d) vest_state=\w+ alert_active=(\d)")
+RE_MOTORL = re.compile(bench.PFX + r"MOTOR pin=\d+ state=(\w+) out=\d alert=(\d) key_fault=(\d)")
+ON_MAX_US = 400000
+KEY_ON, KEY_OFF, KEY_LOW3, KEY_TOL, KEY_LOW_TOL = 100000, 100000, 1800000, 20000, 100000
+
+
+def cut_cleanup(text):
+    out = []
+    for l in text.splitlines():
+        if "STEP cleanup" in l:
+            break
+        out.append(l)
+    return "\n".join(out)
+
+
+def faults_in(text):
+    return [dict(idx=i, code=m.group(1), t=int(m.group(2))) for i, l in enumerate(text.splitlines()) for m in [RE_FAULT.match(l.rstrip("\r"))] if m]
+
+
+def fault_hooks(text):
+    out = []
+    for i, l in enumerate(text.splitlines()):
+        m = RE_FHOOK.match(l.rstrip("\r"))
+        if m:
+            out.append(dict(idx=i, kind=m.group(1) or "stall", t=int(m.group(3))))
+    return out
+
+
+def on_runs(me):
+    """ON runs of the motor channel: dict(idx of the rise, t of the rise, duration in us)."""
+    return [dict(idx=a["idx"], fall_idx=b["idx"], t=a["t"], dur=wrap(b["t"], a["t"])) for a, b in zip(me, me[1:]) if a["lvl"] == 1 and b["lvl"] == 0]
+
+
+def alert_runs_ok(runs):
+    return all(abs(r["dur"] - ON_NOM) <= PATTERN_TOL for r in runs)
+
+
+def analyze_tc30a(text):
+    """fault nvs-write and fault guard while the alert runs: the right HUB_FAULT codes, no ON above 400 ms, the guard cut at about
+    395 ms, the pattern resumes."""
+    if noisy(text):
+        return "BLOCKED", noise_msg(noisy(text))
+    hooks = {h["kind"]: h for h in fault_hooks(text)}
+    if "nvs-write" not in hooks or "guard" not in hooks:
+        return "BLOCKED", "the fault hooks were not accepted (flash the S5 part 2e build)"
+    fl = faults_in(text)
+    nw = [f for f in fl if f["code"] == "NVS_WRITE" and f["idx"] > hooks["nvs-write"]["idx"]]
+    gd = [f for f in fl if f["code"] == "GUARD" and f["idx"] > hooks["guard"]["idx"]]
+    if not nw or wrap(nw[0]["t"], hooks["nvs-write"]["t"]) > 3000:
+        return "FAIL", "no HUB_FAULT NVS_WRITE within 3 s of the nvs-write fault"
+    if not gd or wrap(gd[0]["t"], hooks["guard"]["t"]) > 4000:
+        return "FAIL", "no HUB_FAULT GUARD within 4 s of the guard fault"
+    runs = on_runs(motor_edges(text))
+    if not runs:
+        return "BLOCKED", "no motor activity: the alert was not running during the faults"
+    longest = max(r["dur"] for r in runs)
+    msg = "%d ON runs, longest %.1f ms; NVS_WRITE %d ms and GUARD %d ms after their hooks" % (
+        len(runs), longest / 1000.0, wrap(nw[0]["t"], hooks["nvs-write"]["t"]), wrap(gd[0]["t"], hooks["guard"]["t"]))
+    if longest > ON_MAX_US:
+        return "FAIL", msg + "; an ON run is longer than 400 ms"
+    cut = [r for r in runs if r["dur"] > ON_NOM + PATTERN_TOL]
+    if len(cut) != 1 or not (380000 <= cut[0]["dur"] <= ON_MAX_US) or cut[0]["fall_idx"] < hooks["guard"]["idx"]:
+        # the fault arms as soon as the motor is ON, so the cut run may have started before the hook line: it must END after it
+        return "FAIL", msg + "; expected exactly one guard-cut ON run of 380..400 ms ending after the guard fault (found %d long runs)" % len(cut)
+    normal = [r for r in runs if r is not cut[0]]
+    if not alert_runs_ok(normal):
+        return "FAIL", msg + "; an ON run outside 300 +/- 30 ms"
+    if sum(1 for r in normal if r["idx"] < cut[0]["idx"]) < 3 or sum(1 for r in normal if r["idx"] > cut[0]["idx"]) < 3:
+        return "FAIL", msg + "; the pattern did not run before and resume after the guard cut (3 normal runs each side)"
+    return "PASS", msg + "; guard cut %.1f ms, pattern resumed" % (cut[0]["dur"] / 1000.0)
+
+
+RESET_FAULT = {"wdt": "WDT_RESET", "nvs-read": "NVS_READ", "stall": "SCAN_STALL"}
+
+
+def analyze_tc30b(text):
+    """Reboot faults (wdt, nvs-read, scan stall) with the alert running: HUB_BOOT, then the right HUB_FAULT code; no ON above 400 ms;
+    the motor stays quiet after every reboot until the alert is armed again."""
+    p = bench.params(text)
+    kinds = [k for k in p.get("faults", "").split(",") if k]
+    if not kinds:
+        return "BLOCKED", "no PARAM faults= line"
+    if noisy(text):
+        return "BLOCKED", noise_msg(noisy(text))
+    lines = text.splitlines()
+    hooks = [h for h in fault_hooks(text) if h["kind"] in RESET_FAULT]
+    if len(hooks) != len(kinds):
+        return "BLOCKED", "%d fault hooks in the log, %d expected" % (len(hooks), len(kinds))
+    boots = [e for e in bench.events(text) if e["kind"] == "boot"]
+    fl = faults_in(text)
+    rearm = [i for i, l in enumerate(lines) if "STEP rearm" in l]
+    me = motor_edges(text)
+    runs = on_runs(me)
+    longest = max([r["dur"] for r in runs] or [0])
+    parts = []
+    for k, h in enumerate(hooks):
+        nxt = hooks[k + 1]["idx"] if k + 1 < len(hooks) else len(lines)
+        b = [e for e in boots if h["idx"] < e["idx"] < nxt]
+        if not b:
+            return "FAIL", "no HUB_BOOT after the %s fault: the hub did not reboot" % h["kind"]
+        want = RESET_FAULT[h["kind"]]
+        f = [x for x in fl if b[0]["idx"] < x["idx"] < nxt]
+        if not f or f[0]["code"] != want:
+            return "FAIL", "after the %s fault HUB_BOOT was followed by %s, expected %s" % (h["kind"], f[0]["code"] if f else "no HUB_FAULT", want)
+        r = [i for i in rearm if b[0]["idx"] < i < nxt]
+        if not r:
+            return "BLOCKED", "no re-arm note after the %s reboot (driver problem)" % h["kind"]
+        stray = [e for e in me if e["lvl"] == 1 and b[0]["idx"] < e["idx"] < r[0]]
+        if stray:
+            return "FAIL", "the motor switched on after the %s reboot before the alert was armed again" % h["kind"]
+        parts.append("%s -> HUB_BOOT then %s" % (h["kind"], want))
+    msg = "; ".join(parts) + "; longest ON %.1f ms" % (longest / 1000.0)
+    if not runs:
+        return "BLOCKED", "no motor activity: the alert was not running before the faults"
+    if longest > ON_MAX_US:
+        return "FAIL", msg + " (an ON run is longer than 400 ms)"
+    return "PASS", msg
+
+
+def key_pattern(me):
+    """(ok, message) for the KEY_FAULT pattern in the given edges: ON 100 +/- 20, OFF 100 +/- 20 (x3), low after the third ON 1800 +/- 100."""
+    runs = on_runs(me)
+    if len(runs) < 15:
+        return False, "only %d pulses recorded (need 5 periods = 15)" % len(runs)
+    bad = [r for r in runs if abs(r["dur"] - KEY_ON) > KEY_TOL]
+    if bad:
+        return False, "a KEY_FAULT pulse is %.1f ms (limit 100 +/- 20)" % (bad[0]["dur"] / 1000.0)
+    offs = []
+    rises = [r["t"] for r in runs]
+    for i in range(len(runs) - 1):
+        offs.append(wrap(rises[i + 1], rises[i]) - runs[i]["dur"])
+    worst = ""
+    for i, o in enumerate(offs):
+        if i % 3 == 2:
+            if abs(o - KEY_LOW3) > KEY_LOW_TOL:
+                return False, "the low time after pulse %d is %.1f ms (limit 1800 +/- 100)" % (i + 1, o / 1000.0)
+        elif abs(o - KEY_OFF) > KEY_TOL:
+            return False, "an OFF between pulses is %.1f ms (limit 100 +/- 20)" % (o / 1000.0)
+    lows = [o for i, o in enumerate(offs) if i % 3 == 2]
+    ons_in = [o for i, o in enumerate(offs) if i % 3 != 2]
+    return True, "%d pulses: ON %.1f..%.1f ms, OFF %.1f..%.1f ms, low after the third ON %.1f..%.1f ms" % (
+        len(runs), min(r["dur"] for r in runs) / 1000.0, max(r["dur"] for r in runs) / 1000.0, min(ons_in) / 1000.0, max(ons_in) / 1000.0,
+        min(lows) / 1000.0, max(lows) / 1000.0)
+
+
+def analyze_tc30c(text):
+    """Missing key: HUB_FAULT NO_KEY within 2 s of boot, the KEY_FAULT pattern, never the alert pattern, also after the nodes went OFFLINE."""
+    text = cut_cleanup(text)
+    if noisy(text):
+        return "BLOCKED", noise_msg(noisy(text))
+    hooks = [h for h in fault_hooks(text) if h["kind"] == "key"]
+    boots = [e for e in bench.events(text) if e["kind"] == "boot"]
+    if not hooks or not boots:
+        return "BLOCKED", "no fault key hook or no HUB_BOOT in the log"
+    b = [e for e in boots if e["idx"] > hooks[0]["idx"]]
+    if not b:
+        return "FAIL", "the hub did not reboot after fault key"
+    f = [x for x in faults_in(text) if x["idx"] > b[0]["idx"]]
+    if not f or f[0]["code"] != "NO_KEY":
+        return "FAIL", "after fault key HUB_BOOT was followed by %s, expected NO_KEY" % (f[0]["code"] if f else "no HUB_FAULT")
+    if f[0]["t"] > 2000:
+        return "FAIL", "NO_KEY came %d ms after boot (limit 2000 ms)" % f[0]["t"]
+    me = [e for e in motor_edges(text) if e["idx"] > b[0]["idx"]]
+    off = [e for e in bench.events(text) if e["kind"] == "off" and e["idx"] > b[0]["idx"]]
+    if not off:
+        return "BLOCKED", "the nodes never went OFFLINE during the observation (too short)"
+    ok, pat = key_pattern([e for e in me if e["idx"] < off[0]["idx"]])
+    if not ok:
+        return "FAIL", "NO_KEY after %d ms; " % f[0]["t"] + pat
+    after_off = on_runs([e for e in me if e["idx"] > off[0]["idx"]])
+    if len(after_off) < 3:
+        return "BLOCKED", "fewer than 3 pulses recorded after the nodes went OFFLINE"
+    if any(abs(r["dur"] - KEY_ON) > KEY_TOL for r in on_runs(me)):
+        return "FAIL", "NO_KEY after %d ms; a pulse is not 100 +/- 20 ms: the alert pattern ran while the key fault was active" % f[0]["t"]
+    lines = text.splitlines()
+    dumps = [RE_DHUBF.match(l.rstrip("\r")) for l in lines]
+    dumps = [m for m in dumps if m]
+    if not dumps or dumps[-1].group(3) != "1" or dumps[-1].group(1) != "0":
+        return "FAIL", "the final dump does not show accept_enabled=0 and alert_active=1 (the alert decision must stay true while KEY_FAULT owns the motor)"
+    mot = [m for m in (RE_MOTORL.match(l.rstrip("\r")) for l in lines) if m]
+    if not mot or mot[-1].group(3) != "1":
+        return "FAIL", "the final MOTOR line does not show key_fault=1"
+    return "PASS", "NO_KEY %d ms after boot; %s; %d more pulses after the nodes went OFFLINE, all 100 ms (never the alert pattern)" % (f[0]["t"], pat, len(after_off))
+
+
+def analyze_tc30d(text):
+    """Unreadable registry: HUB_FAULT REGISTRY, accept disabled, every node OFFLINE 780..785 s after boot, the alert pattern runs."""
+    text = cut_cleanup(text)
+    if noisy(text):
+        return "BLOCKED", noise_msg(noisy(text))
+    p = bench.params(text)
+    timeout_s = int(p.get("timeout_s", "780"))
+    hooks = [h for h in fault_hooks(text) if h["kind"] == "registry"]
+    boots = [e for e in bench.events(text) if e["kind"] == "boot"]
+    if not hooks or not boots:
+        return "BLOCKED", "no fault registry hook or no HUB_BOOT in the log"
+    b = [e for e in boots if e["idx"] > hooks[0]["idx"]]
+    if not b:
+        return "FAIL", "the hub did not reboot after fault registry"
+    f = [x for x in faults_in(text) if x["idx"] > b[0]["idx"]]
+    if not f or f[0]["code"] != "REGISTRY":
+        return "FAIL", "after fault registry HUB_BOOT was followed by %s, expected REGISTRY" % (f[0]["code"] if f else "no HUB_FAULT")
+    lines = text.splitlines()
+    dumps = [m for m in (RE_DHUBF.match(l.rstrip("\r")) for i, l in enumerate(lines) if i > b[0]["idx"]) if m]
+    if not dumps or dumps[0].group(1) != "0" or dumps[0].group(2) != "0":
+        return "FAIL", "the dump after boot does not show accept_enabled=0 and registry_ok=0"
+    if any(e["kind"] == "acc" and e["idx"] > b[0]["idx"] for e in bench.events(text)):
+        return "FAIL", "a packet was accepted although the registry is unreadable"
+    off = [e for e in bench.events(text) if e["kind"] == "off" and e["idx"] > b[0]["idx"]]
+    nodes = {e["node"]: e for e in off}
+    if sorted(nodes) != [1, 2, 3, 4, 5]:
+        return "FAIL", "only nodes %s went OFFLINE" % sorted(nodes)
+    lo, hi = timeout_s * 1000 - 50, timeout_s * 1000 + 5000
+    late = [n for n, e in sorted(nodes.items()) if not (lo <= wrap(e["t"], b[0]["t"]) <= hi)]
+    if late:
+        return "FAIL", "node %s was not OFFLINE %d..%d s after boot (boot t_ms %d, first OFFLINE %d)" % (late[0], timeout_s, timeout_s + 5, b[0]["t"], min(e["t"] for e in off))
+    me = [e for e in motor_edges(text) if e["idx"] > b[0]["idx"]]
+    first_off_idx = min(e["idx"] for e in off)
+    if [e for e in me if e["lvl"] == 1 and e["idx"] < first_off_idx]:
+        return "FAIL", "the motor switched on before any node was OFFLINE"
+    runs = on_runs([e for e in me if e["idx"] > first_off_idx - 1])
+    if len(runs) < 5 or not alert_runs_ok(runs):
+        return "FAIL", "after OFFLINE the motor shows %d ON runs, expected the alert pattern (>= 5 runs of 300 +/- 30 ms)" % len(runs)
+    return "PASS", "REGISTRY reported, accept disabled, all 5 nodes OFFLINE %.3f..%.3f s after boot, %d alert pattern runs after it" % (
+        min(wrap(e["t"], b[0]["t"]) for e in off) / 1000.0, max(wrap(e["t"], b[0]["t"]) for e in off) / 1000.0, len(runs))
+
+
 def analyze_text(text):
     p = bench.params(text)
     if p.get("case") == "cal":
@@ -268,6 +503,14 @@ def analyze_text(text):
         return analyze_tc29b(text)
     if p.get("case") == "tc29c":
         return analyze_tc29c(text, int(p["node"]), int(p["ctr"]), int(p["timeout_s"]))
+    if p.get("case") == "tc30a":
+        return analyze_tc30a(text)
+    if p.get("case") == "tc30b":
+        return analyze_tc30b(text)
+    if p.get("case") == "tc30c":
+        return analyze_tc30c(text)
+    if p.get("case") == "tc30d":
+        return analyze_tc30d(text)
     return "BLOCKED", "no PARAM line in the log: not a run of this driver"
 
 
@@ -467,7 +710,7 @@ def run_tc29c(a):
 def analyze_any(text):
     """Result recording re-checks the log with the analyzer that belongs to it (motor cases here, node cases in s5_bench)."""
     case = bench.params(text).get("case", "")
-    return analyze_text(text) if case == "cal" or case.startswith("tc29") else bench.analyze_text(text)
+    return analyze_text(text) if case == "cal" or case.startswith(("tc29", "tc30")) else bench.analyze_text(text)
 
 
 def cmd_result(a):
@@ -477,6 +720,147 @@ def cmd_result(a):
         return bench.cmd_result(a)
     finally:
         bench.analyze_text = orig
+
+
+def arm_alert(cap):
+    """Every node WORN, then node 2 NOT_WORN: the alert pattern runs. Counters come from a fresh dump."""
+    d = bench.get_dump(cap)
+    base = max(n["last_counter"] for n in d["nodes"].values()) + 100 if d else 100000
+    prime(cap, base)
+    time.sleep(1.5)
+    send_pkt(cap, 2, base + 20, 0)
+    time.sleep(2.0)
+    return base
+
+
+def clear_alert(cap, base):
+    send_pkt(cap, 2, base + 21, 1)
+    time.sleep(1.5)
+
+
+def verdict_cleanup(cap, rec, path, a, sha0, v, msg, cleanup=True):
+    if cleanup:
+        cap.note("STEP cleanup: fault wdt returns the hub to a normal start")
+        m = bench.mark(cap)
+        cap.send("fault wdt")
+        bench.wait_line(cap, r"MSG msg_type=HUB_BOOT", m, 40)
+        time.sleep(1.0)
+    return finish_run(cap, rec, path, a, sha0, v, msg)
+
+
+def run_tc30a(a):
+    cap, rec, path, sha0, err = setup_run(a, ["case=tc30a"])
+    if err:
+        return bench.finish(cap, path, a, sha0, "BLOCKED", err)
+    cap.note("EXPECT HUB_FAULT NVS_WRITE and GUARD with the alert running; no ON above 400 ms; the guard cuts one ON run at about 395 ms; the pattern resumes")
+    cap.note("PARAM case=tc30a")
+    rec.send("RESET"); rec.wait_for(lambda l: l.strip() == "READY", 3)
+    base = arm_alert(cap)
+    sleep_note(cap, 4.0, "alert pattern running")
+    cap.send("fault nvs-write")
+    sleep_note(cap, 4.0, "after fault nvs-write")
+    cap.send("fault guard")
+    sleep_note(cap, 8.0, "after fault guard")
+    clear_alert(cap, base)
+    rec.send("STAT"); time.sleep(0.5)
+    time.sleep(0.5)
+    v, msg = analyze_tc30a(bench.cap_text(path))
+    return finish_run(cap, rec, path, a, sha0, v, msg)
+
+
+def run_tc30b(a):
+    kinds = [("wdt", "fault wdt"), ("nvs-read", "fault nvs-read"), ("stall", "stall 3")]
+    cap, rec, path, sha0, err = setup_run(a, ["case=tc30b"])
+    if err:
+        return bench.finish(cap, path, a, sha0, "BLOCKED", err)
+    cap.note("EXPECT after each reboot fault: HUB_BOOT then the right HUB_FAULT code; no ON above 400 ms; the motor quiet until the alert is armed again")
+    cap.note("PARAM case=tc30b faults=%s" % ",".join(k for k, _ in kinds))
+    rec.send("RESET"); rec.wait_for(lambda l: l.strip() == "READY", 3)
+    for i, (kind, cmd) in enumerate(kinds):
+        arm_alert(cap)
+        sleep_note(cap, 3.0, "alert pattern running before the %s fault" % kind)
+        m = bench.mark(cap)
+        cap.send(cmd)
+        line, pos = bench.wait_line(cap, r"MSG msg_type=HUB_BOOT", m, 100)
+        if line is None:
+            return finish_run(cap, rec, path, a, sha0, "FAIL", "no HUB_BOOT within 100 s after the %s fault" % kind)
+        bench.wait_line(cap, r"MSG msg_type=HUB_FAULT", pos, 6)
+        sleep_note(cap, 4.0, "motor must stay quiet after the %s reboot" % kind)
+        cap.note("STEP rearm %d" % (i + 1))
+    time.sleep(0.5)
+    v, msg = analyze_tc30b(bench.cap_text(path))
+    return finish_run(cap, rec, path, a, sha0, v, msg)
+
+
+def after_fault_boot(a, cap, rec, path, sha0, cmd, hb, margin):
+    m = bench.mark(cap)
+    cap.send(cmd)
+    line, pos = bench.wait_line(cap, r"MSG msg_type=HUB_BOOT", m, 40)
+    if line is None:
+        return None, "no HUB_BOOT within 40 s after %s" % cmd
+    time.sleep(3.0)
+    if a.rehearsal and (hb or margin is not None):
+        if not bench.configure(cap, hb or 360, margin if margin is not None else 60):
+            return None, "rehearsal: could not set heartbeat/margin"
+    return pos, None
+
+
+def run_tc30c(a):
+    hb, margin = 360, 60
+    if a.rehearsal:
+        hb = a.heartbeat or hb
+        margin = a.margin if a.margin is not None else margin
+    timeout_s = 2 * hb + margin
+    cap, rec, path, sha0, err = setup_run(a, ["case=tc30c timeout_s=%d" % timeout_s])
+    if err:
+        return bench.finish(cap, path, a, sha0, "BLOCKED", err)
+    cap.note("EXPECT NO_KEY within 2 s of boot, KEY_FAULT pattern (ON 100, OFF 100 x3, low 1800 after the third ON), never the alert pattern, also after the nodes went OFFLINE")
+    cap.note("PARAM case=tc30c timeout_s=%d" % timeout_s)
+    rec.send("RESET"); rec.wait_for(lambda l: l.strip() == "READY", 3)
+    pos, err = after_fault_boot(a, cap, rec, path, sha0, "fault key", hb if a.rehearsal else 0, margin if a.rehearsal else None)
+    if err:
+        return finish_run(cap, rec, path, a, sha0, "BLOCKED", err)
+    t0 = time.monotonic()
+    off = None
+    while time.monotonic() < t0 + timeout_s + 60 and off is None:
+        off, _ = bench.wait_line(cap, r"MSG msg_type=NODE_OFFLINE", pos, 1.0)
+        print("  after boot +%.0f s" % (time.monotonic() - t0), end="\r")
+    sleep_note(cap, 10.0, "pulses after the nodes went OFFLINE")
+    cap.send("dump"); time.sleep(1.5)
+    cap.send("motor"); time.sleep(1.0)
+    time.sleep(0.5)
+    v, msg = analyze_tc30c(bench.cap_text(path))
+    return verdict_cleanup(cap, rec, path, a, sha0, v, msg)
+
+
+def run_tc30d(a):
+    hb, margin = 360, 60
+    if a.rehearsal:
+        hb = a.heartbeat or hb
+        margin = a.margin if a.margin is not None else margin
+    timeout_s = 2 * hb + margin
+    cap, rec, path, sha0, err = setup_run(a, ["case=tc30d timeout_s=%d" % timeout_s])
+    if err:
+        return bench.finish(cap, path, a, sha0, "BLOCKED", err)
+    cap.note("EXPECT REGISTRY reported, accept disabled, all nodes OFFLINE %d..%d s after boot, the alert pattern runs" % (timeout_s, timeout_s + 5))
+    cap.note("PARAM case=tc30d timeout_s=%d" % timeout_s)
+    rec.send("RESET"); rec.wait_for(lambda l: l.strip() == "READY", 3)
+    pos, err = after_fault_boot(a, cap, rec, path, sha0, "fault registry", hb if a.rehearsal else 0, margin if a.rehearsal else None)
+    if err:
+        return finish_run(cap, rec, path, a, sha0, "BLOCKED", err)
+    cap.send("dump"); time.sleep(1.5)
+    send_pkt(cap, 3, 5, 1)                          # a valid packet: it must not be accepted
+    time.sleep(1.5)
+    t0 = time.monotonic()
+    off = None
+    while time.monotonic() < t0 + timeout_s + 60 and off is None:
+        off, _ = bench.wait_line(cap, r"MSG msg_type=NODE_OFFLINE .* node_id=5 ", pos, 1.0)
+        print("  after boot +%.0f s" % (time.monotonic() - t0), end="\r")
+    sleep_note(cap, 9.0, "alert pattern after OFFLINE")
+    cap.send("motor"); time.sleep(1.0)
+    time.sleep(0.5)
+    v, msg = analyze_tc30d(bench.cap_text(path))
+    return verdict_cleanup(cap, rec, path, a, sha0, v, msg)
 
 
 def cmd_analyze(a):
@@ -493,7 +877,8 @@ def main(argv=None):
     p.add_argument("--rec", required=True)
     p.add_argument("--rehearsal", action="store_true")
     p.set_defaults(fn=run_cal)
-    for name, fn in (("tc29a", run_tc29a), ("tc29b", run_tc29b), ("tc29c", run_tc29c)):
+    for name, fn in (("tc29a", run_tc29a), ("tc29b", run_tc29b), ("tc29c", run_tc29c), ("tc30a", run_tc30a), ("tc30b", run_tc30b),
+                     ("tc30c", run_tc30c), ("tc30d", run_tc30d)):
         p = sub.add_parser(name)
         p.add_argument("--tc", required=True)
         p.add_argument("--hub", required=True)
