@@ -336,6 +336,22 @@ def send_node(holder, cmd, cap, stalled, limit=20.0):
             time.sleep(0.3)
 
 
+def wait_port_stable(holder, limit, stable=1.5):
+    """Waits until the node's port has been open for `stable` seconds in a row (a node that fell back to sleep is waited for again)."""
+    t_w = time.time()
+    since = None
+    while time.time() - t_w < limit:
+        if holder.get("ser") is not None:
+            if since is None:
+                since = time.time()
+            if time.time() - since >= stable:
+                return True
+        else:
+            since = None
+        time.sleep(0.05)
+    return False
+
+
 def wait_until(t_abs, stalled):
     while True:
         left = t_abs - time.time()
@@ -435,12 +451,10 @@ def cmd_capture(a):
         if a.node:                                          # the node under test: its lines go into the same log as NODE ...
             threading.Thread(target=node_reader, args=(a.node, cap, stop, holder), daemon=True).start()
             if a.node_reset:                                # the node boots INSIDE the capture: its 25 s boot grace starts now
-                t_w = time.time()
                 if a.wake_wait > 5.0:                       # a node that sleeps without a timer has no USB port: the button wakes it
-                    print("\a>>> Is the node asleep? TAP THE BUTTON ONCE to wake it (waiting up to %d s for its USB port)" % a.wake_wait)
+                    print("\a>>> PRESS AND HOLD THE BUTTON NOW and keep it pressed (waiting up to %d s for the node to stay awake)" % a.wake_wait)
                     sys.stdout.flush()
-                while holder["ser"] is None and time.time() - t_w < a.wake_wait:
-                    time.sleep(0.1)
+                wait_port_stable(holder, a.wake_wait)         # the reset is only sent to a node that has stayed awake
                 try:
                     holder["ser"].dtr = False; holder["ser"].rts = True; time.sleep(0.15); holder["ser"].rts = False
                     cap.note("NODE RESET by RTS pulse")
@@ -462,6 +476,8 @@ def cmd_capture(a):
                         fw_msg = "FIRMWARE MISMATCH: %s" % problem
                         cap.note(fw_msg)
                         stalled.set()
+                    elif a.wake_wait > 5.0:
+                        print("\a>>> Node reset and firmware verified. Keep the button PRESSED until a prompt tells you to release it."); sys.stdout.flush()
                 t0 = time.time()
             plan = [(a.node_after + i * a.node_gap, c) for i, c in enumerate(a.node_send)]
             if a.node_plan:

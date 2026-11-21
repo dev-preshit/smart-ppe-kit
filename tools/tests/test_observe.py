@@ -269,4 +269,16 @@ class T(unittest.TestCase):
         d = tempfile.mkdtemp(); f = os.path.join(d, "p.txt")
         open(f, "w").write("40 adc " + "5" * 60 + "\n")
         with self.assertRaises(SystemExit): observe.load_plan(f)
+    # ---- the reset is only sent to a node that has stayed awake
+    def test_wait_port_stable_needs_the_port_open_for_the_whole_time(self):
+        import threading, time
+        h = {"ser": None}
+        def flip():
+            time.sleep(0.2); h["ser"] = object()
+            time.sleep(0.15); h["ser"] = None          # the node fell back to sleep before it was stable
+            time.sleep(0.3); h["ser"] = object()      # and woke again
+        threading.Thread(target=flip, daemon=True).start()
+        t = time.time(); self.assertTrue(observe.wait_port_stable(h, 5.0, stable=0.5)); self.assertTrue(time.time() - t >= 0.9)
+    def test_wait_port_stable_gives_up_when_the_port_never_stays(self):
+        self.assertFalse(observe.wait_port_stable({"ser": None}, 0.3, stable=0.1))
 if __name__ == "__main__": unittest.main()
