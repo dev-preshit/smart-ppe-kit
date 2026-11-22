@@ -16,9 +16,31 @@
 #endif
 #endif
 
+// Firmware identity (RULES 4): tools/s5_build.py passes the git tree hashes of firmware/hub and common at HEAD and a
+// dirty flag. Printed at boot and before every dump, so a driver can check the flashed firmware without a reset.
+#ifndef PPE_FW_HUB
+#define PPE_FW_HUB 0u
+#endif
+#ifndef PPE_FW_COMMON
+#define PPE_FW_COMMON 0u
+#endif
+#ifndef PPE_FW_DIRTY
+#define PPE_FW_DIRTY 1
+#endif
+
 static HubNvsStore g_store;
 static bool g_running = false;
 static uint32_t g_last_refuse_print = 0;
+
+static void print_fw() {
+#ifdef PPE_TEST_HOOKS
+  const int hooks = 1;
+#else
+  const int hooks = 0;
+#endif
+  Serial.printf("FW hub=%08lx common=%08lx dirty=%d hooks=%d\n", (unsigned long)PPE_FW_HUB, (unsigned long)PPE_FW_COMMON,
+                (int)PPE_FW_DIRTY, hooks);
+}
 
 void setup() {
   hub_motor_early_init();            // B-01: the motor pin goes LOW before anything else can take time
@@ -27,6 +49,7 @@ void setup() {
   while (!Serial && millis() - t0 < 3000) delay(10);
   delay(300);
   Serial.println("\nHUB boot (S3 receive path)");
+  print_fw();
 
   uint8_t vest = 0;
   const uint8_t* key = nullptr;
@@ -80,7 +103,7 @@ static void run_hook(const char* line) {
       Serial.printf("PPE_HOOK inject len=%u %s\n", c.len, hub_hook_inject(c.data, c.len) ? "queued" : "REFUSED(queue full)");
       break;
     case HUB_HOOK_STALL: hub_hook_stall(c.n); break;
-    case HUB_HOOK_DUMP: hub_hook_dump(); break;
+    case HUB_HOOK_DUMP: print_fw(); hub_hook_dump(); break;
     case HUB_HOOK_TIME_NOW: hub_hook_time_now(); break;
     case HUB_HOOK_TIME_ON: hub_hook_set_time(true); break;
     case HUB_HOOK_TIME_OFF: hub_hook_set_time(false); break;

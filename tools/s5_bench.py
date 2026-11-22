@@ -265,6 +265,63 @@ def die(msg):
     sys.exit(2)
 
 
+FWLINE = re.compile(r"FW hub=([0-9a-f]{8}) common=([0-9a-f]{8}) dirty=(\d) hooks=(\d)")
+
+
+def parse_fw(text):
+    """(hub, common, dirty, hooks) from the last FW line in the text, or None."""
+    m = None
+    for m in FWLINE.finditer(text):
+        pass
+    return (int(m.group(1), 16), int(m.group(2), 16), int(m.group(3)), int(m.group(4))) if m else None
+
+
+def fw_problem(found, expected):
+    """None when the hub's FW line names the firmware of HEAD (RULES section 4), else the reason."""
+    if found is None:
+        return "the hub sent no FW line (old firmware without the identity: flash with tools/s5_build.py)"
+    if expected[2]:
+        return "firmware/hub or common has uncommitted changes: the flashed firmware cannot be matched to HEAD"
+    if found[2]:
+        return "the flashed firmware was built from a dirty tree"
+    if found[3] != 1:
+        return "the flashed firmware is a release build (hooks=0)"
+    if found[:2] != expected[:2]:
+        return "the hub runs hub=%08x common=%08x, HEAD is hub=%08x common=%08x" % (found[0], found[1], expected[0], expected[1])
+    return None
+
+
+def fw_query(port, timeout_s=4.0, serial_factory=None):
+    """Ask the hub for its FW line through 'dump' (port opened with DTR and RTS low: no reset). Text read, or ''."""
+    if serial_factory:
+        ser = serial_factory(port)
+    else:
+        import serial  # pyserial
+        ser = serial.Serial(); ser.port = port; ser.baudrate = 115200; ser.timeout = 0.1
+        ser.dtr = False; ser.rts = False; ser.open()
+    buf = b""
+    try:
+        time.sleep(0.3)
+        ser.write(b"dump\n")
+        end = time.time() + timeout_s
+        while time.time() < end and b"DUMP end" not in buf:
+            buf += ser.read(512)
+    finally:
+        ser.close()
+    return buf.decode("utf-8", errors="replace")
+
+
+def fw_check(port):
+    """Header line for a run whose hub firmware is the one of HEAD; stops the driver otherwise."""
+    import s5_build
+    expected = s5_build.fw_identity()
+    prob = fw_problem(parse_fw(fw_query(port)), expected)
+    if prob:
+        die("firmware identity: %s. Nothing was logged." % prob)
+    print("firmware identity ok: %s" % s5_build.fmt(expected))
+    return "fw_check=ok hub=%08x common=%08x" % expected[:2]
+
+
 def open_run(a, extra):
     sprint = "scratch" if a.rehearsal else SPRINT
     path = logger.log_path(a.tc, sprint=sprint)
@@ -272,7 +329,8 @@ def open_run(a, extra):
         die("%s already exists: a log is one run, the driver never appends (move a failed setup to test_logs/invalid/)" % path)
     if not a.rehearsal and tree_dirty():
         die("tracked files are modified: commit tool changes before an evidence run (HEAD sha names the log)")
-    header = [h for h in logger.header_lines(a.tc, False) if not h.startswith("tool=")] + ["tool=s5_bench.py (capture through tools/logger.py)", "mode=%s" % ("rehearsal" if a.rehearsal else "evidence"), EQUIPMENT] + extra
+    fw = fw_check(a.hub)                        # RULES section 4: before any log is opened
+    header = [h for h in logger.header_lines(a.tc, False) if not h.startswith("tool=")] + ["tool=s5_bench.py (capture through tools/logger.py)", "mode=%s" % ("rehearsal" if a.rehearsal else "evidence"), EQUIPMENT, fw] + extra
     cap = logger.Capture(a.hub, 115200, path, header)
     print("log:", path)
     time.sleep(0.5)
