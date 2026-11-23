@@ -5,7 +5,7 @@ Every device line is stored as   <PC ISO time> | <device line>.  The PC time onl
 checks use the node's own micros() inside MARK lines (A-01). Do not run two programs on one COM port: the
 contact/scenario driver (drive_contacts.py) imports this module and does the capture itself.
 
-  python tools/logger.py --port COM3 --tc TC-03 --seconds 60 [--waived] [--send show]
+  python tools/logger.py --port COM3 --tc TC-03 --seconds 60 [--waived] [--send show] [--sprint S4]
 """
 import argparse, csv, datetime, os, subprocess, sys, threading, time
 
@@ -105,7 +105,7 @@ def header_lines(tc, waived):
 
 
 def summary_path(sprint="S2", root=None):
-    """One summary file per story: test_logs/summary_s2.csv for S2, summary_s3.csv for S3 (owner rule, 2026-10-20)."""
+    """One summary file per story: summary_s2.csv for S2, summary_s4.csv for S4, summary_s5.csv for S5 (A-11). S1 and S3 rows stay in the shared summary.csv."""
     return os.path.join(root or os.path.join(REPO, "test_logs"), "summary_%s.csv" % sprint.lower())
 
 
@@ -126,9 +126,10 @@ def main():
     ap.add_argument("--port", required=True); ap.add_argument("--baud", type=int, default=115200)
     ap.add_argument("--tc", required=True); ap.add_argument("--seconds", type=float, default=60)
     ap.add_argument("--waived", action="store_true", help="write 'trials=5 waived' in the header")
+    ap.add_argument("--sprint", default="S2", help="story folder under test_logs (default S2)")
     ap.add_argument("--send", action="append", default=["show"], help="command sent after opening (repeatable)")
     a = ap.parse_args()
-    path = log_path(a.tc)
+    path = log_path(a.tc, a.sprint)
     cap = Capture(a.port, a.baud, path, header_lines(a.tc, a.waived))
     print("logging to", path)
     try:
