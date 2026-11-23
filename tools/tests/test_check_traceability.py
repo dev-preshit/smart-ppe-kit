@@ -34,4 +34,20 @@ class T(unittest.TestCase):
         rc, out = self.run_(self.mutated("plan", "- **Tools:** SC-03, SC-13, EQ-02, SC-02.", "- **Tool:** SC-03.")); self.assertEqual(rc, 1); self.assertIn("TC-12 missing Tools", out)
     def test_sprint_summary_requires_rows(self):
         d = tempfile.mkdtemp(); rc, out = self.run_(DOCS, "--sprint", "S1", "--test-logs", d); self.assertEqual(rc, 1); self.assertIn("summary.csv", out)
+    def _sprint_rows(self, sprint, tcs, fname):
+        d = tempfile.mkdtemp()
+        with open(os.path.join(d, fname), "w", newline="") as f:
+            f.write("TC,sprint,date,sha,result\n")
+            for t in tcs: f.write("%s,%s,2026-11-11,abc1234,PASS\n" % (t, sprint))
+        return d
+    S4_TCS = ["TC-01", "TC-07", "TC-08", "TC-09", "TC-10", "TC-11", "TC-13", "TC-14", "TC-15", "TC-17", "TC-75"]
+    def test_s4_reads_its_own_summary_file(self):
+        d = self._sprint_rows("S4", self.S4_TCS, "summary_s4.csv"); rc, out = self.run_(DOCS, "--sprint", "S4", "--test-logs", d); self.assertEqual(rc, 0, out)
+    def test_s4_missing_row_fails_and_names_its_file(self):
+        d = self._sprint_rows("S4", self.S4_TCS[:-1], "summary_s4.csv"); rc, out = self.run_(DOCS, "--sprint", "S4", "--test-logs", d); self.assertEqual(rc, 1); self.assertIn("summary_s4.csv has no S4 row for TC-75", out)
+    def test_s4_rows_in_the_shared_file_are_still_found_when_no_own_file_exists(self):
+        d = self._sprint_rows("S4", self.S4_TCS, "summary.csv"); rc, out = self.run_(DOCS, "--sprint", "S4", "--test-logs", d); self.assertEqual(rc, 0, out)
+    def test_own_file_wins_over_the_shared_file(self):
+        d = self._sprint_rows("S4", self.S4_TCS, "summary.csv"); open(os.path.join(d, "summary_s4.csv"), "w").write("TC,sprint,date,sha,result\n")
+        rc, out = self.run_(DOCS, "--sprint", "S4", "--test-logs", d); self.assertEqual(rc, 1); self.assertIn("summary_s4.csv has no S4 row for TC-01", out)
 if __name__ == "__main__": unittest.main()
