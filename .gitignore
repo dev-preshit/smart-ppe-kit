@@ -66,3 +66,5 @@ firmware/hub/wifi_secrets.h
 !test_logs/S2/*.log
 # S4 bench evidence is committed (A-11)
 !test_logs/S4/*.log
+# S5 bench evidence is committed (A-35, DECISIONS 2026-11-23 Q3)
+!test_logs/S5/*.log
