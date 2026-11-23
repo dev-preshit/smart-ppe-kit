@@ -1,0 +1,312 @@
+# tc=TC-30b
+# sha=5abeae2
+# date=2026-11-24T00:52:34.784
+# tool=s5_bench.py (capture through tools/logger.py)
+# mode=evidence
+# alternative equipment: no EQ-05 power switch and no skiptx; the spare ESP32-C3 running tools/injector acts as the node; the hub is reset with its RST button (decisions A-33, A-37)
+# fw_check=ok hub=272acb3e common=f27ca4fc
+# case=tc30b
+2026-11-24T00:52:35.806 | TX PING
+2026-11-24T00:52:35.844 | PONG
+2026-11-24T00:52:35.847 | EXPECT after each reboot fault: HUB_BOOT then the right HUB_FAULT code; no ON above 400 ms; the motor quiet until the alert is armed again
+2026-11-24T00:52:35.847 | PARAM case=tc30b faults=wdt,nvs-read,stall
+2026-11-24T00:52:35.847 | TX RESET
+2026-11-24T00:52:35.953 | READY
+2026-11-24T00:52:35.969 | TX dump
+2026-11-24T00:52:35.995 | FW hub=272acb3e common=f27ca4fc dirty=0 hooks=1
+2026-11-24T00:52:35.995 | DUMP begin t_ms=37688
+2026-11-24T00:52:35.995 | DUMP hub vest=0x01 accept_enabled=1 registry_ok=1 vest_state=COMPLIANT alert_active=0 heartbeat_s=360 margin_s=60 offline_timeout_s=780 msg_pending=0 msg_dropped=0
+2026-11-24T00:52:36.017 | DUMP global rx_total=437 drop_len=430 drop_ver=0 drop_vest=0 drop_node=0 drop_state=0 scan_quiet_60s=0
+2026-11-24T00:52:36.017 | DUMP queue fill=0 depth=64 max_fill=1 queue_full=0 callbacks_seen=437 (=rx_total+queue_full)
+2026-11-24T00:52:36.040 | DUMP node=1 state=WORN last_counter=51505 last_seen_ms=9465 accepted=1 dup=0 replay=0 gap=120 hmac_fail=0 battery=90 flags=0x60
+2026-11-24T00:52:36.040 | DUMP node=2 state=WORN last_counter=51525 last_seen_ms=32964 accepted=3 dup=0 replay=0 gap=118 hmac_fail=0 battery=90 flags=0x60
+2026-11-24T00:52:36.062 | DUMP node=3 state=WORN last_counter=51507 last_seen_ms=11061 accepted=1 dup=0 replay=0 gap=120 hmac_fail=0 battery=90 flags=0x60
+2026-11-24T00:52:36.062 | DUMP node=4 state=WORN last_counter=51508 last_seen_ms=11864 accepted=1 dup=0 replay=0 gap=120 hmac_fail=0 battery=90 flags=0x60
+2026-11-24T00:52:36.084 | DUMP node=5 state=WORN last_counter=51509 last_seen_ms=12667 accepted=1 dup=0 replay=0 gap=120 hmac_fail=0 battery=90 flags=0x60
+2026-11-24T00:52:36.084 | DUMP persist pending=0 writes=8 write_fails=1 dropped=0 last_us=2836 max_us=2836 avg_us=2474
+2026-11-24T00:52:36.084 | DUMP proc count=437 last_us=21 max_us=1157 avg_us=30 over_10ms=0
+2026-11-24T00:52:36.202 | DUMP scan restarts=0 consecutive_fails=0
+2026-11-24T00:52:36.202 | DUMP end
+2026-11-24T00:52:36.229 | TX inject 14ffffff600101015aaac9000019ca53d84b57ca13
+2026-11-24T00:52:36.356 | ACC t_ms=37951 t_us=37951755 node=1 ctr=51626 state=1 batt=90 flags=0x60 missed=120 prev=WORN now=WORN
+2026-11-24T00:52:36.356 | PPE_HOOK inject len=21 queued
+2026-11-24T00:52:37.030 | TX inject 14ffffff600102015aabc900004a0bbf9b4382a8d9
+2026-11-24T00:52:37.167 | ACC t_ms=38754 t_us=38754763 node=2 ctr=51627 state=1 batt=90 flags=0x60 missed=101 prev=WORN now=WORN
+2026-11-24T00:52:37.167 | PPE_HOOK inject len=21 queued
+2026-11-24T00:52:37.831 | TX inject 14ffffff600103015aacc90000410acd920729178a
+2026-11-24T00:52:37.964 | ACC t_ms=39557 t_us=39557757 node=3 ctr=51628 state=1 batt=90 flags=0x60 missed=120 prev=WORN now=WORN
+2026-11-24T00:52:37.965 | PPE_HOOK inject len=21 queued
+2026-11-24T00:52:38.631 | TX inject 14ffffff600104015aadc90000f60041fe917642e8
+2026-11-24T00:52:38.764 | ACC t_ms=40360 t_us=40360757 node=4 ctr=51629 state=1 batt=90 flags=0x60 missed=120 prev=WORN now=WORN
+2026-11-24T00:52:38.764 | PPE_HOOK inject len=21 queued
+2026-11-24T00:52:39.433 | TX inject 14ffffff600105015aaec900003de85e3926cf0a35
+2026-11-24T00:52:39.573 | ACC t_ms=41163 t_us=41163757 node=5 ctr=51630 state=1 batt=90 flags=0x60 missed=120 prev=WORN now=WORN
+2026-11-24T00:52:39.573 | PPE_HOOK inject len=21 queued
+2026-11-24T00:52:41.734 | TX inject 14ffffff600102005abdc90000deed38a132cb5299
+2026-11-24T00:52:41.850 | E 1010771550 0 1
+2026-11-24T00:52:41.865 | ACC t_ms=43456 t_us=43456763 node=2 ctr=51645 state=0 batt=90 flags=0x60 missed=17 prev=WORN now=NOT_WORN
+2026-11-24T00:52:41.865 | MSG msg_type=COMPLIANCE vest_id=1 state=NON_COMPLIANT nodes_not_ok=[2] t_ms=43456
+2026-11-24T00:52:41.865 | PPE_HOOK inject len=21 queued
+2026-11-24T00:52:42.069 | E 1011072534 0 0
+2026-11-24T00:52:42.832 | E 1011772519 0 1
+2026-11-24T00:52:43.047 | E 1012072515 0 0
+2026-11-24T00:52:43.734 | STEP alert pattern running before the wdt fault, 3 s left
+2026-11-24T00:52:43.812 | E 1012772503 0 1
+2026-11-24T00:52:44.140 | E 1013072498 0 0
+2026-11-24T00:52:44.794 | E 1013772487 0 1
+2026-11-24T00:52:45.118 | E 1014072482 0 0
+2026-11-24T00:52:45.773 | E 1014772471 0 1
+2026-11-24T00:52:46.103 | E 1015072466 0 0
+2026-11-24T00:52:46.735 | TX fault wdt
+2026-11-24T00:52:46.757 | E 1015772456 0 1
+2026-11-24T00:52:46.866 | PPE_HOOK fault wdt: a task stopped feeding the watchdog, reset in about 5000 ms t_ms=48458
+2026-11-24T00:52:47.084 | E 1016072451 0 0
+2026-11-24T00:52:47.850 | E 1016772439 0 1
+2026-11-24T00:52:48.067 | E 1017072433 0 0
+2026-11-24T00:52:48.833 | E 1017772422 0 1
+2026-11-24T00:52:49.053 | E 1018072417 0 0
+2026-11-24T00:52:49.818 | E 1018772406 0 1
+2026-11-24T00:52:50.146 | E 1019072406 0 0
+2026-11-24T00:52:50.799 | E 1019772390 0 1
+2026-11-24T00:52:51.130 | E 1020072384 0 0
+2026-11-24T00:52:51.685 | E (71077) task_wdt: Task watchdog got triggered. The following tasks/users did not reset the watchdog in time:
+2026-11-24T00:52:51.685 | E (71077) task_wdt:  - ppe_wdtf (CPU 0/1)
+2026-11-24T00:52:51.685 | E (71077) task_wdt: Tasks currently running:
+2026-11-24T00:52:51.685 | E (71077) task_wdt: CPU 0: IDLE0
+2026-11-24T00:52:51.707 | E (71077) task_wdt: CPU 1: IDLE1
+2026-11-24T00:52:51.707 | E (71077) task_wdt: Print CPU 0 (current core) backtrace
+2026-11-24T00:52:51.707 | 
+2026-11-24T00:52:51.707 | 
+2026-11-24T00:52:51.707 | Backtrace: 0x4201E796:0x3FC9D550 0x4037CC15:0x3FC9D580 0x4037F31B:0x3FCA9FA0 0x42058591:0x3FCA9FC0 0x40383B4B:0x3FCA9FE0 0x403829BD:0x3FCAA000
+2026-11-24T00:52:51.707 | 
+2026-11-24T00:52:51.707 | E (71077) task_wdt: Aborting.
+2026-11-24T00:52:51.864 | E (71077) task_wdt: Print CPU 1 backtrace
+2026-11-24T00:52:51.864 | 
+2026-11-24T00:52:51.864 | 
+2026-11-24T00:52:51.864 | 
+2026-11-24T00:52:51.864 | 
+2026-11-24T00:52:51.864 | Backtrace: 0x4037f31b:0x3fcaa580 0x42058591:0x3fcaa5a0 0x40383b4b:0x3fcaa5c0 0x403829bd:0x3fcaa5e0
+2026-11-24T00:52:51.864 | 
+2026-11-24T00:52:51.864 | 
+2026-11-24T00:52:51.864 | 
+2026-11-24T00:52:51.864 | 
+2026-11-24T00:52:51.864 | ELF file SHA256: 94c6df07e
+2026-11-24T00:52:51.864 | 
+2026-11-24T00:52:51.977 | Rebooting...
+2026-11-24T00:52:51.977 | ���ESP-ROM:esp32s3-20210327
+2026-11-24T00:52:51.977 | Build:Mar 27 2021
+2026-11-24T00:52:51.977 | rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+2026-11-24T00:52:51.977 | Saved PC:0x4201e7a1
+2026-11-24T00:52:51.977 | SPIWP:0xee
+2026-11-24T00:52:51.977 | mode:DIO, clock div:1
+2026-11-24T00:52:51.977 | load:0x3fce2820,len:0x10cc
+2026-11-24T00:52:51.977 | load:0x403c8700,len:0xc2c
+2026-11-24T00:52:52.080 | load:0x403cb700,len:0x30b0
+2026-11-24T00:52:52.080 | entry 0x403c88b8
+2026-11-24T00:52:52.454 | 
+2026-11-24T00:52:52.455 | HUB boot (S3 receive path)
+2026-11-24T00:52:52.455 | FW hub=272acb3e common=f27ca4fc dirty=0 hooks=1
+2026-11-24T00:52:52.455 | BOOT reset_reason=6
+2026-11-24T00:52:52.455 | BOOT registry_ok=1 accept_enabled=1 vest=0x01
+2026-11-24T00:52:52.455 | BOOT node 1 last_counter=51626 state=UNKNOWN
+2026-11-24T00:52:52.455 | BOOT node 2 last_counter=51645 state=UNKNOWN
+2026-11-24T00:52:52.519 | BOOT node 3 last_counter=51628 state=UNKNOWN
+2026-11-24T00:52:52.519 | BOOT node 4 last_counter=51629 state=UNKNOWN
+2026-11-24T00:52:52.520 | BOOT node 5 last_counter=51630 state=UNKNOWN
+2026-11-24T00:52:52.520 | MSG msg_type=HUB_BOOT vest_id=1 reset_reason=6 fw=s5-hub-logic t_ms=367
+2026-11-24T00:52:52.520 | MSG msg_type=HUB_FAULT vest_id=1 code=WDT_RESET t_ms=367
+2026-11-24T00:52:52.537 | STEP motor must stay quiet after the wdt reboot, 4 s left
+2026-11-24T00:52:52.628 | BOOT scan started=1 interval=100 ms window=100 ms
+2026-11-24T00:52:52.628 | HUB running=1
+2026-11-24T00:52:56.538 | STEP rearm 1
+2026-11-24T00:52:56.538 | TX dump
+2026-11-24T00:52:56.567 | FW hub=272acb3e common=f27ca4fc dirty=0 hooks=1
+2026-11-24T00:52:56.567 | DUMP begin t_ms=4453
+2026-11-24T00:52:56.567 | DUMP hub vest=0x01 accept_enabled=1 registry_ok=1 vest_state=NON_COMPLIANT alert_active=0 heartbeat_s=360 margin_s=60 offline_timeout_s=780 msg_pending=0 msg_dropped=0
+2026-11-24T00:52:56.589 | DUMP global rx_total=46 drop_len=46 drop_ver=0 drop_vest=0 drop_node=0 drop_state=0 scan_quiet_60s=0
+2026-11-24T00:52:56.589 | DUMP queue fill=0 depth=64 max_fill=1 queue_full=0 callbacks_seen=46 (=rx_total+queue_full)
+2026-11-24T00:52:56.611 | DUMP node=1 state=UNKNOWN last_counter=51626 last_seen_ms=342 accepted=0 dup=0 replay=0 gap=0 hmac_fail=0 battery=0 flags=0x00
+2026-11-24T00:52:56.611 | DUMP node=2 state=UNKNOWN last_counter=51645 last_seen_ms=342 accepted=0 dup=0 replay=0 gap=0 hmac_fail=0 battery=0 flags=0x00
+2026-11-24T00:52:56.633 | DUMP node=3 state=UNKNOWN last_counter=51628 last_seen_ms=342 accepted=0 dup=0 replay=0 gap=0 hmac_fail=0 battery=0 flags=0x00
+2026-11-24T00:52:56.633 | DUMP node=4 state=UNKNOWN last_counter=51629 last_seen_ms=342 accepted=0 dup=0 replay=0 gap=0 hmac_fail=0 battery=0 flags=0x00
+2026-11-24T00:52:56.762 | DUMP node=5 state=UNKNOWN last_counter=51630 last_seen_ms=342 accepted=0 dup=0 replay=0 gap=0 hmac_fail=0 battery=0 flags=0x00
+2026-11-24T00:52:56.762 | DUMP persist pending=0 writes=0 write_fails=0 dropped=0 last_us=0 max_us=0 avg_us=0
+2026-11-24T00:52:56.762 | DUMP proc count=46 last_us=21 max_us=59 avg_us=24 over_10ms=0
+2026-11-24T00:52:56.762 | DUMP scan restarts=0 consecutive_fails=0
+2026-11-24T00:52:56.762 | DUMP end
+2026-11-24T00:52:56.790 | TX inject 14ffffff600101015a22ca0000b72c4bc144e2902c
+2026-11-24T00:52:56.918 | ACC t_ms=4705 t_us=4705784 node=1 ctr=51746 state=1 batt=90 flags=0x60 missed=119 prev=UNKNOWN now=WORN
+2026-11-24T00:52:56.918 | PPE_HOOK inject len=21 queued
+2026-11-24T00:52:57.591 | TX inject 14ffffff600102015a23ca0000486bfba46ee41ee5
+2026-11-24T00:52:57.718 | ACC t_ms=5508 t_us=5508764 node=2 ctr=51747 state=1 batt=90 flags=0x60 missed=101 prev=UNKNOWN now=WORN
+2026-11-24T00:52:57.718 | PPE_HOOK inject len=21 queued
+2026-11-24T00:52:58.392 | TX inject 14ffffff600103015a24ca00009ebe7f74e8ae14f7
+2026-11-24T00:52:58.528 | ACC t_ms=6311 t_us=6311766 node=3 ctr=51748 state=1 batt=90 flags=0x60 missed=119 prev=UNKNOWN now=WORN
+2026-11-24T00:52:58.528 | PPE_HOOK inject len=21 queued
+2026-11-24T00:52:59.192 | TX inject 14ffffff600104015a25ca00004eb2ffc952090afa
+2026-11-24T00:52:59.323 | ACC t_ms=7114 t_us=7114760 node=4 ctr=51749 state=1 batt=90 flags=0x60 missed=119 prev=UNKNOWN now=WORN
+2026-11-24T00:52:59.323 | PPE_HOOK inject len=21 queued
+2026-11-24T00:52:59.993 | TX inject 14ffffff600105015a26ca00005bf4212b8b080a56
+2026-11-24T00:53:00.135 | ACC t_ms=7917 t_us=7917769 node=5 ctr=51750 state=1 batt=90 flags=0x60 missed=119 prev=UNKNOWN now=WORN
+2026-11-24T00:53:00.135 | MSG msg_type=COMPLIANCE vest_id=1 state=COMPLIANT nodes_not_ok=[] t_ms=7917
+2026-11-24T00:53:00.135 | PPE_HOOK inject len=21 queued
+2026-11-24T00:53:02.294 | TX inject 14ffffff600102005a35ca0000cf7dd775266388de
+2026-11-24T00:53:02.382 | E 1031332496 0 1
+2026-11-24T00:53:02.429 | ACC t_ms=10210 t_us=10210768 node=2 ctr=51765 state=0 batt=90 flags=0x60 missed=17 prev=WORN now=NOT_WORN
+2026-11-24T00:53:02.429 | MSG msg_type=COMPLIANCE vest_id=1 state=NON_COMPLIANT nodes_not_ok=[2] t_ms=10210
+2026-11-24T00:53:02.429 | PPE_HOOK inject len=21 queued
+2026-11-24T00:53:02.712 | E 1031633481 0 0
+2026-11-24T00:53:03.368 | E 1032333467 0 1
+2026-11-24T00:53:03.695 | E 1032633463 0 0
+2026-11-24T00:53:04.295 | STEP alert pattern running before the nvs-read fault, 3 s left
+2026-11-24T00:53:04.352 | E 1033333451 0 1
+2026-11-24T00:53:04.681 | E 1033633446 0 0
+2026-11-24T00:53:05.336 | E 1034333435 0 1
+2026-11-24T00:53:05.663 | E 1034633430 0 0
+2026-11-24T00:53:06.318 | E 1035333419 0 1
+2026-11-24T00:53:06.648 | E 1035633415 0 0
+2026-11-24T00:53:07.296 | TX fault nvs-read
+2026-11-24T00:53:07.385 | PPE_HOOK fault nvs-read: restarting, the next start takes the fault path (one shot) t_ms=15212
+2026-11-24T00:53:07.385 |  �ESP-ROM:esp32s3-20210327
+2026-11-24T00:53:07.385 | Build:Mar 27 2021
+2026-11-24T00:53:07.385 | rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+2026-11-24T00:53:07.385 | Saved PC:0x4037f31e
+2026-11-24T00:53:07.385 | SPIWP:0xee
+2026-11-24T00:53:07.385 | mode:DIO, clock div:1
+2026-11-24T00:53:07.412 | E 1036333406 0 1
+2026-11-24T00:53:07.412 | E 1036342666 0 0
+2026-11-24T00:53:07.505 | load:0x3fce2820,len:0x10cc
+2026-11-24T00:53:07.505 | load:0x403c8700,len:0xc2c
+2026-11-24T00:53:07.505 | load:0x403cb700,len:0x30b0
+2026-11-24T00:53:07.505 | entry 0x403c88b8
+2026-11-24T00:53:07.868 | 
+2026-11-24T00:53:07.868 | HUB boot (S3 receive path)
+2026-11-24T00:53:07.868 | FW hub=272acb3e common=f27ca4fc dirty=0 hooks=1
+2026-11-24T00:53:07.868 | BOOT reset_reason=3
+2026-11-24T00:53:07.868 | BOOT registry_ok=1 accept_enabled=1 vest=0x01
+2026-11-24T00:53:07.868 | BOOT node 1 last_counter=51746 state=UNKNOWN
+2026-11-24T00:53:07.868 | BOOT node 2 last_counter=51765 state=UNKNOWN
+2026-11-24T00:53:07.934 | BOOT node 3 last_counter=51748 state=UNKNOWN
+2026-11-24T00:53:07.934 | BOOT node 4 last_counter=51749 state=UNKNOWN
+2026-11-24T00:53:07.934 | BOOT node 5 last_counter=51750 state=UNKNOWN
+2026-11-24T00:53:07.934 | MSG msg_type=HUB_BOOT vest_id=1 reset_reason=3 fw=s5-hub-logic t_ms=367
+2026-11-24T00:53:07.934 | MSG msg_type=HUB_FAULT vest_id=1 code=NVS_READ t_ms=367
+2026-11-24T00:53:07.950 | STEP motor must stay quiet after the nvs-read reboot, 4 s left
+2026-11-24T00:53:08.036 | BOOT scan started=1 interval=100 ms window=100 ms
+2026-11-24T00:53:08.036 | HUB running=1
+2026-11-24T00:53:11.951 | STEP rearm 2
+2026-11-24T00:53:11.951 | TX dump
+2026-11-24T00:53:11.981 | FW hub=272acb3e common=f27ca4fc dirty=0 hooks=1
+2026-11-24T00:53:11.981 | DUMP begin t_ms=4454
+2026-11-24T00:53:11.981 | DUMP hub vest=0x01 accept_enabled=1 registry_ok=1 vest_state=NON_COMPLIANT alert_active=0 heartbeat_s=360 margin_s=60 offline_timeout_s=780 msg_pending=0 msg_dropped=0
+2026-11-24T00:53:12.003 | DUMP global rx_total=47 drop_len=47 drop_ver=0 drop_vest=0 drop_node=0 drop_state=0 scan_quiet_60s=0
+2026-11-24T00:53:12.003 | DUMP queue fill=0 depth=64 max_fill=1 queue_full=0 callbacks_seen=47 (=rx_total+queue_full)
+2026-11-24T00:53:12.025 | DUMP node=1 state=UNKNOWN last_counter=51746 last_seen_ms=342 accepted=0 dup=0 replay=0 gap=0 hmac_fail=0 battery=0 flags=0x00
+2026-11-24T00:53:12.025 | DUMP node=2 state=UNKNOWN last_counter=51765 last_seen_ms=342 accepted=0 dup=0 replay=0 gap=0 hmac_fail=0 battery=0 flags=0x00
+2026-11-24T00:53:12.048 | DUMP node=3 state=UNKNOWN last_counter=51748 last_seen_ms=342 accepted=0 dup=0 replay=0 gap=0 hmac_fail=0 battery=0 flags=0x00
+2026-11-24T00:53:12.048 | DUMP node=4 state=UNKNOWN last_counter=51749 last_seen_ms=342 accepted=0 dup=0 replay=0 gap=0 hmac_fail=0 battery=0 flags=0x00
+2026-11-24T00:53:12.181 | DUMP node=5 state=UNKNOWN last_counter=51750 last_seen_ms=342 accepted=0 dup=0 replay=0 gap=0 hmac_fail=0 battery=0 flags=0x00
+2026-11-24T00:53:12.181 | DUMP persist pending=0 writes=0 write_fails=0 dropped=0 last_us=0 max_us=0 avg_us=0
+2026-11-24T00:53:12.181 | DUMP proc count=47 last_us=47 max_us=79 avg_us=24 over_10ms=0
+2026-11-24T00:53:12.181 | DUMP scan restarts=0 consecutive_fails=0
+2026-11-24T00:53:12.181 | DUMP end
+2026-11-24T00:53:12.204 | TX inject 14ffffff600101015a9aca0000fd9ee1cb4605381a
+2026-11-24T00:53:12.338 | ACC t_ms=4706 t_us=4706786 node=1 ctr=51866 state=1 batt=90 flags=0x60 missed=119 prev=UNKNOWN now=WORN
+2026-11-24T00:53:12.338 | PPE_HOOK inject len=21 queued
+2026-11-24T00:53:13.005 | TX inject 14ffffff600102015a9bca000004535aade7c7f04b
+2026-11-24T00:53:13.135 | ACC t_ms=5509 t_us=5509766 node=2 ctr=51867 state=1 batt=90 flags=0x60 missed=101 prev=UNKNOWN now=WORN
+2026-11-24T00:53:13.135 | PPE_HOOK inject len=21 queued
+2026-11-24T00:53:13.806 | TX inject 14ffffff600103015a9cca0000f58e5e1eaf23b9ad
+2026-11-24T00:53:13.932 | ACC t_ms=6312 t_us=6312769 node=3 ctr=51868 state=1 batt=90 flags=0x60 missed=119 prev=UNKNOWN now=WORN
+2026-11-24T00:53:13.932 | PPE_HOOK inject len=21 queued
+2026-11-24T00:53:14.606 | TX inject 14ffffff600104015a9dca00004d16cd6af5e0f8df
+2026-11-24T00:53:14.733 | ACC t_ms=7115 t_us=7115766 node=4 ctr=51869 state=1 batt=90 flags=0x60 missed=119 prev=UNKNOWN now=WORN
+2026-11-24T00:53:14.733 | PPE_HOOK inject len=21 queued
+2026-11-24T00:53:15.407 | TX inject 14ffffff600105015a9eca0000ba80c2aee482bb16
+2026-11-24T00:53:15.543 | PPE_HOOK inject len=21 queued
+2026-11-24T00:53:15.543 | ACC t_ms=7918 t_us=7918776 node=5 ctr=51870 state=1 batt=90 flags=0x60 missed=119 prev=UNKNOWN now=WORN
+2026-11-24T00:53:15.543 | MSG msg_type=COMPLIANCE vest_id=1 state=COMPLIANT nodes_not_ok=[] t_ms=7918
+2026-11-24T00:53:17.708 | TX inject 14ffffff600102005aadca00000c379d76e85853a3
+2026-11-24T00:53:17.784 | E 1046747014 0 1
+2026-11-24T00:53:17.846 | ACC t_ms=10211 t_us=10211784 node=2 ctr=51885 state=0 batt=90 flags=0x60 missed=17 prev=WORN now=NOT_WORN
+2026-11-24T00:53:17.846 | MSG msg_type=COMPLIANCE vest_id=1 state=NON_COMPLIANT nodes_not_ok=[2] t_ms=10211
+2026-11-24T00:53:17.846 | PPE_HOOK inject len=21 queued
+2026-11-24T00:53:18.111 | E 1047047974 0 0
+2026-11-24T00:53:18.768 | E 1047747960 0 1
+2026-11-24T00:53:19.097 | E 1048047955 0 0
+2026-11-24T00:53:19.710 | STEP alert pattern running before the stall fault, 3 s left
+2026-11-24T00:53:19.749 | E 1048747943 0 1
+2026-11-24T00:53:20.076 | E 1049047939 0 0
+2026-11-24T00:53:20.732 | E 1049747927 0 1
+2026-11-24T00:53:21.059 | E 1050047922 0 0
+2026-11-24T00:53:21.824 | E 1050747911 0 1
+2026-11-24T00:53:22.043 | E 1051047906 0 0
+2026-11-24T00:53:22.710 | TX stall 3
+2026-11-24T00:53:22.805 | E 1051747896 0 1
+2026-11-24T00:53:22.837 | PPE_HOOK stall 3 t_ms=15214 scan stopped
+2026-11-24T00:53:23.023 | E 1052047891 0 0
+2026-11-24T00:53:23.787 | E 1052747878 0 1
+2026-11-24T00:53:24.115 | E 1053047873 0 0
+2026-11-24T00:53:24.770 | E 1053747862 0 1
+2026-11-24T00:53:25.100 | E 1054047858 0 0
+2026-11-24T00:53:25.754 | E 1054747846 0 1
+2026-11-24T00:53:26.081 | E 1055047841 0 0
+2026-11-24T00:53:26.739 | E 1055747829 0 1
+2026-11-24T00:53:27.066 | E 1056047825 0 0
+2026-11-24T00:53:27.720 | E 1056747813 0 1
+2026-11-24T00:53:28.046 | E 1057047808 0 0
+2026-11-24T00:53:28.811 | E 1057747797 0 1
+2026-11-24T00:53:29.030 | E 1058047792 0 0
+2026-11-24T00:53:29.794 | E 1058747781 0 1
+2026-11-24T00:53:30.118 | E 1059047776 0 0
+2026-11-24T00:53:30.776 | E 1059747764 0 1
+2026-11-24T00:53:31.104 | E 1060047759 0 0
+2026-11-24T00:53:31.763 | E 1060747748 0 1
+2026-11-24T00:53:32.091 | E 1061047743 0 0
+2026-11-24T00:53:32.750 | E 1061747732 0 1
+2026-11-24T00:53:33.047 | SCAN restart #1 t_ms=25424 synced=1 scanning=0
+2026-11-24T00:53:33.047 | PPE_HOOK stall: restart attempt forced to fail
+2026-11-24T00:53:33.047 | SCAN restart result=failed fails=1
+2026-11-24T00:53:33.078 | E 1062047727 0 0
+2026-11-24T00:53:33.734 | E 1062747716 0 1
+2026-11-24T00:53:34.045 | SCAN restart #2 t_ms=26424 synced=1 scanning=0
+2026-11-24T00:53:34.045 | PPE_HOOK stall: restart attempt forced to fail
+2026-11-24T00:53:34.045 | SCAN restart result=failed fails=2
+2026-11-24T00:53:34.060 | E 1063047711 0 0
+2026-11-24T00:53:34.826 | E 1063747699 0 1
+2026-11-24T00:53:35.046 | SCAN restart #3 t_ms=27424 synced=1 scanning=0
+2026-11-24T00:53:35.046 | PPE_HOOK stall: restart attempt forced to fail
+2026-11-24T00:53:35.046 | SCAN restart result=failed fails=3
+2026-11-24T00:53:35.046 | E 1064047694 0 0
+2026-11-24T00:53:35.812 | E 1064747683 0 1
+2026-11-24T00:53:36.010 | SCAN reboot t_ms=28424 after 3 failed restarts
+2026-11-24T00:53:36.010 | x �ESP-ROM:esp32s3-20210327
+2026-11-24T00:53:36.010 | Build:Mar 27 2021
+2026-11-24T00:53:36.010 | rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+2026-11-24T00:53:36.010 | Saved PC:0x40381cb5
+2026-11-24T00:53:36.010 | SPIWP:0xee
+2026-11-24T00:53:36.010 | mode:DIO, clock div:1
+2026-11-24T00:53:36.010 | load:0x3fce2820,len:0x10cc
+2026-11-24T00:53:36.031 | E 1064962813 0 0
+2026-11-24T00:53:36.124 | load:0x403c8700,len:0xc2c
+2026-11-24T00:53:36.124 | load:0x403cb700,len:0x30b0
+2026-11-24T00:53:36.124 | entry 0x403c88b8
+2026-11-24T00:53:36.490 | 
+2026-11-24T00:53:36.490 | HUB boot (S3 receive path)
+2026-11-24T00:53:36.490 | FW hub=272acb3e common=f27ca4fc dirty=0 hooks=1
+2026-11-24T00:53:36.490 | BOOT previous run ended with fault code 1 (1 = scan stall reboot)
+2026-11-24T00:53:36.490 | BOOT reset_reason=3
+2026-11-24T00:53:36.490 | BOOT registry_ok=1 accept_enabled=1 vest=0x01
+2026-11-24T00:53:36.490 | BOOT node 1 last_counter=51866 state=UNKNOWN
+2026-11-24T00:53:36.512 | BOOT node 2 last_counter=51885 state=UNKNOWN
+2026-11-24T00:53:36.512 | BOOT node 3 last_counter=51868 state=UNKNOWN
+2026-11-24T00:53:36.512 | BOOT node 4 last_counter=51869 state=UNKNOWN
+2026-11-24T00:53:36.512 | BOOT node 5 last_counter=51870 state=UNKNOWN
+2026-11-24T00:53:36.512 | MSG msg_type=HUB_BOOT vest_id=1 reset_reason=3 fw=s5-hub-logic t_ms=378
+2026-11-24T00:53:36.668 | MSG msg_type=HUB_FAULT vest_id=1 code=SCAN_STALL t_ms=378
+2026-11-24T00:53:36.668 | BOOT scan started=1 interval=100 ms window=100 ms
+2026-11-24T00:53:36.668 | HUB running=1
+2026-11-24T00:53:36.671 | STEP motor must stay quiet after the stall reboot, 4 s left
+2026-11-24T00:53:40.672 | STEP rearm 3
+2026-11-24T00:53:41.291 | VERDICT PASS wdt -> HUB_BOOT then WDT_RESET; nvs-read -> HUB_BOOT then NVS_READ; stall -> HUB_BOOT then SCAN_STALL; longest ON 301.0 ms
+# RESULT,PASS,2026-11-24T02:06:00.526,evidence 5abeae2, hub FW 272acb3e, recorder CAL 8 us
