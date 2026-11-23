@@ -1,0 +1,4 @@
+TC,sprint,date,sha,result
+TC-26,S5,2026-11-23,f38ed18,PASS
+TC-28,S5,2026-11-23,f38ed18,PASS
+TC-74,S5,2026-11-23,f38ed18,FAIL

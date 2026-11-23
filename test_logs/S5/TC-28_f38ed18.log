@@ -1,0 +1,23 @@
+# tc=TC-28
+# sha=f38ed18
+# date=2026-11-23T22:37:39.800
+# tool=s5_host_evidence.py
+# mode=evidence
+# command=make test (test/host), make exit=0
+# equipment=host only (no hardware); evidence for the host part (level U), decision D6/A-35
+TEST	TC-28	compliance_line_lists_the_nodes_not_ok	PASS	checks=6
+TEST	TC-28	format_is_safe_for_tiny_buffers	PASS	checks=4
+TEST	TC-28	all_five_worn_is_compliant_with_exactly_one_message	PASS	checks=19
+TEST	TC-28	each_node_not_worn_gives_non_compliant_one_message	PASS	checks=70
+TEST	TC-28	each_node_offline_gives_non_compliant_one_message	PASS	checks=90
+TEST	TC-28	each_node_unknown_gives_non_compliant_without_alert_and_without_message	PASS	checks=55
+TEST	TC-28	no_compliance_message_at_hub_boot_or_after_a_restart	PASS	checks=14
+TEST	TC-28	one_message_per_vest_level_change_only	PASS	checks=29
+TEST	TC-28	nodes_not_ok_lists_every_node_that_is_not_worn	PASS	checks=12
+TEST	TC-28	alert_decision_not_worn_or_offline_never_unknown	PASS	checks=10
+TEST	TC-28	message_queue_drops_oldest_when_full_and_counts_it	PASS	checks=7
+SUMMARY	tests=162	failed=0	checks=262878
+# release_check: no hook symbols
+# release_check PASS: no hook strings in the release objects
+VERDICT PASS TC-28: 11 tests tagged, 0 not PASS; whole suite 162 tests, failed=0, checks=262878
+# RESULT,PASS,2026-11-23T23:33:50.785,11 tests, suite 162/0 failed
