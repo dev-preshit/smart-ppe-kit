@@ -148,8 +148,9 @@ void hub_motor_start() {
 void hub_motor_set_alert(bool active) { g_alert_req = active; }
 void hub_motor_set_key_fault(bool on) { g_key_req = on; }
 
-void hub_motor_safe_off() {
+void hub_motor_safe_off() {                    // only called right before ESP.restart() (M-08)
   portENTER_CRITICAL(&g_mux);
+  g_force_low = true;                          // BUG-008: the motor task must not re-start the pattern before the restart
   g_motor.boot();
   drive();
   portEXIT_CRITICAL(&g_mux);

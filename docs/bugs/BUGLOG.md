@@ -8,7 +8,8 @@
 | BUG-004 | `ppe_hmac_tag()` writes through a null `tag` pointer | P3 | Closed | none failed; found in S1 review (TC-12 scope) | FR-12 | 80e23f2 | `test_proto.cpp`: `hmac_tag_null_output_returns_false` | S1 |
 | BUG-005 | `ppe_rx_filter()` writes through a null `out` pointer | P3 | Closed | none failed; found in S1 review (TC-22 scope) | FR-22 | 2018c57 | `test_filter.cpp`: `filter_null_out_is_drop_len` | S1 |
 | BUG-006 | S1 run 20261018-200608_5062d2d invalid: tools missing in the run environment | P3 | Not a bug | TC-12, TC-42, TC-78, TC-79, S1 | - | - | re-run 20261018-204717_10f6072 | 2026-10-18 |
-| BUG-007 | Motor output stays ON about 540 ms when the task watchdog fires during an ON pulse (M-08 'output low before the restart' not implemented) | P1 | Open | TC-30b rehearsal, S5 (1c18cc6) | NFR-05, FR-30 | - | planned: repeated TC-30b wdt step inside ON pulses | - |
+| BUG-007 | Motor output stays ON about 540 ms when the task watchdog fires during an ON pulse (M-08 'output low before the restart' not implemented) | P1 | Fixed | TC-30b rehearsal, S5 (1c18cc6) | NFR-05, FR-30 | f971297 | planned: repeated TC-30b wdt step inside ON pulses | - |
+| BUG-008 | Motor pin back HIGH 231 ms across a scan-stall restart: safe off undone by the motor task before ESP.restart (B-01/M-08) | P1 | Fixed, retest pending | TC-74, S5 (f38ed18) | NFR-05, FR-30 | - | TC-74 1 h re-run | - |
 
 Product-code defects found in the S1 review are the rows above from BUG-002 on. Spec and test-plan defects are not bugs; they are listed in `docs/s1_conflict_report.md`
 for the owner to add to `docs/s0_findings_v1.md` section 4.
