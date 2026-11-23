@@ -20,6 +20,11 @@ on the marker pin (hub hook `pulse`); the measured error is reported in the log.
   python tools/s5_motor.py tc30c --tc TC-30c --hub COM3 --rec COM8    # missing key: NO_KEY, KEY_FAULT pattern (about 13.5 min at the defaults)
   python tools/s5_motor.py tc30d --tc TC-30d --hub COM3 --rec COM8    # unreadable registry: REGISTRY, OFFLINE, alert (about 13.5 min)
 
+  python tools/s5_motor.py tc74 --hub COM3 --rec COM8 --rehearsal --minutes 10   # TC-74 trial (scratch log, need 1 of each fault)
+  python tools/s5_motor.py tc74 --hub COM3 --rec COM8                              # TC-74: 1 h, reset/stall 3/fault wdt/fault guard
+                                                                                   # in turn every 75 s (about 12 each), need 10 each
+  python tools/s5_motor.py wdton --hub COM3 --rec COM8 --rehearsal                 # BUG-007 regression (15 x fault wdt)
+
 Wiring for the calibration: recorder GPIO 3 <- hub GPIO 6, recorder GND <- hub GND (nothing else on GPIO 6).
 Wiring for TC-29: recorder GPIO 4 <- hub GPIO 5 (the node BEFORE the base resistor), recorder GPIO 3 <- hub GPIO 6 (marker), GND common.
 Timing is measured from the accepted packet (hub marker pin, hub hook `marker on`) to the motor pin: alternative equipment, the
@@ -527,7 +532,140 @@ def analyze_text(text):
         return analyze_tc30d(text)
     if p.get("case") == "wdton":
         return analyze_wdton(text, int(p.get("need", WDTON_NEED)))
+    if p.get("case") == "tc74":
+        return analyze_tc74(text, int(p["minutes"]), int(p["need_each"]))
     return "BLOCKED", "no PARAM line in the log: not a run of this driver"
+
+
+TC74_KINDS = ("reset", "stall", "wdt", "guard")      # injected in this order, one per cycle
+TC74_BOOT_CODE = {"stall": "SCAN_STALL", "wdt": "WDT_RESET"}
+RE_FNOTE = re.compile(bench.PFX + r"STEP FAULT kind=(\w+) n=(\d+)")
+RE_STAT = re.compile(bench.PFX + r"STAT a=\d b=\d total=(\d+) dropped=(\d+)")
+
+
+def analyze_tc74(text, minutes, need_each):
+    """TC-74 (NFR-05) over the whole run: every ON <= 400 ms; the pin low from each chip reset until the alert is armed again;
+    every reboot fault answered by HUB_BOOT (and its code); every guard fault cuts one ON at 380..400 ms, reports GUARD and the
+    pattern resumes; the run covered `minutes` with `need_each` faults of each kind and the recorder dropped no edge."""
+    lines = text.splitlines()
+    me = motor_edges(text)
+    close = sum(1 for a, b in zip(me, me[1:]) if wrap(b["t"], a["t"]) < NOISE_US)
+    if close:
+        return "FAIL", "%d motor edge pairs closer than %d us: the motor pin floats (B-01, no pull-down) or the wire is loose" % (close, NOISE_US)
+    runs = on_runs(me)
+    if not runs:
+        return "BLOCKED", "no motor ON pulse recorded"
+    longest = max(r["dur"] for r in runs)
+    if longest > ON_MAX_US:
+        return "FAIL", "an ON run is %.1f ms (limit 400 ms)" % (longest / 1000.0)
+    notes = [dict(idx=i, kind=m.group(1), n=int(m.group(2))) for i, l in enumerate(lines) for m in [RE_FNOTE.match(l.rstrip("\r"))] if m]
+    if not notes:
+        return "BLOCKED", "no FAULT step in the log: not a TC-74 run"
+    boots = [e["idx"] for e in bench.events(text) if e["kind"] == "boot"]
+    faults = faults_in(text)
+    arms = [i for i, l in enumerate(lines) if "STEP ARM alert" in l]
+    roms = [i for i, l in enumerate(lines) if "ESP-ROM:" in l]
+    counts = {k: 0 for k in TC74_KINDS}
+    cuts = []
+    for j, nt in enumerate(notes):
+        end = notes[j + 1]["idx"] if j + 1 < len(notes) else len(lines)
+        k = nt["kind"]
+        if k == "guard":
+            g = [f for f in faults if nt["idx"] < f["idx"] < end and f["code"] == "GUARD"]
+            if not g:
+                return "FAIL", "fault guard %d: no HUB_FAULT GUARD" % nt["n"]
+            cut = [r for r in runs if nt["idx"] < r["idx"] < end and 380000 <= r["dur"] <= ON_MAX_US]
+            if not cut:
+                return "FAIL", "fault guard %d: no ON run cut at 380..400 ms" % nt["n"]
+            if not [r for r in runs if cut[0]["fall_idx"] < r["idx"] < end and abs(r["dur"] - ON_NOM) <= PATTERN_TOL]:
+                return "FAIL", "fault guard %d: the pattern did not resume after the guard cut" % nt["n"]
+            cuts.append(cut[0]["dur"])
+        else:
+            b = [i for i in boots if nt["idx"] < i < end]
+            if not b:
+                return "FAIL", "fault %s %d: no HUB_BOOT before the next fault" % (k, nt["n"])
+            want = TC74_BOOT_CODE.get(k)
+            if want and not [f for f in faults if b[0] < f["idx"] < end and f["code"] == want]:
+                return "FAIL", "fault %s %d: HUB_BOOT not followed by HUB_FAULT %s" % (k, nt["n"], want)
+            rom = [i for i in roms if nt["idx"] < i < b[0]]
+            arm = [i for i in arms if b[0] < i < end]
+            lo = rom[0] if rom else b[0]
+            hi = arm[0] if arm else end
+            early = [e for e in me if lo < e["idx"] < hi and e["lvl"] == 1]
+            if early:
+                return "FAIL", "fault %s %d: the motor pin rose after the chip reset, before the alert was armed again (not low at boot)" % (k, nt["n"])
+        counts[k] += 1
+    t0, t1 = bench.pc_seconds(lines[arms[0] if arms else notes[0]["idx"]]), None
+    for l in reversed(lines):
+        t1 = bench.pc_seconds(l)
+        if t1 is not None:
+            break
+    if t0 is not None and t1 is not None and t1 - t0 < minutes * 60 * 0.98:
+        return "BLOCKED", "the run covered %.1f min, %d min were asked" % ((t1 - t0) / 60.0, minutes)
+    short = [k for k in TC74_KINDS if counts[k] < need_each]
+    if short:
+        return "BLOCKED", "too few faults: %s (need %d of each)" % (", ".join("%s=%d" % (k, counts[k]) for k in TC74_KINDS), need_each)
+    st = [m for m in (RE_STAT.match(l.rstrip("\r")) for l in lines) if m]
+    if not st:
+        return "BLOCKED", "no recorder STAT at the end: lost edges cannot be ruled out"
+    if int(st[-1].group(2)) != 0:
+        return "BLOCKED", "the recorder dropped %s edges: the record has gaps" % st[-1].group(2)
+    return "PASS", "%s; %d ON runs, longest %.1f ms (limit 400 ms); guard cuts %.1f..%.1f ms with GUARD and the pattern resumed; pin low at every boot; recorder dropped 0 of %s edges" % (
+        ", ".join("%s=%d" % (k, counts[k]) for k in TC74_KINDS), len(runs), longest / 1000.0, min(cuts) / 1000.0, max(cuts) / 1000.0, st[-1].group(1))
+
+
+def usb_reset(cap):
+    """Hub reset by the USB reset line (A-37): RTS pulse with DTR low (normal boot, not download mode)."""
+    cap.note("TX reset (USB RTS line, 100 ms)")
+    cap.ser.dtr = False
+    cap.ser.rts = True
+    time.sleep(0.1)
+    cap.ser.rts = False
+
+
+def run_tc74(a):
+    need = a.need if a.need is not None else (1 if a.rehearsal else 10)
+    cap, rec, path, sha0, err = setup_run(a, ["case=tc74 minutes=%d need_each=%d cycle_s=%d" % (a.minutes, need, a.cycle)])
+    if err:
+        return bench.finish(cap, path, a, sha0, "BLOCKED", err)
+    cap.note("EXPECT every ON <= 400 ms; pin low at every boot; reboot faults give HUB_BOOT (+ code); guard: GUARD, cut 380..400 ms, pattern resumes")
+    cap.note("PARAM case=tc74 minutes=%d need_each=%d cycle_s=%d" % (a.minutes, need, a.cycle))
+    rec.send("RESET"); rec.wait_for(lambda l: l.strip() == "READY", 3)
+    start = time.monotonic()
+    end_t = start + a.minutes * 60
+    n, armed = 0, False
+    while time.monotonic() < end_t:
+        t_cycle = time.monotonic()
+        if not armed:
+            cap.note("STEP ARM alert")
+            arm_alert(cap)
+            armed = True
+        kind = TC74_KINDS[n % len(TC74_KINDS)]
+        rest = a.cycle - (time.monotonic() - t_cycle)
+        sleep_note(cap, max(3.0, min(rest, end_t - time.monotonic())), "alert running, next fault %s, %.0f min left" % (kind, (end_t - time.monotonic()) / 60))
+        if time.monotonic() >= end_t:
+            break
+        n += 1
+        m = bench.mark(cap)
+        cap.note("STEP FAULT kind=%s n=%d" % (kind, n))
+        if kind == "guard":
+            cap.send("fault guard")
+            if bench.wait_line(cap, r"MSG msg_type=HUB_FAULT .*code=GUARD", m, 10)[0] is None:
+                return finish_run(cap, rec, path, a, sha0, "FAIL", "fault guard %d: no GUARD within 10 s" % n)
+            continue
+        if kind == "reset":
+            usb_reset(cap)
+        else:
+            cap.send("fault wdt" if kind == "wdt" else "stall 3")
+        if bench.wait_line(cap, r"MSG msg_type=HUB_BOOT", m, 120)[0] is None:
+            return finish_run(cap, rec, path, a, sha0, "FAIL", "fault %s %d: no HUB_BOOT within 120 s" % (kind, n))
+        time.sleep(3.0)
+        armed = False
+    cap.note("STEP end of run after %d faults" % n)
+    rec.send("STAT"); rec.wait_for(lambda l: l.startswith("STAT "), 3)
+    time.sleep(0.5)
+    v, msg = analyze_tc74(bench.cap_text(path), a.minutes, need)
+    return finish_run(cap, rec, path, a, sha0, v, msg)
 
 
 WDTON_NEED = 5                       # BUG-007 regression: the watchdog must have cut at least this many ON pulses
@@ -756,7 +894,7 @@ def run_tc29c(a):
 def analyze_any(text):
     """Result recording re-checks the log with the analyzer that belongs to it (motor cases here, node cases in s5_bench)."""
     case = bench.params(text).get("case", "")
-    return analyze_text(text) if case in ("cal", "wdton") or case.startswith(("tc29", "tc30")) else bench.analyze_text(text)
+    return analyze_text(text) if case in ("cal", "wdton", "tc74") or case.startswith(("tc29", "tc30")) else bench.analyze_text(text)
 
 
 def cmd_result(a):
@@ -955,6 +1093,15 @@ def main(argv=None):
         p.add_argument("--heartbeat", type=int)
         p.add_argument("--margin", type=int)
         p.set_defaults(fn=fn)
+    p = sub.add_parser("tc74")
+    p.add_argument("--tc", default="TC-74")
+    p.add_argument("--hub", required=True)
+    p.add_argument("--rec", required=True)
+    p.add_argument("--rehearsal", action="store_true")
+    p.add_argument("--minutes", type=int, default=60)
+    p.add_argument("--cycle", type=int, default=75, help="seconds per fault cycle (one fault each)")
+    p.add_argument("--need", type=int, help="faults of each kind required (default 10, rehearsal 1)")
+    p.set_defaults(fn=run_tc74)
     p = sub.add_parser("wdton")
     p.add_argument("--tc", default="BUG-007")
     p.add_argument("--hub", required=True)

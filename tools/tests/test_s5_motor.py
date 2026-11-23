@@ -568,6 +568,76 @@ class Tc30Dispatch(unittest.TestCase):
         self.assertEqual(m.analyze_text(tc30d_log())[0], "PASS")
 
 
+def tc74_log(minutes=1, need=1, long_on=False, early_rise=False, no_guard=False, no_wdt_code=False, dropped=0, stat=True,
+             floating=False, no_resume=False, step_s=2.0):
+    """A TC-74 log with PC stamps: one fault of each kind (reset, stall, wdt, guard), alert pattern between them."""
+    import datetime
+    L = []
+    t = [1000000]
+
+    def pulses(k, on=300000):
+        for _ in range(k):
+            L.append("E %d 0 1" % t[0]); L.append("E %d 0 0" % (t[0] + on)); t[0] += 1000000
+
+    def reboot(code=None):
+        L.extend(["ESP-ROM:esp32s3-20210327", "HUB boot (S3 receive path)", boot_line(367, 6)])
+        if early_rise:
+            L.append("E %d 0 1" % t[0]); L.append("E %d 0 0" % (t[0] + 1000)); t[0] += 1000000
+        if code:
+            L.append(fault_line(code, 367))
+
+    L.append("PARAM case=tc74 minutes=%d need_each=%d cycle_s=75" % (minutes, need))
+    L.append("STEP ARM alert"); pulses(3, 401000 if long_on else 300000)
+    L += ["STEP FAULT kind=reset n=1", "TX reset (USB RTS line, 100 ms)"]; reboot()
+    L.append("STEP ARM alert"); pulses(3)
+    L += ["STEP FAULT kind=stall n=2", "TX stall 3"]; pulses(1); reboot("SCAN_STALL")
+    L.append("STEP ARM alert"); pulses(3)
+    L += ["STEP FAULT kind=wdt n=3", "TX fault wdt"]; L.append("E %d 0 1" % t[0]); L.append("E %d 0 0" % (t[0] + 160000)); t[0] += 1000000
+    reboot(None if no_wdt_code else "WDT_RESET")
+    L.append("STEP ARM alert"); pulses(3)
+    L += ["STEP FAULT kind=guard n=4", "TX fault guard"]
+    L.append("E %d 0 1" % t[0]); L.append("E %d 0 0" % (t[0] + 395000)); t[0] += 2000000
+    if not no_guard:
+        L.append(fault_line("GUARD", 99000))
+    if not no_resume:
+        pulses(2)
+    if floating:
+        L.append("E %d 0 1" % t[0]); L.append("E %d 0 0" % (t[0] + 50))
+    L.append("STEP end of run after 4 faults")
+    if stat:
+        L.append("STAT a=0 b=0 total=%d dropped=%d t_us=%d" % (40, dropped, t[0]))
+    t0 = datetime.datetime(2026, 11, 23, 22, 0, 0)
+    return "\n".join("%s | %s" % ((t0 + datetime.timedelta(seconds=i * step_s)).isoformat(timespec="milliseconds"), l) for i, l in enumerate(L))
+
+
+class Tc74(unittest.TestCase):
+    def test_pass(self):
+        v, msg = m.analyze_text(tc74_log())
+        self.assertEqual(v, "PASS", msg)
+
+    def test_long_on_fails(self):
+        self.assertEqual(m.analyze_text(tc74_log(long_on=True))[0], "FAIL")
+
+    def test_rise_after_reset_before_arm_fails(self):
+        self.assertEqual(m.analyze_text(tc74_log(early_rise=True))[0], "FAIL")
+
+    def test_floating_pin_fails(self):
+        self.assertEqual(m.analyze_text(tc74_log(floating=True))[0], "FAIL")
+
+    def test_guard_needs_report_and_resume(self):
+        self.assertEqual(m.analyze_text(tc74_log(no_guard=True))[0], "FAIL")
+        self.assertEqual(m.analyze_text(tc74_log(no_resume=True))[0], "FAIL")
+
+    def test_wdt_reboot_needs_its_code(self):
+        self.assertEqual(m.analyze_text(tc74_log(no_wdt_code=True))[0], "FAIL")
+
+    def test_coverage_and_recorder_gaps_block(self):
+        self.assertEqual(m.analyze_text(tc74_log(minutes=10))[0], "BLOCKED")
+        self.assertEqual(m.analyze_text(tc74_log(need=2))[0], "BLOCKED")
+        self.assertEqual(m.analyze_text(tc74_log(dropped=3))[0], "BLOCKED")
+        self.assertEqual(m.analyze_text(tc74_log(stat=False))[0], "BLOCKED")
+
+
 def wdton_log(cuts=5, cut_us=150000, extra_on=None):
     """BUG-007 regression log: per repeat 3 normal alert pulses, then one ON cut by the watchdog and a HUB_BOOT."""
     L = ["PARAM case=wdton repeats=%d need=5" % cuts]
