@@ -574,7 +574,8 @@ def analyze_tc74(text, minutes, need_each):
             g = [f for f in faults if nt["idx"] < f["idx"] < end and f["code"] == "GUARD"]
             if not g:
                 return "FAIL", "fault guard %d: no HUB_FAULT GUARD" % nt["n"]
-            cut = [r for r in runs if nt["idx"] < r["idx"] < end and 380000 <= r["dur"] <= ON_MAX_US]
+            # 'fault guard' stalls the pattern task while the motor is ON: the stretched pulse may have risen before the hook
+            cut = [r for r in runs if r["fall_idx"] > nt["idx"] and r["idx"] < end and 380000 <= r["dur"] <= ON_MAX_US]
             if not cut:
                 return "FAIL", "fault guard %d: no ON run cut at 380..400 ms" % nt["n"]
             if not [r for r in runs if cut[0]["fall_idx"] < r["idx"] < end and abs(r["dur"] - ON_NOM) <= PATTERN_TOL]:

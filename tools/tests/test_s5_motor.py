@@ -569,7 +569,7 @@ class Tc30Dispatch(unittest.TestCase):
 
 
 def tc74_log(minutes=1, need=1, long_on=False, early_rise=False, no_guard=False, no_wdt_code=False, dropped=0, stat=True,
-             floating=False, no_resume=False, step_s=2.0):
+             floating=False, no_resume=False, step_s=2.0, guard_rise_before=False):
     """A TC-74 log with PC stamps: one fault of each kind (reset, stall, wdt, guard), alert pattern between them."""
     import datetime
     L = []
@@ -595,8 +595,11 @@ def tc74_log(minutes=1, need=1, long_on=False, early_rise=False, no_guard=False,
     L += ["STEP FAULT kind=wdt n=3", "TX fault wdt"]; L.append("E %d 0 1" % t[0]); L.append("E %d 0 0" % (t[0] + 160000)); t[0] += 1000000
     reboot(None if no_wdt_code else "WDT_RESET")
     L.append("STEP ARM alert"); pulses(3)
-    L += ["STEP FAULT kind=guard n=4", "TX fault guard"]
-    L.append("E %d 0 1" % t[0]); L.append("E %d 0 0" % (t[0] + 395000)); t[0] += 2000000
+    if guard_rise_before:                # bench 4eb67ff: the stretched pulse rose just before the hook
+        L.append("E %d 0 1" % t[0]); L += ["STEP FAULT kind=guard n=4", "TX fault guard"]
+    else:
+        L += ["STEP FAULT kind=guard n=4", "TX fault guard"]; L.append("E %d 0 1" % t[0])
+    L.append("E %d 0 0" % (t[0] + 395000)); t[0] += 2000000
     if not no_guard:
         L.append(fault_line("GUARD", 99000))
     if not no_resume:
@@ -617,6 +620,10 @@ class Tc74(unittest.TestCase):
 
     def test_long_on_fails(self):
         self.assertEqual(m.analyze_text(tc74_log(long_on=True))[0], "FAIL")
+
+    def test_guard_cut_of_a_pulse_that_rose_before_the_hook_counts(self):
+        v, msg = m.analyze_text(tc74_log(guard_rise_before=True))
+        self.assertEqual(v, "PASS", msg)
 
     def test_rise_after_reset_before_arm_fails(self):
         self.assertEqual(m.analyze_text(tc74_log(early_rise=True))[0], "FAIL")
