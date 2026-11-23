@@ -428,7 +428,12 @@ def analyze_tc30c(text):
         return "FAIL", "after fault key HUB_BOOT was followed by %s, expected NO_KEY" % (f[0]["code"] if f else "no HUB_FAULT")
     if f[0]["t"] > 2000:
         return "FAIL", "NO_KEY came %d ms after boot (limit 2000 ms)" % f[0]["t"]
-    me = [e for e in motor_edges(text) if e["idx"] > b[0]["idx"]]
+    # The pattern starts during setup: the recorder line of its first rise can reach the log before the hub's HUB_BOOT line,
+    # so the edges count from the 'HUB boot' banner of that start (printed before the motor task exists), not from HUB_BOOT.
+    lines0 = text.splitlines()
+    banner = [i for i in range(hooks[0]["idx"] + 1, b[0]["idx"]) if "HUB boot (" in lines0[i]]
+    start = banner[-1] if banner else b[0]["idx"]
+    me = [e for e in motor_edges(text) if e["idx"] > start]
     off = [e for e in bench.events(text) if e["kind"] == "off" and e["idx"] > b[0]["idx"]]
     if not off:
         return "BLOCKED", "the nodes never went OFFLINE during the observation (too short)"
@@ -511,7 +516,39 @@ def analyze_text(text):
         return analyze_tc30c(text)
     if p.get("case") == "tc30d":
         return analyze_tc30d(text)
+    if p.get("case") == "wdton":
+        return analyze_wdton(text, int(p.get("need", WDTON_NEED)))
     return "BLOCKED", "no PARAM line in the log: not a run of this driver"
+
+
+WDTON_NEED = 5                       # BUG-007 regression: the watchdog must have cut at least this many ON pulses
+
+
+def analyze_wdton(text, need=WDTON_NEED):
+    """BUG-007 / M-08: task watchdog fired repeatedly while the alert runs. PASS = every ON <= 400 ms and at least `need`
+    ON pulses were cut by the watchdog (an ON that is not 300 +/- 2 ms and is followed by a HUB_BOOT before the next rise)."""
+    if noisy(text):
+        return "BLOCKED", noise_msg(noisy(text))
+    me = motor_edges(text)
+    runs = on_runs(me)
+    if not runs:
+        return "BLOCKED", "no motor ON pulse recorded"
+    longest = max(r["dur"] for r in runs)
+    if longest > ON_MAX_US:
+        return "FAIL", "an ON run is %.1f ms (limit 400 ms)" % (longest / 1000.0)
+    boots = [e["idx"] for e in bench.events(text) if e["kind"] == "boot"]
+    rises = [e["idx"] for e in me if e["lvl"] == 1]
+    cut = []
+    for r in runs:
+        if abs(r["dur"] - ON_NOM) <= 2000:
+            continue
+        nxt = [i for i in rises if i > r["idx"]]
+        if any(r["fall_idx"] - 60 <= b and (not nxt or b < nxt[0]) for b in boots):
+            cut.append(r["dur"])
+    if len(cut) < need:
+        return "BLOCKED", "the watchdog cut only %d ON pulses (need %d); longest ON %.1f ms" % (len(cut), need, longest / 1000.0)
+    return "PASS", "%d ON pulses cut by the watchdog, %.1f..%.1f ms; longest ON of the run %.1f ms (limit 400 ms)" % (
+        len(cut), min(cut) / 1000.0, max(cut) / 1000.0, longest / 1000.0)
 
 
 def run_cal(a):
@@ -710,7 +747,7 @@ def run_tc29c(a):
 def analyze_any(text):
     """Result recording re-checks the log with the analyzer that belongs to it (motor cases here, node cases in s5_bench)."""
     case = bench.params(text).get("case", "")
-    return analyze_text(text) if case == "cal" or case.startswith(("tc29", "tc30")) else bench.analyze_text(text)
+    return analyze_text(text) if case in ("cal", "wdton") or case.startswith(("tc29", "tc30")) else bench.analyze_text(text)
 
 
 def cmd_result(a):
@@ -789,6 +826,28 @@ def run_tc30b(a):
         cap.note("STEP rearm %d" % (i + 1))
     time.sleep(0.5)
     v, msg = analyze_tc30b(bench.cap_text(path))
+    return finish_run(cap, rec, path, a, sha0, v, msg)
+
+
+def run_wdton(a):
+    """BUG-007 regression: repeat 'fault wdt' while the alert runs, shifting the hook by 70 ms each time so that the watchdog
+    (about 5 s after the hook) lands at different phases of the 1 s pattern; about 1 in 3 lands inside an ON pulse."""
+    cap, rec, path, sha0, err = setup_run(a, ["case=wdton repeats=%d" % a.repeats])
+    if err:
+        return bench.finish(cap, path, a, sha0, "BLOCKED", err)
+    cap.note("EXPECT every ON <= 400 ms; the watchdog cuts at least %d ON pulses (output low before the restart, M-08)" % WDTON_NEED)
+    cap.note("PARAM case=wdton repeats=%d need=%d" % (a.repeats, WDTON_NEED))
+    rec.send("RESET"); rec.wait_for(lambda l: l.strip() == "READY", 3)
+    for i in range(a.repeats):
+        arm_alert(cap)
+        sleep_note(cap, 2.0 + (i * 0.07) % 1.0, "alert running, wdt %d of %d" % (i + 1, a.repeats))
+        m = bench.mark(cap)
+        cap.send("fault wdt")
+        if bench.wait_line(cap, r"MSG msg_type=HUB_BOOT", m, 40)[0] is None:
+            return finish_run(cap, rec, path, a, sha0, "FAIL", "no HUB_BOOT within 40 s after fault wdt %d" % (i + 1))
+        time.sleep(3.0)
+    time.sleep(0.5)
+    v, msg = analyze_wdton(bench.cap_text(path))
     return finish_run(cap, rec, path, a, sha0, v, msg)
 
 
@@ -887,6 +946,13 @@ def main(argv=None):
         p.add_argument("--heartbeat", type=int)
         p.add_argument("--margin", type=int)
         p.set_defaults(fn=fn)
+    p = sub.add_parser("wdton")
+    p.add_argument("--tc", default="BUG-007")
+    p.add_argument("--hub", required=True)
+    p.add_argument("--rec", required=True)
+    p.add_argument("--rehearsal", action="store_true")
+    p.add_argument("--repeats", type=int, default=15)
+    p.set_defaults(fn=run_wdton)
     p = sub.add_parser("result")
     p.add_argument("--tc", required=True)
     p.add_argument("--result", required=True, choices=["PASS", "FAIL", "BLOCKED"])

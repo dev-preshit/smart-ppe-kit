@@ -431,11 +431,14 @@ class Tc30b(unittest.TestCase):
 
 
 def tc30c_log(no_key_ms=343, periods_before=6, periods_after=2, on=100000, off=100000, low=1800000, alert_pulse=False,
-              offline=True, final_alert="1", final_accept="0", key_line="1", cleanup=True):
+              offline=True, final_alert="1", final_accept="0", key_line="1", cleanup=True, early_rise=False):
     L = ["PARAM case=tc30c timeout_s=780", "PPE_HOOK fault key: restarting, the next start takes the fault path (one shot) t_ms=1",
-         boot_line(), fault_line("NO_KEY", no_key_ms)]
+         "HUB boot (S3 receive path)", boot_line(), fault_line("NO_KEY", no_key_ms)]
     t = 2000000
-    p, t = keypulses(t, periods_before, on, off, low); L += p
+    p, t = keypulses(t, periods_before, on, off, low)
+    if early_rise:                     # bench 1c18cc6: the recorder line of the first rise came before the hub's HUB_BOOT line
+        L.insert(3, p.pop(0))
+    L += p
     if offline: L.append("MSG msg_type=NODE_OFFLINE vest_id=1 node_id=2 state=OFFLINE last_seen_age_s=780 t_ms=780500")
     p, t = keypulses(t, periods_after, on, off, low); L += p
     if alert_pulse:
@@ -480,6 +483,10 @@ class Tc30c(unittest.TestCase):
     def test_the_cleanup_reboot_is_not_part_of_the_result(self):
         self.assertEqual(m.analyze_tc30c(tc30c_log(cleanup=True))[0], "PASS")
         self.assertEqual(m.analyze_tc30c(tc30c_log(cleanup=False))[0], "PASS")
+
+    def test_first_rise_logged_before_hub_boot_still_counts(self):
+        v, msg = m.analyze_tc30c(tc30c_log(early_rise=True))
+        self.assertEqual(v, "PASS", msg)
 
 
 def tc30d_log(first_off=780400, spread=0, nodes=(1, 2, 3, 4, 5), accept="0", reg="0", acc_after=False, early_motor=False, alert_runs=8,
@@ -537,6 +544,41 @@ class Tc30Dispatch(unittest.TestCase):
         self.assertEqual(m.analyze_text(tc30b_log())[0], "PASS")
         self.assertEqual(m.analyze_text(tc30c_log())[0], "PASS")
         self.assertEqual(m.analyze_text(tc30d_log())[0], "PASS")
+
+
+def wdton_log(cuts=5, cut_us=150000, extra_on=None):
+    """BUG-007 regression log: per repeat 3 normal alert pulses, then one ON cut by the watchdog and a HUB_BOOT."""
+    L = ["PARAM case=wdton repeats=%d need=5" % cuts]
+    t = 1000000
+    for _ in range(cuts):
+        for _ in range(3):
+            L += ["E %d 0 1" % t, "E %d 0 0" % (t + 300000)]
+            t += 1000000
+        L += ["E %d 0 1" % t, "E %d 0 0" % (t + cut_us), "Rebooting...", "HUB boot (S3 receive path)", boot_line(367, 6)]
+        t += 5000000
+    if extra_on:
+        L += ["E %d 0 1" % t, "E %d 0 0" % (t + extra_on)]
+    return "\n".join(L)
+
+
+class Wdton(unittest.TestCase):
+    def test_pass(self):
+        v, msg = m.analyze_wdton(wdton_log())
+        self.assertEqual(v, "PASS", msg)
+        self.assertEqual(m.analyze_text(wdton_log())[0], "PASS")
+
+    def test_too_few_cuts_is_blocked_not_pass(self):
+        self.assertEqual(m.analyze_wdton(wdton_log(cuts=4))[0], "BLOCKED")
+
+    def test_long_on_fails(self):
+        self.assertEqual(m.analyze_wdton(wdton_log(cut_us=401000))[0], "FAIL")
+        self.assertEqual(m.analyze_wdton(wdton_log(extra_on=538200))[0], "FAIL")
+
+    def test_cut_near_400_passes(self):
+        self.assertEqual(m.analyze_wdton(wdton_log(cut_us=330000))[0], "PASS")
+
+    def test_normal_pulses_are_not_counted_as_cuts(self):
+        self.assertEqual(m.analyze_wdton(wdton_log(cut_us=300500))[0], "BLOCKED")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 #include "hub_motor_out.h"
 #include "esp_timer.h"
 #include "esp_task_wdt.h"
+#include "soc/gpio_reg.h"
 #include "src/hub_config.h"
 
 static HubMotor g_motor;
@@ -9,8 +10,19 @@ static volatile bool g_alert_req = false, g_key_req = false;
 static volatile uint32_t g_trips_unreported = 0;
 static esp_timer_handle_t g_guard_timer = nullptr;
 
+static volatile bool g_force_low = false;      // set by the task watchdog ISR: the output stays low until the restart
+
 static inline uint32_t now_us() { return (uint32_t)esp_timer_get_time(); }
-static inline void drive() { digitalWrite(HUB_MOTOR_PIN, g_motor.output() ? HIGH : LOW); }   // call with g_mux held
+static inline void drive() { digitalWrite(HUB_MOTOR_PIN, (g_motor.output() && !g_force_low) ? HIGH : LOW); }   // call with g_mux held
+
+// M-08 / BUG-007: on a task watchdog timeout the panic handler prints for about half a second before the restart, and
+// neither the motor task nor the guard timer runs meanwhile. ESP-IDF calls this weak hook from the watchdog ISR before
+// the panic: drive the motor pin low by a direct register write (IRAM, no locks) and keep it low until the restart.
+static_assert(HUB_MOTOR_PIN < 32, "GPIO_OUT_W1TC_REG covers GPIO 0..31 only");
+extern "C" void IRAM_ATTR esp_task_wdt_isr_user_handler(void) {
+  g_force_low = true;
+  REG_WRITE(GPIO_OUT_W1TC_REG, 1UL << HUB_MOTOR_PIN);
+}
 
 void hub_motor_early_init() {
   pinMode(HUB_MOTOR_PIN, OUTPUT);
