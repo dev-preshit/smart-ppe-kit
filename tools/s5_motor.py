@@ -489,7 +489,16 @@ def analyze_tc30d(text):
         return "FAIL", "node %s was not OFFLINE %d..%d s after boot (boot t_ms %d, first OFFLINE %d)" % (late[0], timeout_s, timeout_s + 5, b[0]["t"], min(e["t"] for e in off))
     me = [e for e in motor_edges(text) if e["idx"] > b[0]["idx"]]
     first_off_idx = min(e["idx"] for e in off)
-    if [e for e in me if e["lvl"] == 1 and e["idx"] < first_off_idx]:
+    # Hub and recorder lines come from two ports and interleave with a skew of tens of ms: the rise that the OFFLINE starts
+    # can be logged just before the OFFLINE line. A rise is early only if its PC time is > 100 ms before the first OFFLINE.
+    lines_d = text.splitlines()
+    t_off = bench.pc_seconds(lines_d[first_off_idx])
+    def early(e):
+        if e["lvl"] != 1 or e["idx"] >= first_off_idx:
+            return False
+        t_e = bench.pc_seconds(lines_d[e["idx"]])
+        return t_e is None or t_off is None or t_e < t_off - 0.1
+    if [e for e in me if early(e)]:
         return "FAIL", "the motor switched on before any node was OFFLINE"
     runs = on_runs([e for e in me if e["idx"] > first_off_idx - 1])
     if len(runs) < 5 or not alert_runs_ok(runs):

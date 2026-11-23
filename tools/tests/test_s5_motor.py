@@ -506,10 +506,32 @@ def tc30d_log(first_off=780400, spread=0, nodes=(1, 2, 3, 4, 5), accept="0", reg
     return "\n".join(L)
 
 
+def tc30d_stamped(rise_before_s):
+    """tc30d_log with PC stamps; the first alert rise is moved in front of the first OFFLINE line, rise_before_s earlier."""
+    import datetime
+    L = tc30d_log().splitlines()
+    off = next(i for i, l in enumerate(L) if "NODE_OFFLINE" in l)
+    rise = next(i for i, l in enumerate(L) if i > off and l.endswith(" 0 1"))
+    t0 = datetime.datetime(2026, 11, 23, 21, 0, 0)
+    out = ["%s | %s" % ((t0 + datetime.timedelta(seconds=i * 0.02)).isoformat(timespec="milliseconds"), l) for i, l in enumerate(L)]
+    t_off = t0 + datetime.timedelta(seconds=off * 0.02)
+    moved = "%s | %s" % ((t_off - datetime.timedelta(seconds=rise_before_s)).isoformat(timespec="milliseconds"), L[rise])
+    del out[rise]
+    out.insert(off, moved)
+    return "\n".join(out)
+
+
 class Tc30d(unittest.TestCase):
     def test_pass(self):
         v, msg = m.analyze_tc30d(tc30d_log())
         self.assertEqual(v, "PASS", msg)
+
+    def test_rise_logged_just_before_offline_is_not_early(self):     # bench f971297: recorder line 9 ms ahead of the hub line
+        v, msg = m.analyze_tc30d(tc30d_stamped(0.009))
+        self.assertEqual(v, "PASS", msg)
+
+    def test_rise_well_before_offline_is_early(self):
+        self.assertEqual(m.analyze_tc30d(tc30d_stamped(5.0))[0], "FAIL")
 
     def test_offline_window(self):
         self.assertEqual(m.analyze_tc30d(tc30d_log(first_off=779900))[0], "FAIL")
