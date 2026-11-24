@@ -1,0 +1,19 @@
+# tc=TC-26
+# sha=8c0e421
+# date=2026-11-24T21:49:05.863
+# tool=s5_host_evidence.py
+# mode=evidence
+# command=make test (test/host), make exit=0
+# equipment=host only (no hardware); evidence for the host part (level U), decision D6/A-35
+TEST	TC-26	h01_boot_every_node_unknown_no_alert_no_message	PASS	checks=15
+TEST	TC-26	packet_transitions_h02_h03_h05_h06_h08_h09_h11_h12	PASS	checks=104
+TEST	TC-26	timeouts_h04_h07_h10_each_start_state_goes_offline_once	PASS	checks=20
+TEST	TC-26	h13_offline_node_gives_no_repeated_message	PASS	checks=5
+TEST	TC-26	only_accepted_packets_change_state_or_last_seen	PASS	checks=13
+TEST	TC-26	reload_after_a_run_gives_unknown_again	PASS	checks=20
+TEST	TC-26	random_walk_matches_independent_model_and_never_returns_to_unknown	PASS	checks=212278
+SUMMARY	tests=162	failed=0	checks=262878
+# release_check: no hook symbols
+# release_check PASS: no hook strings in the release objects
+VERDICT PASS TC-26: 7 tests tagged, 0 not PASS; whole suite 162 tests, failed=0, checks=262878
+# RESULT,PASS,2026-11-24T21:49:16.403,7 tests, suite 162/0
