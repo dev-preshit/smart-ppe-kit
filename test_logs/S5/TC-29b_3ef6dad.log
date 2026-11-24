@@ -1,0 +1,103 @@
+# tc=TC-29b
+# sha=3ef6dad
+# date=2026-11-24T21:30:49.454
+# tool=s5_bench.py (capture through tools/logger.py)
+# mode=evidence
+# alternative equipment: no EQ-05 power switch and no skiptx; the spare ESP32-C3 running tools/injector acts as the node; the hub is reset by the USB reset line or its RST button (decisions A-33, A-37)
+# fw_check=ok hub=272acb3e common=f27ca4fc
+# case=tc29b
+2026-11-24T21:30:50.488 | TX PING
+2026-11-24T21:30:50.539 | PONG
+2026-11-24T21:30:50.550 | TX dump
+2026-11-24T21:30:50.578 | FW hub=272acb3e common=f27ca4fc dirty=0 hooks=1
+2026-11-24T21:30:50.578 | DUMP begin t_ms=1907392
+2026-11-24T21:30:50.578 | DUMP hub vest=0x01 accept_enabled=1 registry_ok=1 vest_state=COMPLIANT alert_active=0 heartbeat_s=360 margin_s=60 offline_timeout_s=780 msg_pending=0 msg_dropped=0
+2026-11-24T21:30:50.601 | DUMP global rx_total=36078 drop_len=36071 drop_ver=0 drop_vest=0 drop_node=0 drop_state=0 scan_quiet_60s=0
+2026-11-24T21:30:50.601 | DUMP queue fill=0 depth=64 max_fill=1 queue_full=0 callbacks_seen=36078 (=rx_total+queue_full)
+2026-11-24T21:30:50.623 | DUMP node=1 state=WORN last_counter=62643 last_seen_ms=1832169 accepted=1 dup=0 replay=0 gap=103 hmac_fail=0 battery=90 flags=0x60
+2026-11-24T21:30:50.623 | DUMP node=2 state=WORN last_counter=62663 last_seen_ms=1899678 accepted=3 dup=0 replay=0 gap=120 hmac_fail=0 battery=90 flags=0x60
+2026-11-24T21:30:50.645 | DUMP node=3 state=WORN last_counter=62645 last_seen_ms=1833775 accepted=1 dup=0 replay=0 gap=103 hmac_fail=0 battery=90 flags=0x60
+2026-11-24T21:30:50.645 | DUMP node=4 state=WORN last_counter=62646 last_seen_ms=1834578 accepted=1 dup=0 replay=0 gap=103 hmac_fail=0 battery=90 flags=0x60
+2026-11-24T21:30:50.667 | DUMP node=5 state=WORN last_counter=62647 last_seen_ms=1835371 accepted=1 dup=0 replay=0 gap=155 hmac_fail=0 battery=90 flags=0x60
+2026-11-24T21:30:50.667 | DUMP persist pending=0 writes=7 write_fails=0 dropped=0 last_us=2812 max_us=24995 avg_us=5979
+2026-11-24T21:30:50.667 | DUMP proc count=36078 last_us=21 max_us=6279 avg_us=23 over_10ms=0
+2026-11-24T21:30:50.774 | DUMP scan restarts=0 consecutive_fails=0
+2026-11-24T21:30:50.774 | DUMP end
+2026-11-24T21:30:50.803 | EXPECT no motor edge from the reset until 60 s after HUB_BOOT; all nodes UNKNOWN, alert_active=0
+2026-11-24T21:30:50.834 | TX inject 14ffffff600101015a2cf5000013cc3ac3206c650f
+2026-11-24T21:30:50.867 | E 1926330094 1 1
+2026-11-24T21:30:50.868 | E 1926331114 1 0
+2026-11-24T21:30:50.976 | ACC t_ms=1907685 t_us=1907685759 node=1 ctr=62764 state=1 batt=90 flags=0x60 missed=120 prev=WORN now=WORN
+2026-11-24T21:30:50.977 | PPE_HOOK inject len=21 queued
+2026-11-24T21:30:51.635 | TX inject 14ffffff600102015a2df50000a6e3b443dafffb6a
+2026-11-24T21:30:51.742 | E 1927123087 1 1
+2026-11-24T21:30:51.742 | E 1927124103 1 0
+2026-11-24T21:30:51.757 | ACC t_ms=1908478 t_us=1908478765 node=2 ctr=62765 state=1 batt=90 flags=0x60 missed=101 prev=WORN now=WORN
+2026-11-24T21:30:51.757 | PPE_HOOK inject len=21 queued
+2026-11-24T21:30:52.436 | TX inject 14ffffff600103015a2ef50000ec1f53ef30fd18c2
+2026-11-24T21:30:52.506 | E 1927926071 1 1
+2026-11-24T21:30:52.506 | E 1927927089 1 0
+2026-11-24T21:30:52.567 | ACC t_ms=1909281 t_us=1909281764 node=3 ctr=62766 state=1 batt=90 flags=0x60 missed=120 prev=WORN now=WORN
+2026-11-24T21:30:52.567 | PPE_HOOK inject len=21 queued
+2026-11-24T21:30:53.237 | TX inject 14ffffff600104015a2ff50000a6d47513af573a1d
+2026-11-24T21:30:53.270 | E 1928729057 1 1
+2026-11-24T21:30:53.270 | E 1928730073 1 0
+2026-11-24T21:30:53.363 | ACC t_ms=1910084 t_us=1910084759 node=4 ctr=62767 state=1 batt=90 flags=0x60 missed=120 prev=WORN now=WORN
+2026-11-24T21:30:53.363 | PPE_HOOK inject len=21 queued
+2026-11-24T21:30:54.038 | TX inject 14ffffff600105015a30f50000a9c7ef740b31c917
+2026-11-24T21:30:54.142 | E 1929532037 1 1
+2026-11-24T21:30:54.142 | E 1929533053 1 0
+2026-11-24T21:30:54.172 | ACC t_ms=1910887 t_us=1910887752 node=5 ctr=62768 state=1 batt=90 flags=0x60 missed=120 prev=WORN now=WORN
+2026-11-24T21:30:54.172 | PPE_HOOK inject len=21 queued
+2026-11-24T21:30:56.339 | PARAM case=tc29b observe_s=0
+2026-11-24T21:30:56.340 | TX RESET
+2026-11-24T21:30:56.442 | READY
+2026-11-24T21:30:56.443 | STEP reset the hub by the USB RTS line
+2026-11-24T21:30:56.443 | TX reset (USB RTS line, 100 ms)
+2026-11-24T21:30:56.677 | ESP-ROM:esp32s3-20210327
+2026-11-24T21:30:56.677 | Build:Mar 27 2021
+2026-11-24T21:30:56.678 | rst:0x1 (POWERON),boot:0x8 (SPI_FAST_FLASH_BOOT)
+2026-11-24T21:30:56.678 | SPIWP:0xee
+2026-11-24T21:30:56.678 | mode:DIO, clock div:1
+2026-11-24T21:30:56.678 | load:0x3fce2820,len:0x10cc
+2026-11-24T21:30:56.678 | load:0x403c8700,len:0xc2c
+2026-11-24T21:30:56.678 | load:0x403cb700,len:0x30b0
+2026-11-24T21:30:56.678 | entry 0x403c88b8
+2026-11-24T21:30:57.047 | 
+2026-11-24T21:30:57.048 | HUB boot (S3 receive path)
+2026-11-24T21:30:57.048 | FW hub=272acb3e common=f27ca4fc dirty=0 hooks=1
+2026-11-24T21:30:57.048 | BOOT reset_reason=1
+2026-11-24T21:30:57.048 | BOOT registry_ok=1 accept_enabled=1 vest=0x01
+2026-11-24T21:30:57.048 | BOOT node 1 last_counter=62764 state=UNKNOWN
+2026-11-24T21:30:57.048 | BOOT node 2 last_counter=62765 state=UNKNOWN
+2026-11-24T21:30:57.224 | BOOT node 3 last_counter=62766 state=UNKNOWN
+2026-11-24T21:30:57.224 | BOOT node 4 last_counter=62767 state=UNKNOWN
+2026-11-24T21:30:57.224 | BOOT node 5 last_counter=62768 state=UNKNOWN
+2026-11-24T21:30:57.224 | MSG msg_type=HUB_BOOT vest_id=1 reset_reason=1 fw=s5-hub-logic t_ms=366
+2026-11-24T21:30:57.224 | BOOT scan started=1 interval=100 ms window=100 ms
+2026-11-24T21:30:57.224 | HUB running=1
+2026-11-24T21:31:00.240 | TX dump
+2026-11-24T21:31:00.270 | FW hub=272acb3e common=f27ca4fc dirty=0 hooks=1
+2026-11-24T21:31:00.270 | DUMP begin t_ms=3562
+2026-11-24T21:31:00.270 | DUMP hub vest=0x01 accept_enabled=1 registry_ok=1 vest_state=NON_COMPLIANT alert_active=0 heartbeat_s=360 margin_s=60 offline_timeout_s=780 msg_pending=0 msg_dropped=0
+2026-11-24T21:31:00.292 | DUMP global rx_total=55 drop_len=55 drop_ver=0 drop_vest=0 drop_node=0 drop_state=0 scan_quiet_60s=0
+2026-11-24T21:31:00.292 | DUMP queue fill=0 depth=64 max_fill=1 queue_full=0 callbacks_seen=55 (=rx_total+queue_full)
+2026-11-24T21:31:00.314 | DUMP node=1 state=UNKNOWN last_counter=62764 last_seen_ms=341 accepted=0 dup=0 replay=0 gap=0 hmac_fail=0 battery=0 flags=0x00
+2026-11-24T21:31:00.314 | DUMP node=2 state=UNKNOWN last_counter=62765 last_seen_ms=341 accepted=0 dup=0 replay=0 gap=0 hmac_fail=0 battery=0 flags=0x00
+2026-11-24T21:31:00.336 | DUMP node=3 state=UNKNOWN last_counter=62766 last_seen_ms=341 accepted=0 dup=0 replay=0 gap=0 hmac_fail=0 battery=0 flags=0x00
+2026-11-24T21:31:00.336 | DUMP node=4 state=UNKNOWN last_counter=62767 last_seen_ms=341 accepted=0 dup=0 replay=0 gap=0 hmac_fail=0 battery=0 flags=0x00
+2026-11-24T21:31:00.473 | DUMP node=5 state=UNKNOWN last_counter=62768 last_seen_ms=341 accepted=0 dup=0 replay=0 gap=0 hmac_fail=0 battery=0 flags=0x00
+2026-11-24T21:31:00.474 | DUMP persist pending=0 writes=0 write_fails=0 dropped=0 last_us=0 max_us=0 avg_us=0
+2026-11-24T21:31:00.474 | DUMP proc count=55 last_us=20 max_us=55 avg_us=24 over_10ms=0
+2026-11-24T21:31:00.474 | DUMP scan restarts=0 consecutive_fails=0
+2026-11-24T21:31:00.474 | DUMP end
+2026-11-24T21:31:00.493 | STEP observing the motor pin after boot, 62 s left
+2026-11-24T21:31:15.493 | STEP observing the motor pin after boot, 47 s left
+2026-11-24T21:31:30.494 | STEP observing the motor pin after boot, 32 s left
+2026-11-24T21:31:45.495 | STEP observing the motor pin after boot, 17 s left
+2026-11-24T21:32:00.496 | STEP observing the motor pin after boot, 2 s left
+2026-11-24T21:32:02.494 | TX STAT
+2026-11-24T21:32:02.566 | STAT a=0 b=0 total=0 dropped=0 t_us=1997977010
+2026-11-24T21:32:02.994 | PARAM case=tc29b observe_s=65
+2026-11-24T21:32:03.060 | VERDICT PASS no motor edge from the reset to 65 s after HUB_BOOT, all nodes UNKNOWN, alert_active=0
+# RESULT,PASS,2026-11-24T21:45:40.876,USB-line reset: no motor edge to 65 s after HUB_BOOT, all UNKNOWN
