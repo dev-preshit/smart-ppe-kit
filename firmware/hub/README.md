@@ -1,4 +1,4 @@
-# Vest Hub (ESP32-S3), sprint S3: receive path and persistence
+# Vest Hub (ESP32-S3): sprint S3 receive path and persistence, sprint S5 OFFLINE, compliance, motor and faults
 
 Scope of S3: BLE scan, receive pipeline (spec section 2), 5-slot registry, diagnostic counters, `last_counter` in NVS,
 scan supervisor (FR-21), bench test hooks. Out of scope here: compliance, motor, faults (S5), provisioning (S6),
@@ -208,8 +208,51 @@ need the same scheme; no custom partition table exists in the repo yet.
 Measured with `arduino-cli compile --warnings more`. Static RAM only; heap at run time is not included.
 The Wi-Fi build is over the 90 % mark: the S7 uplink will need a larger app partition or the Wi-Fi code trimmed.
 
+## Sprint S5: OFFLINE detection, compliance, motor and faults
+
+S5 adds node timeout (OFFLINE), the hub messages (COMPLIANCE, NODE_OFFLINE, HUB_BOOT, HUB_FAULT), the motor pattern with its
+independent guard, and the fault paths. Decisions D1 to D8 and A-33..A-44 are in `docs/CHANGES.md`; the S5 evidence is in
+`test_logs/S5/` and `test_logs/summary_s5.csv`.
+
+| Path | Role |
+|---|---|
+| `src/hub_motor.*` | Pure C++: motor pattern FSM (state machines 2.6, M-01..M-13) and the independent guard (M-05) |
+| `src/hub_msg.*` | Pure C++: hub messages (spec 10, 10.1) and the sink interface; S5 sink = one serial line per message |
+| `hub_motor_out.*` | Motor task (priority 12, 1 ms), guard esp_timer (1 ms, own context), task watchdog ISR drives the pin low (BUG-007) |
+
+* Timeout = 2 x `HEARTBEAT_S` + `OFFLINE_MARGIN_S` (defaults 360 s and 60 s = 780 s), checked once per second from `last_seen`.
+* Motor: alert ON 300 ms / OFF 700 ms; KEY_FAULT 3 x (100 ms ON, 100 ms OFF) then rest, low time after the third ON 1800 ms (D5).
+  The guard forces the pin low 395 ms after an ON edge (A-39; the pass rule stays ON <= 400 ms). A safe off before a restart keeps
+  the pin low until the restart (BUG-008).
+* Motor wiring (owner, A-40): hub GPIO 5 -> 980 ohm -> 2N2222 base; motor and 1N4007 on the collector; common ground. Never drive the
+  motor from a GPIO directly. There is no pull-down on the base: during a reset the pin is held low by nothing (residual risk).
+* No key at start-up: B-04 in state_machines_v1 (HUB_FAULT NO_KEY, KEY_FAULT motor pattern); the S3 word `REFUSE` above is replaced by that path.
+* Every boot prints a firmware identity line; the bench drivers stop when it does not match HEAD (A-41). `tools/s5_build.py` builds
+  and flashes the hub on COM3 only.
+
+S5 hooks (bench build only), in addition to the S3 table:
+
+| Command | Effect |
+|---|---|
+| `set margin <s>` / `set heartbeat <s>` | OFFLINE_MARGIN_S 0..300, HEARTBEAT_S 60..3600 (D2) |
+| `motor` | Motor and alert state |
+| `marker on\|off` | Pulse GPIO 6 on every accepted packet (edge recorder reference) |
+| `pulse <on_ms> <off_ms> <n>` | Known pulse train on GPIO 6 (recorder calibration) |
+| `fault wdt\|nvs-read\|nvs-write\|registry\|key\|guard` | Fault injection for TC-30 and TC-74 |
+
+S5 bench drivers (D8 alternative equipment: a spare ESP32-C3 as injector on COM4 and one as edge recorder on COM8):
+
+```powershell
+python tools\s5_bench.py offline --tc TC-27a --case default --hub COM3 --inj COM4     # TC-27 a/b/c, TC-31 (boot)
+python tools\s5_motor.py cal --hub COM3 --rec COM8                                    # recorder calibration first
+python tools\s5_motor.py tc29a --tc TC-29a --hub COM3 --rec COM8                      # TC-29 a/b/c, TC-30 a..d, TC-74
+python tools\s5_host_evidence.py run --tc TC-26                                       # TC-26, TC-28 host evidence (D6)
+```
+
+Recorder wiring: recorder GPIO 4 <- hub GPIO 5 (before the base resistor), recorder GPIO 3 <- hub GPIO 6, GND common.
+
 ## Known limits (open for later sprints)
 
-* Node state is only `UNKNOWN`/`NOT_WORN`/`WORN` here; OFFLINE, compliance, motor and `HUB_FAULT` are S5/S7 (the scan-stall reboot only leaves a fault code in RTC memory and a log line).
+* OFFLINE, compliance, motor and `HUB_FAULT` are done in S5 (section above); the uplink of the hub messages (queue, `hub_seq`, JSON) is S7.
 * Persisting after dispatch means a reset within about 2 s of the last accepted packet can forget that counter (spec 6.2); a lost write is counted (`write_fails`, `dropped`) and not retried in a loop.
 * The pipeline, registry and counters are protected by one mutex that the rx task holds only while a packet is processed.

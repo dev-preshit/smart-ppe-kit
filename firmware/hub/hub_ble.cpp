@@ -3,6 +3,8 @@
 #include "esp_timer.h"
 #include "esp_system.h"
 #include "hub_nvs.h"
+#include "hub_motor_out.h"
+#include "esp_task_wdt.h"
 #include "src/hub_scan_supervisor.h"
 #include "src/hub_msg.h"
 #ifdef PPE_TEST_HOOKS
@@ -36,7 +38,7 @@ class SerialSink : public HubSink {
   void emit(const HubMsg& m) override {
     char b[200];
     hub_msg_format(m, b, sizeof b);
-    Serial.println(b);
+    Serial.printf("%s\r\n", b);        // one write call: lines of two tasks never interleave
   }
 };
 static SerialSink g_serial_sink;
@@ -63,6 +65,11 @@ RTC_NOINIT_ATTR static uint32_t g_rtc_magic;
 RTC_NOINIT_ATTR static uint32_t g_rtc_fault;
 static const uint32_t kRtcMagic = 0x50504530u;   // "PPE0"
 static const uint32_t kFaultScanStall = 1;
+#ifdef PPE_TEST_HOOKS
+RTC_NOINIT_ATTR static uint32_t g_rtc_force_magic;
+RTC_NOINIT_ATTR static uint32_t g_rtc_force;
+static const uint32_t kForceMagic = 0x50464F31u;   // \"PFO1\"
+#endif
 
 // ---- BLE callback: copy and queue, nothing else (state machine P-01) -----------------------------------------
 class RxScanCb : public NimBLEScanCallbacks {
@@ -113,7 +120,12 @@ static void process_entry(const RxEntry& e) {
   uint32_t now_ms = (uint32_t)(esp_timer_get_time() / 1000);
   xSemaphoreTake(g_pipe_mx, portMAX_DELAY);
   HubResult r = g_pipe.process(e.data, e.len, e.nonconn != 0, now_ms);
+  const bool alert = g_pipe.alert_active();
   xSemaphoreGive(g_pipe_mx);
+#ifdef PPE_TEST_HOOKS
+  if (r.verdict == HUB_V_ACCEPT) hub_marker_pulse();                           // bench marker: the accepted-packet point
+#endif
+  if (r.verdict == HUB_V_ACCEPT) hub_motor_set_alert(alert);                  // X-R1: node FSM, compliance, then the motor decision
   if (r.verdict == HUB_V_ACCEPT) hub_persist_enqueue(r.node_id, r.counter);   // after dispatch, never inline
   uint32_t dt = (uint32_t)((uint64_t)esp_timer_get_time() - e.us);            // callback entry -> dispatched
   g_rx.count = g_rx.count + 1;
@@ -127,13 +139,22 @@ static void process_entry(const RxEntry& e) {
 
 // ---- offline tick (FR-27, spec 8.2): evaluated every HUB_TICK_MS, independent of the scan and of Wi-Fi ----------
 static void tick_task(void*) {
+  esp_task_wdt_add(NULL);                              // X-02
+  uint32_t reported_write_fails = 0;
   TickType_t last = xTaskGetTickCount();
   for (;;) {
     vTaskDelayUntil(&last, pdMS_TO_TICKS(HUB_TICK_MS));
+    esp_task_wdt_reset();
     xSemaphoreTake(g_pipe_mx, portMAX_DELAY);
-    g_pipe.tick((uint32_t)(esp_timer_get_time() / 1000));   // clock read inside the lock: no packet can be stamped after it
+    const uint32_t now_ms = (uint32_t)(esp_timer_get_time() / 1000);   // clock read inside the lock: no packet can be stamped after it
+    g_pipe.tick(now_ms);
+    for (uint32_t n = hub_motor_take_guard_trips(); n > 0; n--) g_pipe.note_fault(HUB_FAULT_GUARD, now_ms);   // M-05 -> HUB_FAULT (GUARD)
+    const uint32_t wf = hub_persist_writes_failed();                                  // X-05: counted, RAM counters stay authoritative
+    if (wf > reported_write_fails) { reported_write_fails = wf; g_pipe.note_fault(HUB_FAULT_NVS_WRITE, now_ms); }
+    const bool alert = g_pipe.alert_active();
     xSemaphoreGive(g_pipe_mx);
-    emit_pending();                                    // NODE_OFFLINE and COMPLIANCE lines
+    hub_motor_set_alert(alert);                        // OFFLINE starts the alert, a node that recovered stops it
+    emit_pending();                                    // NODE_OFFLINE, COMPLIANCE and HUB_FAULT lines
   }
 }
 
@@ -182,8 +203,9 @@ static void supervisor_task(void*) {
       Serial.printf("SCAN reboot t_ms=%lu after %lu failed restarts\n", (unsigned long)now_ms,
                     (unsigned long)g_sup.consecutive_fails());
       Serial.flush();
+      hub_motor_safe_off();            // M-08: output low before the restart
       g_rtc_magic = kRtcMagic;
-      g_rtc_fault = kFaultScanStall;   // logged after the reboot; the HUB_FAULT uplink is S7
+      g_rtc_fault = kFaultScanStall;   // reported as HUB_FAULT (SCAN_STALL) after HUB_BOOT (X-07)
       delay(50);
       ESP.restart();
     }
@@ -191,25 +213,39 @@ static void supervisor_task(void*) {
 }
 
 // ---- start ------------------------------------------------------------------------------------------------------
-bool hub_ble_start(uint8_t vest_id, const uint8_t* key32, HubStore* store) {
+bool hub_ble_start(uint8_t vest_id, const uint8_t* key32, HubStore* store, bool params_ok) {
+  uint8_t rtc_fault = 0;                               // X-07: the fault the previous run stored before it rebooted the chip
   if (g_rtc_magic == kRtcMagic) {
+    rtc_fault = (uint8_t)g_rtc_fault;
     Serial.printf("BOOT previous run ended with fault code %lu (1 = scan stall reboot)\n", (unsigned long)g_rtc_fault);
     g_rtc_magic = 0;
   }
-  Serial.printf("BOOT reset_reason=%d\n", (int)esp_reset_reason());
+  const esp_reset_reason_t rr = esp_reset_reason();
+  const bool wdt_reset = (rr == ESP_RST_TASK_WDT || rr == ESP_RST_INT_WDT || rr == ESP_RST_WDT);
+  Serial.printf("BOOT reset_reason=%d\n", (int)rr);
+  esp_task_wdt_config_t wcfg = {};                     // B-05: task watchdog started; a miss panics and resets (reason TASK_WDT)
+  wcfg.timeout_ms = HUB_TWDT_MS; wcfg.idle_core_mask = 0; wcfg.trigger_panic = true;
+  if (esp_task_wdt_reconfigure(&wcfg) != ESP_OK) esp_task_wdt_init(&wcfg);
   g_pipe_mx = xSemaphoreCreateMutex();
   g_rxq = xQueueCreate(HUB_RX_QUEUE_DEPTH, sizeof(RxEntry));
   if (!g_pipe_mx || !g_rxq) { Serial.println("ERROR queue or mutex allocation failed"); return false; }
 
-  if (!g_pipe.init(vest_id, key32)) { Serial.println("ERROR pipeline init refused"); return false; }
+  const bool key_ok = (key32 != nullptr);
+  if (!(key_ok ? g_pipe.init(vest_id, key32) : g_pipe.init_no_key(vest_id))) { Serial.println("ERROR pipeline init refused"); return false; }
   bool reg = g_pipe.load_registry(store, (uint32_t)(esp_timer_get_time() / 1000));
   Serial.printf("BOOT registry_ok=%d accept_enabled=%d vest=0x%02X\n", reg, g_pipe.accept_enabled(), vest_id);
   for (uint8_t i = 1; i <= HUB_NODE_SLOTS; i++)
     Serial.printf("BOOT node %u last_counter=%lu state=%s\n", i, (unsigned long)g_pipe.node(i).last_counter,
                   hub_node_state_name(g_pipe.node(i).state));
 
-  g_pipe.note_boot((uint32_t)esp_reset_reason(), (uint32_t)(esp_timer_get_time() / 1000));   // B-05: HUB_BOOT first
-  emit_pending();
+  const uint32_t boot_ms = (uint32_t)(esp_timer_get_time() / 1000);
+  g_pipe.note_boot((uint32_t)rr, boot_ms);              // B-05: HUB_BOOT first, then the faults of this start in the B-05 order
+  HubBootInfo bi = {rtc_fault, wdt_reset, key_ok, reg, params_ok};
+  uint8_t faults[4];
+  for (uint32_t i = 0, n = hub_boot_faults(bi, faults); i < n; i++) g_pipe.note_fault(faults[i], boot_ms);
+  emit_pending();                                      // HUB_BOOT and the fault lines go out at once (NO_KEY within 2 s of boot, B-04)
+  if (!key_ok) hub_motor_set_key_fault(true);          // B-05c: the KEY_FAULT pattern from the first millisecond of the motor task
+  hub_motor_start();                                   // motor task and the independent guard (output stays low until an alert)
   xTaskCreate(rx_task, "ppe_rx", 6144, nullptr, 10, nullptr);
   xTaskCreate(tick_task, "ppe_tick", 4096, nullptr, 4, nullptr);
 
@@ -225,6 +261,13 @@ bool hub_ble_start(uint8_t vest_id, const uint8_t* key32, HubStore* store) {
   Serial.printf("BOOT scan started=%d interval=%u ms window=%u ms\n", ok, (unsigned)HUB_SCAN_INTERVAL_MS, (unsigned)HUB_SCAN_WINDOW_MS);
   xTaskCreate(supervisor_task, "ppe_sup", 4096, nullptr, 3, nullptr);
   return ok;
+}
+
+void hub_apply_params(uint32_t heartbeat_s, uint32_t margin_s) {
+  xSemaphoreTake(g_pipe_mx, portMAX_DELAY);
+  const bool ok = g_pipe.set_offline_timing(heartbeat_s, margin_s);   // out of bounds: refused, the defaults stay
+  xSemaphoreGive(g_pipe_mx);
+  Serial.printf("BOOT params heartbeat_s=%lu margin_s=%lu %s\n", (unsigned long)heartbeat_s, (unsigned long)margin_s, ok ? "applied" : "REFUSED(out of bounds)");
 }
 
 HubPipeline& hub_pipeline() { return g_pipe; }
@@ -296,6 +339,55 @@ static void set_timing(bool margin, uint32_t v) {
 }
 void hub_hook_set_margin(uint32_t s) { set_timing(true, s); }
 void hub_hook_set_heartbeat(uint32_t s) { set_timing(false, s); }
+
+static void restart_with_force(uint32_t flag, const char* what) {
+  Serial.printf("PPE_HOOK fault %s: restarting, the next start takes the fault path (one shot) t_ms=%lu\n", what,
+                (unsigned long)(esp_timer_get_time() / 1000));
+  Serial.flush();
+  hub_motor_safe_off();                                // M-08
+  g_rtc_force = flag;
+  g_rtc_force_magic = kForceMagic;
+  delay(50);
+  ESP.restart();
+}
+
+static void wdt_fault_task(void*) {                    // subscribes to the task watchdog and never feeds it
+  esp_task_wdt_add(NULL);
+  Serial.printf("PPE_HOOK fault wdt: a task stopped feeding the watchdog, reset in about %lu ms t_ms=%lu\n", (unsigned long)HUB_TWDT_MS,
+                (unsigned long)(esp_timer_get_time() / 1000));
+  for (;;) vTaskDelay(pdMS_TO_TICKS(1000));
+}
+
+void hub_hook_fault(uint8_t which) {
+  switch (which) {
+    case 1: xTaskCreate(wdt_fault_task, "ppe_wdtf", 3072, nullptr, 2, nullptr); break;
+    case 2: restart_with_force(HUB_FORCE_PARAMS, "nvs-read"); break;
+    case 3: {
+      hub_nvs_force_write_fail(1);
+      xSemaphoreTake(g_pipe_mx, portMAX_DELAY);
+      const uint32_t c = g_pipe.node(1).last_counter;
+      xSemaphoreGive(g_pipe_mx);
+      hub_persist_enqueue(1, c);                       // one write of an unchanged value: it fails, X-05 counts it and reports NVS_WRITE
+      Serial.printf("PPE_HOOK fault nvs-write: the next NVS write fails t_ms=%lu\n", (unsigned long)(esp_timer_get_time() / 1000));
+      break;
+    }
+    case 4: restart_with_force(HUB_FORCE_REGISTRY, "registry"); break;
+    case 5: restart_with_force(HUB_FORCE_NO_KEY, "key"); break;
+    case 6:
+      hub_motor_fault_guard();
+      Serial.printf("PPE_HOOK fault guard: while the motor is ON the pattern task stalls for 1.5 s (needs an active alert) t_ms=%lu\n",
+                    (unsigned long)(esp_timer_get_time() / 1000));
+      break;
+    default: break;
+  }
+}
+
+uint32_t hub_take_boot_forces() {
+  uint32_t f = (g_rtc_force_magic == kForceMagic) ? g_rtc_force : 0;
+  g_rtc_force_magic = 0;
+  g_rtc_force = 0;
+  return f;
+}
 
 void hub_hook_time_now() {
   Serial.printf("PPE_HOOK time t_ms=%lu t_us=%llu\n", (unsigned long)(esp_timer_get_time() / 1000), (unsigned long long)esp_timer_get_time());

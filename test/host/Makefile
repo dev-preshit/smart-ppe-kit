@@ -13,8 +13,8 @@ TESTSRC  := ppe_test_main.cpp sha256_portable.cpp test_proto.cpp test_filter.cpp
             test_sense.cpp test_confirm.cpp test_rtcctx.cpp test_hooks.cpp \
             test_hub_pipeline.cpp test_hub_persist.cpp test_hub_scan.cpp test_hub_hooks.cpp test_hub_tc.cpp
 # S5 hub logic (own lines so a merge with the S4 node test list stays trivial)
-HUBLIB   += $(HUB)/hub_msg.cpp
-TESTSRC  += test_hub_fsm.cpp test_hub_compliance.cpp test_hub_offline.cpp test_hub_msg.cpp
+HUBLIB   += $(HUB)/hub_msg.cpp $(HUB)/hub_motor.cpp
+TESTSRC  += test_hub_fsm.cpp test_hub_compliance.cpp test_hub_offline.cpp test_hub_msg.cpp test_hub_motor.cpp test_hub_faults.cpp
 BIN      := build/ppe_host_tests
 
 .PHONY: test list clean release_check release_check_node
@@ -26,7 +26,7 @@ release_check: release_check_node $(wildcard $(HUB)/*.cpp) $(wildcard $(HUB)/*.h
 	@mkdir -p build
 	$(CXX) -std=c++11 -Wall -Wextra -Werror -I$(SRC) -I$(HUB) -c $(HUB)/hub_hooks.cpp -o build/rel_hooks.o
 	$(CXX) -std=c++11 -Wall -Wextra -Werror -I$(SRC) -I$(HUB) -c $(HUB)/hub_dump.cpp -o build/rel_dump.o
-	@if strings build/rel_hooks.o build/rel_dump.o | grep -E "rxlog|PPE_HOOK|DUMP|inject|stall|margin|heartbeat" ; then echo "release_check FAIL: hook strings in the release objects"; exit 1; else echo "release_check PASS: no hook strings in the release objects"; fi
+	@if strings build/rel_hooks.o build/rel_dump.o | grep -E "rxlog|PPE_HOOK|DUMP|inject|stall|margin|heartbeat|MOTOR|marker|pulse" ; then echo "release_check FAIL: hook strings in the release objects"; exit 1; else echo "release_check PASS: no hook strings in the release objects"; fi
 # TC-78: a build without -DPPE_TEST_HOOKS must contain no hook code (node side).
 release_check_node:
 	@mkdir -p build

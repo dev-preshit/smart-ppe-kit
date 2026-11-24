@@ -24,3 +24,24 @@
 #define HUB_TICK_MS             1000u     // spec 8.2: timeout evaluated at least once per second
 #define HUB_MSG_QUEUE_DEPTH     16u       // pending hub messages between the pipeline and the sink
 #define HUB_FW_ID               "s5-hub-logic"
+
+// S5 part 2: motor timing (state machines 2.6, spec 8.3, FR-29, FR-30, NFR-05)
+#define HUB_MOTOR_ON_US        300000u    // alert ON  300 +/- 30 ms
+#define HUB_MOTOR_OFF_US       700000u    // alert OFF 700 +/- 30 ms
+#define HUB_MOTOR_GUARD_US     395000u    // independent guard: output forced low 395 ms after the ON edge (spec M-05 says 400 ms; the 1 ms
+                                          // guard timer and the recorder resolution must not push a measured ON above 400 ms, NFR-05)
+#define HUB_KEY_ON_US          100000u    // KEY_FAULT pulse ON  100 +/- 20 ms
+#define HUB_KEY_OFF_US         100000u    // KEY_FAULT pulse OFF 100 +/- 20 ms
+#define HUB_KEY_REST_US       1700000u    // after the third pulse (V12-05: the low time is K_OFF + K_REST = 1800 ms)
+#define HUB_KEY_PULSES         3u
+#define HUB_MOTOR_RESYNC_US     20000u    // a pattern step later than this schedules from now, not from the nominal edge
+#ifndef HUB_MOTOR_PIN
+#define HUB_MOTOR_PIN          5          // motor driver input (owner decision 2026-11-15; override with -DHUB_MOTOR_PIN=n)
+#endif
+#define HUB_MOTOR_TASK_PRIO    12u        // above the rx task (10): the pattern must not wait for packet processing (X-R5)
+#define HUB_MOTOR_GUARD_PERIOD_US 1000u   // the independent guard runs from its own esp_timer every 1 ms
+#ifndef HUB_MARKER_PIN
+#define HUB_MARKER_PIN         6          // bench only (PPE_TEST_HOOKS): accepted-packet marker and calibration pulses
+#endif
+#define HUB_MARKER_PULSE_US    1000u
+#define HUB_TWDT_MS            5000u      // task watchdog: motor and tick task must feed it, a miss resets the chip (X-02)

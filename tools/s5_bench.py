@@ -5,12 +5,13 @@ The hub is the unit under test (S3 hub on COM3, bench build). The spare ESP32-C3
 node (A-33, owner decision D4): "power off" = the injector stops, "drop one heartbeat" = the injector skips one tick.
 All timing is read from the HUB's own t_ms stamps (ACC line of the last accepted packet -> NODE_OFFLINE message);
 PC time only orders lines and is a cross-check. Alternative equipment (no EQ-05 power switch, no skiptx): written in
-every log header. The hub is reset with its RST button (A-37), never through DTR/RTS: ports are opened with both low.
+every log header. The hub is reset by the USB reset line (RTS pulse with DTR low, A-37) or, with --reset button, by its
+RST button; ports are opened with DTR and RTS low, so opening a port never resets the hub.
 
   python tools/s5_bench.py offline --tc TC-27a --case default --hub COM3 --inj COM8     # about 13 min
   python tools/s5_bench.py offline --tc TC-27b --case margin0 --hub COM3 --inj COM8     # about 12 min
   python tools/s5_bench.py offline --tc TC-27c --case drop1   --hub COM3 --inj COM8     # about 14 min
-  python tools/s5_bench.py boot    --tc TC-31  --hub COM3 --inj COM8                    # about 14 min, press RST when asked
+  python tools/s5_bench.py boot    --tc TC-31  --hub COM3 --inj COM8                    # about 14 min, hub reset by the USB RTS line
   python tools/s5_bench.py offline --tc TC-27a --case default --rehearsal --heartbeat 60 --margin 0 --hub COM3 --inj COM8
                                                                                          # 2 min rehearsal, scratch log
   python tools/s5_bench.py analyze --log test_logs/S5/TC-27a_<sha7>.log                  # re-run the analyzer, no hardware
@@ -36,7 +37,7 @@ SPRINT = "S5"
 SLACK_MS = 5000                      # TC-27 / TC-31 window: timeout .. timeout + 5 s (FR-27, V12-04)
 PC_TOLERANCE_MS = 2000               # PC time stamps and hub t_ms must agree on the measured interval within this
 EQUIPMENT = ("alternative equipment: no EQ-05 power switch and no skiptx; the spare ESP32-C3 running tools/injector "
-             "acts as the node; the hub is reset with its RST button (decisions A-33, A-37)")
+             "acts as the node; the hub is reset by the USB reset line or its RST button (decisions A-33, A-37)")
 
 PFX = r"^(?:\S+ \| )?"
 RE_PC = re.compile(r"^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?) \| ")
@@ -191,7 +192,7 @@ def analyze_boot(text, silent=5):
     ev = events(text)
     boots = [e for e in ev if e["kind"] == "boot"]
     if not boots:
-        return "BLOCKED", "no HUB_BOOT line: the hub was not reset (RST button)"
+        return "BLOCKED", "no HUB_BOOT line: the hub was not reset"
     if len(boots) > 1:
         return "BLOCKED", "%d HUB_BOOT lines in one run: the hub rebooted again" % len(boots)
     b = boots[0]
@@ -265,6 +266,63 @@ def die(msg):
     sys.exit(2)
 
 
+FWLINE = re.compile(r"FW hub=([0-9a-f]{8}) common=([0-9a-f]{8}) dirty=(\d) hooks=(\d)")
+
+
+def parse_fw(text):
+    """(hub, common, dirty, hooks) from the last FW line in the text, or None."""
+    m = None
+    for m in FWLINE.finditer(text):
+        pass
+    return (int(m.group(1), 16), int(m.group(2), 16), int(m.group(3)), int(m.group(4))) if m else None
+
+
+def fw_problem(found, expected):
+    """None when the hub's FW line names the firmware of HEAD (RULES section 4), else the reason."""
+    if found is None:
+        return "the hub sent no FW line (old firmware without the identity: flash with tools/s5_build.py)"
+    if expected[2]:
+        return "firmware/hub or common has uncommitted changes: the flashed firmware cannot be matched to HEAD"
+    if found[2]:
+        return "the flashed firmware was built from a dirty tree"
+    if found[3] != 1:
+        return "the flashed firmware is a release build (hooks=0)"
+    if found[:2] != expected[:2]:
+        return "the hub runs hub=%08x common=%08x, HEAD is hub=%08x common=%08x" % (found[0], found[1], expected[0], expected[1])
+    return None
+
+
+def fw_query(port, timeout_s=4.0, serial_factory=None):
+    """Ask the hub for its FW line through 'dump' (port opened with DTR and RTS low: no reset). Text read, or ''."""
+    if serial_factory:
+        ser = serial_factory(port)
+    else:
+        import serial  # pyserial
+        ser = serial.Serial(); ser.port = port; ser.baudrate = 115200; ser.timeout = 0.1
+        ser.dtr = False; ser.rts = False; ser.open()
+    buf = b""
+    try:
+        time.sleep(0.3)
+        ser.write(b"dump\n")
+        end = time.time() + timeout_s
+        while time.time() < end and b"DUMP end" not in buf:
+            buf += ser.read(512)
+    finally:
+        ser.close()
+    return buf.decode("utf-8", errors="replace")
+
+
+def fw_check(port):
+    """Header line for a run whose hub firmware is the one of HEAD; stops the driver otherwise."""
+    import s5_build
+    expected = s5_build.fw_identity()
+    prob = fw_problem(parse_fw(fw_query(port)), expected)
+    if prob:
+        die("firmware identity: %s. Nothing was logged." % prob)
+    print("firmware identity ok: %s" % s5_build.fmt(expected))
+    return "fw_check=ok hub=%08x common=%08x" % expected[:2]
+
+
 def open_run(a, extra):
     sprint = "scratch" if a.rehearsal else SPRINT
     path = logger.log_path(a.tc, sprint=sprint)
@@ -272,11 +330,31 @@ def open_run(a, extra):
         die("%s already exists: a log is one run, the driver never appends (move a failed setup to test_logs/invalid/)" % path)
     if not a.rehearsal and tree_dirty():
         die("tracked files are modified: commit tool changes before an evidence run (HEAD sha names the log)")
-    header = [h for h in logger.header_lines(a.tc, False) if not h.startswith("tool=")] + ["tool=s5_bench.py (capture through tools/logger.py)", "mode=%s" % ("rehearsal" if a.rehearsal else "evidence"), EQUIPMENT] + extra
+    fw = fw_check(a.hub)                        # RULES section 4: before any log is opened
+    header = [h for h in logger.header_lines(a.tc, False) if not h.startswith("tool=")] + ["tool=s5_bench.py (capture through tools/logger.py)", "mode=%s" % ("rehearsal" if a.rehearsal else "evidence"), EQUIPMENT, fw] + extra
     cap = logger.Capture(a.hub, 115200, path, header)
     print("log:", path)
     time.sleep(0.5)
     return cap, path
+
+
+def usb_reset(cap):
+    """Hub reset by the USB reset line (A-37): RTS pulse with DTR low (normal boot, not download mode)."""
+    cap.note("TX reset (USB RTS line, 100 ms)")
+    cap.ser.dtr = False
+    cap.ser.rts = True
+    time.sleep(0.1)
+    cap.ser.rts = False
+
+
+def reset_hub(cap, how):
+    """Reset the hub for TC-29b / TC-31: 'usb' = RTS pulse (no person needed), 'button' = ask the operator for RST."""
+    if how == "usb":
+        cap.note("STEP reset the hub by the USB RTS line")
+        usb_reset(cap)
+    else:
+        cap.note("STEP operator: PRESS the RST button on the hub now")
+        print(">>> PRESS the RST button on the hub now (waiting up to 120 s)")
 
 
 def mark(cap):
@@ -422,7 +500,7 @@ def run_boot(a):
     silent = 5
     cap, path = open_run(a, ["case=boot silent=%d" % silent])
     sha0 = head_sha()
-    cap.note("EXPECT after RST: HUB_BOOT first, all nodes UNKNOWN, alert_active=0, NON_COMPLIANT, no COMPLIANCE; silent node %d OFFLINE 780 to 785 s after boot" % silent)
+    cap.note("EXPECT after the reset: HUB_BOOT first, all nodes UNKNOWN, alert_active=0, NON_COMPLIANT, no COMPLIANCE; silent node %d OFFLINE 780 to 785 s after boot" % silent)
     cap.note("PARAM case=boot silent=%d" % silent)
     d0 = get_dump(cap)
     if not d0:
@@ -435,9 +513,8 @@ def run_boot(a):
     d1 = get_dump(cap)
     if not d1 or any(v["state"] != "WORN" for v in d1["nodes"].values()):
         return finish(cap, path, a, sha0, "BLOCKED", "priming failed: not every node is WORN before the reset")
-    cap.note("STEP operator: PRESS the RST button on the hub now")
-    print(">>> PRESS the RST button on the hub now (waiting up to 120 s)")
     m = mark(cap)
+    reset_hub(cap, a.reset)
     line, pos = wait_line(cap, r"MSG msg_type=HUB_BOOT", m, 120)
     if line is None:
         return finish(cap, path, a, sha0, "BLOCKED", "no HUB_BOOT within 120 s: the hub was not reset")
@@ -522,6 +599,7 @@ def build_parser():
     p.add_argument("--node", type=int, default=2)
     p.set_defaults(fn=run_offline)
     p = sub.add_parser("boot"); hw(p)
+    p.add_argument("--reset", choices=["usb", "button"], default="usb", help="hub reset: USB RTS line (default) or RST button")
     p.set_defaults(fn=run_boot)
     p = sub.add_parser("analyze"); p.add_argument("--log", required=True); p.set_defaults(fn=cmd_analyze)
     p = sub.add_parser("result")

@@ -39,6 +39,20 @@ static bool parse_u32(const char* s, size_t len, uint32_t* out) {
   return true;
 }
 
+// Exactly `want` numbers (1 to 6 digits each) separated by blanks, nothing else.
+static bool parse_nums(const char* s, uint32_t* out, int want) {
+  int n = 0;
+  for (;;) {
+    while (*s && is_ws(*s)) s++;
+    if (!*s) break;
+    const char* b = s;
+    while (*s && !is_ws(*s)) s++;
+    if (n >= want || !parse_u32(b, (size_t)(s - b), &out[n])) return false;
+    n++;
+  }
+  return n == want;
+}
+
 HubHookCmd hub_hook_parse(const char* line) {
   HubHookCmd c; memset(&c, 0, sizeof c);
   while (*line && is_ws(*line)) line++;
@@ -62,6 +76,20 @@ HubHookCmd hub_hook_parse(const char* line) {
   } else if (wl == 5 && !strncmp(line, "rxlog", 5)) {
     if (al == 2 && !strncmp(arg, "on", 2)) c.type = HUB_HOOK_RXLOG_ON;
     else if (al == 3 && !strncmp(arg, "off", 3)) c.type = HUB_HOOK_RXLOG_OFF;
+  } else if (wl == 5 && !strncmp(line, "motor", 5)) {
+    if (al == 0) c.type = HUB_HOOK_MOTOR;
+  } else if (wl == 6 && !strncmp(line, "marker", 6)) {
+    if (al == 2 && !strncmp(arg, "on", 2)) c.type = HUB_HOOK_MARKER_ON;
+    else if (al == 3 && !strncmp(arg, "off", 3)) c.type = HUB_HOOK_MARKER_OFF;
+  } else if (wl == 5 && !strncmp(line, "fault", 5)) {
+    static const struct { const char* name; uint8_t id; } kinds[] = {
+      {"wdt", 1}, {"nvs-read", 2}, {"nvs-write", 3}, {"registry", 4}, {"key", 5}, {"guard", 6}};
+    for (unsigned i = 0; i < sizeof kinds / sizeof kinds[0]; i++) {
+      if (al == strlen(kinds[i].name) && !strncmp(arg, kinds[i].name, al)) { c.val = kinds[i].id; c.type = HUB_HOOK_FAULT; }
+    }
+  } else if (wl == 5 && !strncmp(line, "pulse", 5)) {
+    uint32_t v[3];
+    if (parse_nums(arg, v, 3)) { c.val = v[0]; c.val2 = v[1]; c.val3 = v[2]; c.type = HUB_HOOK_PULSE; }
   } else if (wl == 3 && !strncmp(line, "set", 3)) {
     const char* k = arg; while (*k && !is_ws(*k)) k++;                       // end of the key word
     size_t kl = (size_t)(k - arg);

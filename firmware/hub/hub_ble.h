@@ -15,7 +15,10 @@ struct HubRxStats {              // callback entry -> processing finished, per a
 
 // Initialises the pipeline from the provisioning data, loads the registry from `store`, starts the rx task,
 // the supervisor task and the continuous scan. Returns false if the scan could not be started.
-bool hub_ble_start(uint8_t vest_id, const uint8_t* key32, HubStore* store);
+// key32 == nullptr is the B-04 path: no key, accept disabled, KEY_FAULT pattern, HUB_FAULT (NO_KEY). store == nullptr or an
+// unreadable store is the B-04b path: accept disabled, nodes go OFFLINE, HUB_FAULT (REGISTRY). params_ok=false reports NVS_READ.
+bool hub_ble_start(uint8_t vest_id, const uint8_t* key32, HubStore* store, bool params_ok = true);
+void hub_apply_params(uint32_t heartbeat_s, uint32_t margin_s);   // provisioned timing read from NVS at boot (bounds are checked)
 
 // Where hub messages (COMPLIANCE, NODE_OFFLINE, HUB_BOOT, HUB_FAULT) go. Default: one serial line each (S5).
 // S7 plugs its uplink queue in here; nothing else in S5 changes.
@@ -42,4 +45,10 @@ void hub_hook_set_time(bool on);                        // time stamp on every a
 void hub_hook_set_rxlog(bool on);                       // every received advertisement before filtering (default off)
 void hub_hook_set_margin(uint32_t s);                   // OFFLINE_MARGIN_S 0..300 (hub provisioning is S6)
 void hub_hook_set_heartbeat(uint32_t s);                // HEARTBEAT_S 60..3600
+// fault <wdt|nvs-read|nvs-write|registry|key|guard> (TC-30). The restart cases keep a one-shot flag in RTC memory.
+void hub_hook_fault(uint8_t which);
+#define HUB_FORCE_NO_KEY    1u
+#define HUB_FORCE_REGISTRY  2u
+#define HUB_FORCE_PARAMS    4u
+uint32_t hub_take_boot_forces();                        // flags set before the last restart; cleared by the call
 #endif

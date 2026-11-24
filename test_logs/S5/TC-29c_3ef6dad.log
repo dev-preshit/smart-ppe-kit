@@ -1,0 +1,127 @@
+# tc=TC-29c
+# sha=3ef6dad
+# date=2026-11-24T21:32:04.262
+# tool=s5_bench.py (capture through tools/logger.py)
+# mode=evidence
+# alternative equipment: no EQ-05 power switch and no skiptx; the spare ESP32-C3 running tools/injector acts as the node; the hub is reset by the USB reset line or its RST button (decisions A-33, A-37)
+# fw_check=ok hub=272acb3e common=f27ca4fc
+# case=tc29c node=2 heartbeat_s=360 margin_s=60
+2026-11-24T21:32:05.327 | TX PING
+2026-11-24T21:32:05.371 | PONG
+2026-11-24T21:32:05.389 | TX set heartbeat 360
+2026-11-24T21:32:05.513 | PPE_HOOK set heartbeat 360 ok heartbeat_s=360 margin_s=60 offline_timeout_s=780 t_ms=68714
+2026-11-24T21:32:05.542 | TX set margin 60
+2026-11-24T21:32:05.669 | PPE_HOOK set margin 60 ok heartbeat_s=360 margin_s=60 offline_timeout_s=780 t_ms=68865
+2026-11-24T21:32:05.694 | TX dump
+2026-11-24T21:32:05.720 | FW hub=272acb3e common=f27ca4fc dirty=0 hooks=1
+2026-11-24T21:32:05.720 | DUMP begin t_ms=69015
+2026-11-24T21:32:05.720 | DUMP hub vest=0x01 accept_enabled=1 registry_ok=1 vest_state=NON_COMPLIANT alert_active=0 heartbeat_s=360 margin_s=60 offline_timeout_s=780 msg_pending=0 msg_dropped=0
+2026-11-24T21:32:05.742 | DUMP global rx_total=1260 drop_len=1260 drop_ver=0 drop_vest=0 drop_node=0 drop_state=0 scan_quiet_60s=0
+2026-11-24T21:32:05.743 | DUMP queue fill=0 depth=64 max_fill=1 queue_full=0 callbacks_seen=1260 (=rx_total+queue_full)
+2026-11-24T21:32:05.764 | DUMP node=1 state=UNKNOWN last_counter=62764 last_seen_ms=341 accepted=0 dup=0 replay=0 gap=0 hmac_fail=0 battery=0 flags=0x00
+2026-11-24T21:32:05.765 | DUMP node=2 state=UNKNOWN last_counter=62765 last_seen_ms=341 accepted=0 dup=0 replay=0 gap=0 hmac_fail=0 battery=0 flags=0x00
+2026-11-24T21:32:05.787 | DUMP node=3 state=UNKNOWN last_counter=62766 last_seen_ms=341 accepted=0 dup=0 replay=0 gap=0 hmac_fail=0 battery=0 flags=0x00
+2026-11-24T21:32:05.787 | DUMP node=4 state=UNKNOWN last_counter=62767 last_seen_ms=341 accepted=0 dup=0 replay=0 gap=0 hmac_fail=0 battery=0 flags=0x00
+2026-11-24T21:32:05.810 | DUMP node=5 state=UNKNOWN last_counter=62768 last_seen_ms=341 accepted=0 dup=0 replay=0 gap=0 hmac_fail=0 battery=0 flags=0x00
+2026-11-24T21:32:05.810 | DUMP persist pending=0 writes=0 write_fails=0 dropped=0 last_us=0 max_us=0 avg_us=0
+2026-11-24T21:32:05.810 | DUMP proc count=1260 last_us=21 max_us=77 avg_us=23 over_10ms=0
+2026-11-24T21:32:05.810 | DUMP scan restarts=0 consecutive_fails=0
+2026-11-24T21:32:05.918 | DUMP end
+2026-11-24T21:32:05.947 | EXPECT the motor starts <= 200 ms after node 2 goes OFFLINE (timeout 780 s) and not before
+2026-11-24T21:32:05.947 | TX marker on
+2026-11-24T21:32:06.074 | PPE_HOOK marker on ok pin=6 t_ms=69276
+2026-11-24T21:32:06.091 | TX RESET
+2026-11-24T21:32:06.135 | READY
+2026-11-24T21:32:07.683 | TX inject 14ffffff600101015a95f500000a4976dff8a2d8f9
+2026-11-24T21:32:07.775 | E 2003172549 1 1
+2026-11-24T21:32:07.775 | E 2003173568 1 0
+2026-11-24T21:32:07.807 | ACC t_ms=71007 t_us=71007773 node=1 ctr=62869 state=1 batt=90 flags=0x60 missed=104 prev=UNKNOWN now=WORN
+2026-11-24T21:32:07.807 | PPE_HOOK inject len=21 queued
+2026-11-24T21:32:08.484 | TX inject 14ffffff600102015a96f500002803bfdf95958bda
+2026-11-24T21:32:08.542 | E 2003975524 1 1
+2026-11-24T21:32:08.542 | E 2003976541 1 0
+2026-11-24T21:32:08.621 | ACC t_ms=71810 t_us=71810761 node=2 ctr=62870 state=1 batt=90 flags=0x60 missed=104 prev=UNKNOWN now=WORN
+2026-11-24T21:32:08.621 | PPE_HOOK inject len=21 queued
+2026-11-24T21:32:09.285 | TX inject 14ffffff600103015a97f50000284c8cd04f997e30
+2026-11-24T21:32:09.310 | E 2004778521 1 1
+2026-11-24T21:32:09.310 | E 2004779538 1 0
+2026-11-24T21:32:09.420 | ACC t_ms=72613 t_us=72613769 node=3 ctr=62871 state=1 batt=90 flags=0x60 missed=104 prev=UNKNOWN now=WORN
+2026-11-24T21:32:09.421 | PPE_HOOK inject len=21 queued
+2026-11-24T21:32:10.086 | TX inject 14ffffff600104015a98f5000032e2763c96e695d3
+2026-11-24T21:32:10.186 | E 2005581503 1 1
+2026-11-24T21:32:10.186 | E 2005582521 1 0
+2026-11-24T21:32:10.217 | ACC t_ms=73416 t_us=73416763 node=4 ctr=62872 state=1 batt=90 flags=0x60 missed=104 prev=UNKNOWN now=WORN
+2026-11-24T21:32:10.217 | PPE_HOOK inject len=21 queued
+2026-11-24T21:32:10.887 | TX inject 14ffffff600105015a99f500001ea07788f1700080
+2026-11-24T21:32:10.955 | E 2006384498 1 1
+2026-11-24T21:32:10.955 | E 2006385516 1 0
+2026-11-24T21:32:11.033 | ACC t_ms=74219 t_us=74219774 node=5 ctr=62873 state=1 batt=90 flags=0x60 missed=104 prev=UNKNOWN now=WORN
+2026-11-24T21:32:11.034 | MSG msg_type=COMPLIANCE vest_id=1 state=COMPLIANT nodes_not_ok=[] t_ms=74219
+2026-11-24T21:32:11.034 | PPE_HOOK inject len=21 queued
+2026-11-24T21:32:14.688 | TX inject 14ffffff600102015a64fd0000641abcb13639ad34
+2026-11-24T21:32:14.802 | E 2010177438 1 1
+2026-11-24T21:32:14.802 | E 2010178454 1 0
+2026-11-24T21:32:14.818 | ACC t_ms=78012 t_us=78012770 node=2 ctr=64868 state=1 batt=90 flags=0x60 missed=1997 prev=WORN now=WORN
+2026-11-24T21:32:14.818 | PPE_HOOK inject len=21 queued
+2026-11-24T21:32:15.689 | PARAM case=tc29c node=2 ctr=64868 timeout_s=780
+2026-11-24T21:32:15.689 | STEP node 2 is silent from now; nodes 1, 3, 4, 5 are kept alive through the hub hook
+2026-11-24T21:38:16.006 | TX inject 14ffffff600101015ae1f90000e7705a7fa140bb30
+2026-11-24T21:38:16.095 | E 2371504762 1 1
+2026-11-24T21:38:16.095 | E 2371505781 1 0
+2026-11-24T21:38:16.141 | ACC t_ms=439345 t_us=439345762 node=1 ctr=63969 state=1 batt=90 flags=0x60 missed=1099 prev=WORN now=WORN
+2026-11-24T21:38:16.142 | PPE_HOOK inject len=21 queued
+2026-11-24T21:38:16.806 | TX inject 14ffffff600103015ae2f90000eabc71b0bdd50fe7
+2026-11-24T21:38:16.859 | E 2372307748 1 1
+2026-11-24T21:38:16.860 | E 2372308766 1 0
+2026-11-24T21:38:16.938 | ACC t_ms=440148 t_us=440148761 node=3 ctr=63970 state=1 batt=90 flags=0x60 missed=1098 prev=WORN now=WORN
+2026-11-24T21:38:16.938 | PPE_HOOK inject len=21 queued
+2026-11-24T21:38:17.608 | TX inject 14ffffff600104015ae3f900008630dd9b84f630e7
+2026-11-24T21:38:17.628 | E 2373110732 1 1
+2026-11-24T21:38:17.628 | E 2373111749 1 0
+2026-11-24T21:38:17.736 | ACC t_ms=440951 t_us=440951757 node=4 ctr=63971 state=1 batt=90 flags=0x60 missed=1098 prev=WORN now=WORN
+2026-11-24T21:38:17.736 | PPE_HOOK inject len=21 queued
+2026-11-24T21:38:18.409 | TX inject 14ffffff600105015ae4f900001fc07bc251609082
+2026-11-24T21:38:18.503 | E 2373913722 1 1
+2026-11-24T21:38:18.503 | E 2373914741 1 0
+2026-11-24T21:38:18.550 | ACC t_ms=441754 t_us=441754760 node=5 ctr=63972 state=1 batt=90 flags=0x60 missed=1098 prev=WORN now=WORN
+2026-11-24T21:38:18.550 | PPE_HOOK inject len=21 queued
+2026-11-24T21:44:15.897 | TX inject 14ffffff600101015ae5f900001668adbd1528ca56
+2026-11-24T21:44:16.002 | E 2731411125 1 1
+2026-11-24T21:44:16.003 | E 2731412143 1 0
+2026-11-24T21:44:16.033 | ACC t_ms=799257 t_us=799257759 node=1 ctr=63973 state=1 batt=90 flags=0x60 missed=3 prev=WORN now=WORN
+2026-11-24T21:44:16.034 | PPE_HOOK inject len=21 queued
+2026-11-24T21:44:16.698 | TX inject 14ffffff600103015ae6f90000bc4eccfaf3ffc656
+2026-11-24T21:44:16.769 | E 2732204113 1 1
+2026-11-24T21:44:16.769 | E 2732205130 1 0
+2026-11-24T21:44:16.832 | ACC t_ms=800050 t_us=800050760 node=3 ctr=63974 state=1 batt=90 flags=0x60 missed=3 prev=WORN now=WORN
+2026-11-24T21:44:16.832 | PPE_HOOK inject len=21 queued
+2026-11-24T21:44:17.499 | TX inject 14ffffff600104015ae7f9000006fed41e6af88f91
+2026-11-24T21:44:17.537 | E 2733007100 1 1
+2026-11-24T21:44:17.537 | E 2733008120 1 0
+2026-11-24T21:44:17.631 | ACC t_ms=800853 t_us=800853759 node=4 ctr=63975 state=1 batt=90 flags=0x60 missed=3 prev=WORN now=WORN
+2026-11-24T21:44:17.631 | PPE_HOOK inject len=21 queued
+2026-11-24T21:44:18.300 | TX inject 14ffffff600105015ae8f900003ddb881d1e6c3de5
+2026-11-24T21:44:18.416 | E 2733810090 1 1
+2026-11-24T21:44:18.416 | E 2733811108 1 0
+2026-11-24T21:44:18.432 | ACC t_ms=801656 t_us=801656761 node=5 ctr=63976 state=1 batt=90 flags=0x60 missed=3 prev=WORN now=WORN
+2026-11-24T21:44:18.432 | PPE_HOOK inject len=21 queued
+2026-11-24T21:45:15.041 | E 2790531556 0 1
+2026-11-24T21:45:15.151 | MSG msg_type=NODE_OFFLINE vest_id=1 node_id=2 state=OFFLINE last_seen_age_s=780 t_ms=858378
+2026-11-24T21:45:15.151 | MSG msg_type=COMPLIANCE vest_id=1 state=NON_COMPLIANT nodes_not_ok=[2] t_ms=858378
+2026-11-24T21:45:15.374 | E 2790831543 0 0
+2026-11-24T21:45:16.039 | E 2791531534 0 1
+2026-11-24T21:45:16.371 | E 2791831528 0 0
+2026-11-24T21:45:17.033 | E 2792531517 0 1
+2026-11-24T21:45:17.364 | E 2792831512 0 0
+2026-11-24T21:45:18.125 | E 2793531501 0 1
+2026-11-24T21:45:18.186 | TX inject 14ffffff600102015a1c0901000dfb2494bea49040
+2026-11-24T21:45:18.234 | E 2793693157 1 1
+2026-11-24T21:45:18.234 | E 2793693505 0 0
+2026-11-24T21:45:18.234 | E 2793694177 1 0
+2026-11-24T21:45:18.328 | ACC t_ms=861540 t_us=861540770 node=2 ctr=67868 state=1 batt=90 flags=0x60 missed=2999 prev=OFFLINE now=WORN
+2026-11-24T21:45:18.328 | MSG msg_type=COMPLIANCE vest_id=1 state=COMPLIANT nodes_not_ok=[] t_ms=861540
+2026-11-24T21:45:18.328 | PPE_HOOK inject len=21 queued
+2026-11-24T21:45:20.187 | TX STAT
+2026-11-24T21:45:20.211 | STAT a=0 b=0 total=38 dropped=0 t_us=2795688010
+2026-11-24T21:45:20.816 | VERDICT PASS NODE_OFFLINE 780.366 s after the last packet (timeout 780 s); motor started -11.9 ms from the OFFLINE transition (clock mapping uncertainty a few ms)
+# RESULT,PASS,2026-11-24T21:45:41.554,OFFLINE 780.366 s, motor -11.9 ms from the OFFLINE transition
