@@ -379,6 +379,39 @@ def fw_problem(found, expected):
     return None
 
 
+def reset_pulse(ser, hold=0.15):
+    """Resets the C3 through its USB serial port: RTS high, then low, with DTR low. DTR is written again after every RTS
+    change because the Windows usbser.sys driver sends the new line state to the device only when DTR is written (esptool
+    does the same); without it the RTS pulse never reached the node (TRY-GPIO at b465b2a: no restart, no FW line)."""
+    ser.dtr = False; ser.rts = True; ser.dtr = False
+    time.sleep(hold)
+    ser.rts = False; ser.dtr = False
+
+
+SHOW_NODE = re.compile(r"\| NODE NODE run=\S+ .*boot_us=(\d+)")
+SHOW_SLEEP = re.compile(r"\| NODE SLEEP on=\d+ wake=(\w+) .*now_ms=(\d+)")
+
+
+def reset_problem(text, max_up_ms):
+    """None when the node's last show reply proves a fresh cold boot (wake=boot, up no longer than max_up_ms), else the reason."""
+    boot_ms, reply = None, None
+    for ln in text.splitlines():
+        m = SHOW_NODE.search(ln)
+        if m:
+            boot_ms = int(m.group(1)) // 1000
+            continue
+        m = SHOW_SLEEP.search(ln)
+        if m and boot_ms is not None:
+            reply = (m.group(1), (int(m.group(2)) - boot_ms) & 0xFFFFFFFF)
+    if reply is None:
+        return "the node did not answer show after the reset"
+    if reply[0] != "boot":
+        return "the node woke from sleep (wake=%s), it was not reset" % reply[0]
+    if reply[1] > max_up_ms:
+        return "the node has been up %d ms, longer than the %d ms since the reset: the reset did not reach it" % (reply[1], max_up_ms)
+    return None
+
+
 def expected_fw():
     import node_build
     return node_build.fw_identity()
@@ -455,24 +488,35 @@ def cmd_capture(a):
                     print("\a>>> PRESS AND HOLD THE BUTTON NOW and keep it pressed (waiting up to %d s for the node to stay awake)" % a.wake_wait)
                     sys.stdout.flush()
                 wait_port_stable(holder, a.wake_wait)         # the reset is only sent to a node that has stayed awake
+                RESET_NOTE = "NODE RESET by RTS pulse"
                 try:
-                    holder["ser"].dtr = False; holder["ser"].rts = True; time.sleep(0.15); holder["ser"].rts = False
-                    cap.note("NODE RESET by RTS pulse")
+                    reset_pulse(holder["ser"])
+                    t_reset = time.time()
+                    cap.note(RESET_NOTE)
                 except Exception:
+                    t_reset = None
                     cap.note("NODE RESET FAILED (no node port): the run is invalid")
                 time.sleep(2.5)                             # the node's USB port goes away and comes back
                 if expect_fw:                               # process rule 2: the flashed firmware must be the one of HEAD
-                    t_f = time.time(); problem = "the node sent no firmware identity line"
-                    while time.time() - t_f < 25.0 and not stalled.is_set():
-                        try:
-                            found = parse_fw(open(path, encoding="utf-8").read())
-                        except OSError:
-                            found = None
-                        if found is not None:
-                            problem = fw_problem(found, expect_fw)
-                            break
-                        time.sleep(0.5)
-                    if problem:
+                    # The buffered FW line of the cold boot can be printed before the port is reopened, so ask with show:
+                    # its reply carries the FW line and proves the reset reached the node (wake=boot, up since the reset).
+                    t_f = time.time(); rp = "the node did not answer show after the reset"; problem = None
+                    if t_reset is not None and send_node(holder, "show", cap, stalled):
+                        while time.time() - t_f < 25.0 and not stalled.is_set():
+                            try:
+                                after = open(path, encoding="utf-8").read().split(RESET_NOTE, 1)[-1]
+                            except OSError:
+                                after = ""
+                            rp = reset_problem(after, int((time.time() - t_reset) * 1000) + 1000)
+                            if rp != "the node did not answer show after the reset":   # the reply is complete (the SLEEP line comes last)
+                                problem = None if rp else fw_problem(parse_fw(after), expect_fw)
+                                break
+                            time.sleep(0.5)
+                    if t_reset is not None and rp:
+                        fw_msg = "NODE RESET FAILED: %s" % rp
+                        cap.note(fw_msg)
+                        stalled.set()
+                    elif problem:
                         fw_msg = "FIRMWARE MISMATCH: %s" % problem
                         cap.note(fw_msg)
                         stalled.set()
@@ -535,7 +579,8 @@ def cmd_capture(a):
             inj.close()
         cap.close()
     if fw_msg:
-        print(fw_msg + ". The run was stopped before it started; flash the firmware of HEAD and try again (the log is not evidence).")
+        fix = "check the node's USB cable and port" if fw_msg.startswith("NODE RESET FAILED") else "flash the firmware of HEAD"
+        print(fw_msg + ". The run was stopped before it started; %s and try again (the log is not evidence)." % fix)
         return 3
     if stalled.is_set():
         print("OBSERVER STALLED: the capture was stopped early, the log is not usable as evidence (move it to test_logs/invalid/)")

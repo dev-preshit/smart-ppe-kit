@@ -259,6 +259,24 @@ class T(unittest.TestCase):
     def test_a_reported_mismatch_note_fails_the_analysis(self):
         p = make_log(); lines = open(p).read().split("\n"); lines.insert(2, "2026-11-11T10:00:05.000 | FIRMWARE MISMATCH: x")
         open(p, "w").write("\n".join(lines)); rc, out = self.run_(p); self.assertEqual(rc, 1); self.assertIn("FIRMWARE MISMATCH", out)
+    # ---- node reset: the pulse must reach the chip, and the node must prove it restarted
+    def test_reset_pulse_writes_dtr_after_every_rts_change(self):
+        ops = []
+        class Ser:
+            def __setattr__(self, k, v): ops.append((k, v))
+        observe.reset_pulse(Ser(), hold=0.0)
+        self.assertEqual(ops, [("dtr", False), ("rts", True), ("dtr", False), ("rts", False), ("dtr", False)])
+    SHOW = ("x | NODE NODE run=active prov=1 node=1 vest=1 key=yes fault=none radio=0 ctr=5 ceil=64 tx_state=0 skip=0 boot_us=%d first_tx_us=0\n"
+            "x | NODE SLEEP on=1 wake=%s resumed=0 noop=0 poll=0 wakes=0 awake_until_ms=0 now_ms=%d\n")
+    def test_reset_check_accepts_a_fresh_cold_boot(self):
+        self.assertIsNone(observe.reset_problem(self.SHOW % (7000, "boot", 2900), 4000))
+    def test_reset_check_rejects_a_node_that_was_already_up(self):
+        self.assertIn("did not reach", observe.reset_problem(self.SHOW % (7000, "boot", 9100), 4000))
+    def test_reset_check_rejects_a_wake_from_sleep_and_a_missing_reply(self):
+        self.assertIn("wake=gpio", observe.reset_problem(self.SHOW % (7000, "gpio", 900), 4000))
+        self.assertIn("did not answer", observe.reset_problem("x | NODE MARK RAW 1 state=2 fault=0\n", 4000))
+    def test_reset_check_uses_the_last_show_reply(self):
+        self.assertIsNone(observe.reset_problem(self.SHOW % (7000, "boot", 90000) + self.SHOW % (5, "boot", 3000), 4000))
     # ---- prompts for the person at the bench (glove and helmet runs)
     def test_plan_say_lines_are_prompts_and_may_be_long(self):
         d = tempfile.mkdtemp(); f = os.path.join(d, "p.txt")
