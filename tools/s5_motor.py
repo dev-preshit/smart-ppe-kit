@@ -11,7 +11,7 @@ on the marker pin (hub hook `pulse`); the measured error is reported in the log.
   python tools/s5_motor.py analyze --log <log>                        # re-run the analyzer, no hardware
 
   python tools/s5_motor.py tc29a --tc TC-29a --hub COM3 --rec COM8    # steps 1-3: start latency, 60 s pattern, stop (about 85 s)
-  python tools/s5_motor.py tc29b --tc TC-29b --hub COM3 --rec COM8    # step 4: reset with all nodes UNKNOWN, no motor activity
+  python tools/s5_motor.py tc29b --tc TC-29b --hub COM3 --rec COM8    # step 4: USB-line reset, all nodes UNKNOWN, no motor activity
   python tools/s5_motor.py tc29c --tc TC-29c --hub COM3 --rec COM8    # step 5: OFFLINE trigger (about 13 min at the defaults)
   python tools/s5_motor.py result --tc TC-29a --result PASS --note "..."   # only after a PASS verdict
 
@@ -615,13 +615,7 @@ def analyze_tc74(text, minutes, need_each):
         ", ".join("%s=%d" % (k, counts[k]) for k in TC74_KINDS), len(runs), longest / 1000.0, min(cuts) / 1000.0, max(cuts) / 1000.0, st[-1].group(1))
 
 
-def usb_reset(cap):
-    """Hub reset by the USB reset line (A-37): RTS pulse with DTR low (normal boot, not download mode)."""
-    cap.note("TX reset (USB RTS line, 100 ms)")
-    cap.ser.dtr = False
-    cap.ser.rts = True
-    time.sleep(0.1)
-    cap.ser.rts = False
+usb_reset = bench.usb_reset            # hub reset by the USB RTS line (A-37), shared with s5_bench
 
 
 def run_tc74(a):
@@ -829,8 +823,7 @@ def run_tc29b(a):
     time.sleep(1.5)
     cap.note("PARAM case=tc29b observe_s=0")
     rec.send("RESET"); rec.wait_for(lambda l: l.strip() == "READY", 3)
-    cap.note("STEP operator: PRESS the RST button on the hub now")
-    print(">>> PRESS the RST button on the hub now (waiting up to 120 s)")
+    bench.reset_hub(cap, a.reset)
     if not cap.wait_for(lambda l: "MSG msg_type=HUB_BOOT" in l, 120):
         return finish_run(cap, rec, path, a, sha0, "BLOCKED", "no HUB_BOOT within 120 s: the hub was not reset")
     time.sleep(3)
@@ -1093,6 +1086,8 @@ def main(argv=None):
         p.add_argument("--rehearsal", action="store_true")
         p.add_argument("--heartbeat", type=int)
         p.add_argument("--margin", type=int)
+        if name == "tc29b":
+            p.add_argument("--reset", choices=["usb", "button"], default="usb", help="hub reset: USB RTS line (default) or RST button")
         p.set_defaults(fn=fn)
     p = sub.add_parser("tc74")
     p.add_argument("--tc", default="TC-74")
