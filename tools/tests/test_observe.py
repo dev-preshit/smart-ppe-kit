@@ -266,6 +266,24 @@ class T(unittest.TestCase):
             def __setattr__(self, k, v): ops.append((k, v))
         observe.reset_pulse(Ser(), hold=0.0)
         self.assertEqual(ops, [("dtr", False), ("rts", True), ("dtr", False), ("rts", False), ("dtr", False)])
+    def test_plan_reset_retries_while_the_port_is_closed_and_logs_a_failure_at_the_end(self):
+        import threading
+        notes = []
+        class Cap:
+            def note(self, t): notes.append(t)
+        class Ser:
+            def __init__(self): self.ops = []
+            def __setattr__(self, k, v):
+                if k == "ops": object.__setattr__(self, k, v)
+                else: self.ops.append((k, v))
+        h = {"ser": None}
+        def later(): import time; time.sleep(0.3); h["ser"] = Ser()
+        threading.Thread(target=later).start()
+        self.assertTrue(observe.send_reset(h, Cap(), threading.Event(), limit=5.0))
+        self.assertEqual(notes, [observe.PLAN_RESET_NOTE]); self.assertIn(("rts", True), h["ser"].ops)
+        h2 = {"ser": None}; notes.clear()
+        self.assertFalse(observe.send_reset(h2, Cap(), threading.Event(), limit=0.3))
+        self.assertIn("NODE RESET FAILED", notes[-1])
     SHOW = ("x | NODE NODE run=active prov=1 node=1 vest=1 key=yes fault=none radio=0 ctr=5 ceil=64 tx_state=0 skip=0 boot_us=%d first_tx_us=0\n"
             "x | NODE SLEEP on=1 wake=%s resumed=0 noop=0 poll=0 wakes=0 awake_until_ms=0 now_ms=%d\n")
     def test_reset_check_accepts_a_fresh_cold_boot(self):

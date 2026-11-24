@@ -336,6 +336,25 @@ def send_node(holder, cmd, cap, stalled, limit=20.0):
             time.sleep(0.3)
 
 
+PLAN_RESET_NOTE = "NODE RESET by RTS pulse (plan)"
+
+
+def send_reset(holder, cap, stalled, limit=20.0):
+    """A plan 'reset' line: the RTS reset pulse on the node's port, retried every 0.1 s while the port is closed (a node
+    that is restarting has no port yet). Logged as PLAN_RESET_NOTE, or NODE RESET FAILED, which fails the analysis."""
+    t_end = time.time() + limit
+    while True:
+        try:
+            reset_pulse(holder["ser"])
+            cap.note(PLAN_RESET_NOTE)
+            return True
+        except Exception:
+            if time.time() >= t_end or stalled.is_set():
+                cap.note("NODE RESET FAILED (plan reset, the node port stayed closed)")
+                return False
+            time.sleep(0.1)
+
+
 def wait_port_stable(holder, limit, stable=1.5):
     """Waits until the node's port has been open for `stable` seconds in a row (a node that fell back to sleep is waited for again)."""
     t_w = time.time()
@@ -533,6 +552,9 @@ def cmd_capture(a):
                 if c.startswith("say "):
                     print("\a>>> %s   (t=%g s)" % (c[4:], t_cmd)); sys.stdout.flush()
                     cap.note("PROMPT %s" % c[4:])
+                    continue
+                if c == "reset":                            # tools/powercut.py plans (TC-75, TC-11): a reset at a seeded time
+                    send_reset(holder, cap, stalled)
                     continue
                 cap.note("NODETX %s" % c)
                 send_node(holder, c, cap, stalled)
