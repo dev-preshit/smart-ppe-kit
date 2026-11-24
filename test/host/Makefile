@@ -15,6 +15,9 @@ TESTSRC  := ppe_test_main.cpp sha256_portable.cpp test_proto.cpp test_filter.cpp
 # S5 hub logic (own lines so a merge with the S4 node test list stays trivial)
 HUBLIB   += $(HUB)/hub_msg.cpp $(HUB)/hub_motor.cpp
 TESTSRC  += test_hub_fsm.cpp test_hub_compliance.cpp test_hub_offline.cpp test_hub_msg.cpp test_hub_motor.cpp test_hub_faults.cpp
+# S4 node logic added after the S5 merge
+LIBSRC   += $(SRC)/ppe_batt.cpp
+TESTSRC  += test_batt.cpp
 BIN      := build/ppe_host_tests
 
 .PHONY: test list clean release_check release_check_node

@@ -1,5 +1,5 @@
 // node_sense.ino - node firmware. S2: sensing and confirm logic. S4: radio, identity from NVS, counter block in NVS,
-// event and heartbeat sequences (5 copies, 500 ms), deep sleep and wake (increment 7). No battery ADC yet (battery = 0xFF).
+// event and heartbeat sequences (5 copies, 500 ms), deep sleep and wake (increment 7). Battery byte from the batt hook (TC-13); no divider on this board, so 0xFF otherwise (A-26).
 // Board: ESP32C3 Dev Module, USB CDC On Boot: Enabled. Library: ppe_common (linked from common/).
 // Build flags (all optional):  -DPPE_TEST_HOOKS  -DPPE_BUILD_NODE_TYPE=0|1|2 (0 FOOT, 1 GLOVE, 2 HELMET)
 //   -DPPE_CONTACT_CLOSED_LEVEL=0|1 (pin level when a contact is closed, default 0 = closed pulls to GND, B-02)
@@ -26,6 +26,7 @@
 #include <ppe_tx.h>
 #include <ppe_rtcctx.h>
 #include <ppe_sleep.h>
+#include <ppe_batt.h>
 #ifdef PPE_TEST_HOOKS
 #include <ppe_hooks.h>
 #include <ppe_test_key.h>
@@ -122,6 +123,8 @@ RTC_DATA_ATTR static uint8_t  g_marker_on = 1;
 RTC_DATA_ATTR static uint8_t  g_nvslog = 0;
 RTC_DATA_ATTR static uint8_t  g_skip_n = 0;
 RTC_DATA_ATTR static uint8_t  g_sleep_on = 1;
+RTC_DATA_ATTR static uint8_t  g_batt_src = PPE_BATT_SRC_NONE;   // batt hook (TC-13, A-26: no divider, so "real" = not available)
+RTC_DATA_ATTR static uint16_t g_batt_mv = 0;
 RTC_DATA_ATTR static uint8_t  g_cfg_valid = 0;
 RTC_DATA_ATTR static ppe_cfg_t g_cfg_rtc;
 RTC_DATA_ATTR static AtEntry  g_at[4];
@@ -141,7 +144,7 @@ static char g_line[48];
 static uint8_t g_len = 0;
 
 static void test_cold_init() {         // a cold boot starts every hook from its default
-  g_adc_inject = PPE_TEST_ADC_BOOT; g_adc_fail = 0; g_marker_on = 1; g_nvslog = 0; g_skip_n = 0; g_sleep_on = 1; g_cfg_valid = 0;
+  g_adc_inject = PPE_TEST_ADC_BOOT; g_adc_fail = 0; g_marker_on = 1; g_nvslog = 0; g_skip_n = 0; g_sleep_on = 1; g_cfg_valid = 0; g_batt_src = PPE_BATT_SRC_NONE; g_batt_mv = 0;
   memset(g_at, 0, sizeof g_at); g_marks_n = 0; g_marks_lost = 0; g_wlog_n = 0; g_wake_total = 0; g_info_n = 0; g_info_lost = 0;
 }
 static void info_add(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
@@ -305,7 +308,11 @@ static void on_build(ppe_tx_act_t act, uint32_t now) {
   if (st != PPE_CTR_OK) { enter_fault(st == PPE_CTR_ERR_LIMIT ? FAULT_LIMIT : FAULT_NVS); return; }   // N-09, N-30
   ppe_raw_t pair = is_event ? txs.cur_event.pair : confirm.confirmed;
   bool boot = is_event && txs.cur_event.boot;
-  uint8_t battery = PPE_BATT_NA;                              // no battery ADC yet (TC-13 later)
+#ifdef PPE_TEST_HOOKS
+  uint8_t battery = ppe_batt_report((ppe_batt_src_t)g_batt_src, g_batt_mv);   // TC-13: injected millivolts or 0xFF
+#else
+  uint8_t battery = ppe_batt_report(PPE_BATT_SRC_NONE, 0);    // no battery divider on this board (A-26): 0xFF, open item for S6
+#endif
   if (!ppe_build_adv(&ident, is_event ? PPE_EVENT : PPE_HEARTBEAT, boot, pair.fault != 0, pair.state, battery, ctr, g_adv)) {
     enter_fault(FAULT_CRYPTO); return;
   }
@@ -313,8 +320,8 @@ static void on_build(ppe_tx_act_t act, uint32_t now) {
   ppe_tx_begin(&txs, now);
   ppe_hb_on_sequence_start(&confirm, now, cfg.heartbeat_s);   // N-27
 #ifdef PPE_TEST_HOOKS
-  info_add("TX seq=%lu type=%s ctr=%lu state=%d boot=%d fault=%d", (unsigned long)g_tx_seq, is_event ? "event" : "heartbeat",
-           (unsigned long)ctr, (int)pair.state, (int)boot, (int)pair.fault);   // buffered: a sleeping node's USB port is mostly closed
+  info_add("TX seq=%lu type=%s ctr=%lu state=%d boot=%d fault=%d batt=%u", (unsigned long)g_tx_seq, is_event ? "event" : "heartbeat",
+           (unsigned long)ctr, (int)pair.state, (int)boot, (int)pair.fault, (unsigned)battery);   // buffered: a sleeping node's USB port is mostly closed
 #else
   PPE_LOGI("node", "TX seq=%lu type=%s ctr=%lu state=%d boot=%d fault=%d", (unsigned long)g_tx_seq, is_event ? "event" : "heartbeat",
            (unsigned long)ctr, (int)pair.state, (int)boot, (int)pair.fault);
@@ -505,9 +512,10 @@ static void handle_line(const char* line) {
     }
     case PPE_HOOK_ADCAT_CLEAR: memset(g_at, 0, sizeof g_at); Serial.println("OK adcat clear"); break;
     case PPE_HOOK_WAKELOG:    flush_buffered(); flush_wakelog(); Serial.println("OK wakelog"); break;
-    case PPE_HOOK_BATT_SET:
-    case PPE_HOOK_BATT_FAIL:
-    case PPE_HOOK_BATT_REAL:  Serial.println("ERR batt hook: battery report comes with TC-13"); break;
+    case PPE_HOOK_BATT_SET:   g_batt_src = PPE_BATT_SRC_INJECTED; g_batt_mv = (uint16_t)h.arg;
+                              Serial.printf("OK batt %ld mV -> %u %%\n", h.arg, (unsigned)ppe_batt_pct_from_mv(g_batt_mv)); break;
+    case PPE_HOOK_BATT_FAIL:  g_batt_src = PPE_BATT_SRC_FAIL; Serial.println("OK batt fail (battery 0xFF)"); break;
+    case PPE_HOOK_BATT_REAL:  g_batt_src = PPE_BATT_SRC_NONE; Serial.println("OK batt real (no divider on this board, A-26: battery 0xFF)"); break;
     case PPE_HOOK_IDENT_SET:
       prefs.putUChar("node", (uint8_t)h.arg); prefs.putUChar("vest", (uint8_t)h.arg2);
       Serial.printf("OK ident set node=%ld vest=%ld, restarting\n", h.arg, h.arg2); Serial.flush(); delay(300); ESP.restart();
