@@ -1,0 +1,9 @@
+# tc=TC-75 host part (test plan: TC-11 step 5 / TC-75 host power-cut simulation, A-17)
+# sha=c27f481
+# date=2026-11-25T09:09:19
+# tool=test/host make test, output filtered to TC-75 (same method as S5 A-35)
+  power cuts: commit=255 lost=247 ram=339 boot=159 max=146500
+TEST	TC-75	thousand_simulated_power_cuts_counter_strictly_increasing	PASS	checks=3
+TEST	TC-75	resume_refuses_implausible_rtc_image	PASS	checks=20
+TEST	TC-75	resume_accepts_every_image_the_counter_can_produce	PASS	checks=1602
+SUMMARY	tests=199	failed=0	checks=273724
