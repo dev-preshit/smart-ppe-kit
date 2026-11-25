@@ -16,13 +16,14 @@ typedef enum {
   PPE_HOOK_BATT_SET, PPE_HOOK_BATT_FAIL, PPE_HOOK_BATT_REAL, PPE_HOOK_SET_HB,
   PPE_HOOK_IDENT_SET, PPE_HOOK_IDENT_TESTKEY, PPE_HOOK_IDENT_CLEAR, PPE_HOOK_IDENT_SHOW,
   PPE_HOOK_SLEEP_ON, PPE_HOOK_SLEEP_OFF, PPE_HOOK_ADCAT, PPE_HOOK_ADCAT_CLEAR, PPE_HOOK_WAKELOG,
+  PPE_HOOK_FAULT_NVS_BOOT,
   PPE_HOOK_UNKNOWN, PPE_HOOK_BAD_ARG
 } ppe_hook_t;
 // arg: number; arg2: second number (ident set <node> <vest>); uarg: 32-bit value (setcounter). tx event: arg = 1 worn, 0 not worn.
 typedef struct { ppe_hook_t cmd; long arg; long arg2; uint32_t uarg; } ppe_hook_cmd_t;
 
 // S2: adc <0..4095> | adc fail | adc ok | adc real | marker on|off | set settle <0..1000> | set grace <1..120> | show
-// S4: tx hb | tx worn | tx notworn | setcounter <0..4294967295> | skiptx <0..100> | nvslog on|off | fault nvs-write|ble|clear |
+// S4: tx hb | tx worn | tx notworn | setcounter <0..4294967295> | skiptx <0..100> | nvslog on|off | fault nvs-write|nvs-boot|ble|clear |
 //     awake <1..3600> | batt <0..5000 mV> | batt fail | batt real | set hb <60..3600> |
 //     ident set <node 1..5> <vest 1..254> | ident testkey | ident clear | ident show
 //     sleep on|off | adcat <1..86400 s> <0..4095> | adcat clear | wakelog     (the node can only be reached while it is awake)

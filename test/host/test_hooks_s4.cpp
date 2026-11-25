@@ -52,6 +52,8 @@ PPE_TEST(s4_hook_skiptx_awake_and_batt_have_bounds, "TC-17") {
 PPE_TEST(s4_hook_fault_and_nvslog_words, "TC-17") {
   ppe_hook_cmd_t h;
   CHECK_EQ(ppe_hook_parse("fault nvs-write", &h), PPE_HOOK_FAULT_NVS_WRITE);
+  CHECK_EQ(ppe_hook_parse("fault nvs-boot", &h), PPE_HOOK_FAULT_NVS_BOOT);
+  CHECK_EQ(ppe_hook_parse("fault nvs-boot 1", &h), PPE_HOOK_UNKNOWN);
   CHECK_EQ(ppe_hook_parse("fault ble", &h), PPE_HOOK_FAULT_BLE);
   CHECK_EQ(ppe_hook_parse("fault clear", &h), PPE_HOOK_FAULT_CLEAR);
   CHECK_EQ(ppe_hook_parse("fault wdt", &h), PPE_HOOK_BAD_ARG);   // hub fault, not a node hook

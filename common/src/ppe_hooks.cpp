@@ -81,6 +81,7 @@ ppe_hook_t ppe_hook_parse(const char* line, ppe_hook_cmd_t* out) {
   }
   else if (!strcmp(t[0], "fault") && n == 2) {
     if (!strcmp(t[1], "nvs-write")) d.cmd = PPE_HOOK_FAULT_NVS_WRITE;
+    else if (!strcmp(t[1], "nvs-boot")) d.cmd = PPE_HOOK_FAULT_NVS_BOOT;   // TC-17b: kept through a reset (RTC no-init memory)
     else if (!strcmp(t[1], "ble")) d.cmd = PPE_HOOK_FAULT_BLE;
     else if (!strcmp(t[1], "clear")) d.cmd = PPE_HOOK_FAULT_CLEAR;
     else d.cmd = PPE_HOOK_BAD_ARG;

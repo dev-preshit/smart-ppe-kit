@@ -139,6 +139,10 @@ RTC_DATA_ATTR static uint8_t  g_info_n = 0;
 RTC_DATA_ATTR static uint8_t  g_info_lost = 0;
 static bool g_fail_nvs_write = false;
 static uint8_t g_fail_ble_starts = 0;
+// fault nvs-boot (TC-17b, N-30 at COLD_BOOT): RTC no-init memory is not loaded by the bootloader, so the flag survives an
+// RTS / RESET-pin reset (not a power loss). The magic word guards against random content after a power-on.
+static const uint32_t FAIL_BOOT_MAGIC = 0x4E565342u;   // "NVSB"
+RTC_NOINIT_ATTR static uint32_t g_fail_boot_magic;
 static bool g_seq_suppressed = false;
 static char g_line[48];
 static uint8_t g_len = 0;
@@ -498,7 +502,8 @@ static void handle_line(const char* line) {
     case PPE_HOOK_NVSLOG_OFF: g_nvslog = 0; Serial.println("OK nvslog off"); break;
     case PPE_HOOK_FAULT_NVS_WRITE: g_fail_nvs_write = true; Serial.println("OK fault nvs-write (next block write fails once)"); break;
     case PPE_HOOK_FAULT_BLE:  g_fail_ble_starts = 2; Serial.println("OK fault ble (the next two radio starts fail)"); break;
-    case PPE_HOOK_FAULT_CLEAR: g_fail_nvs_write = false; g_fail_ble_starts = 0; Serial.println("OK fault clear (injected faults only; a NODE_FAULT clears on reset)"); break;
+    case PPE_HOOK_FAULT_NVS_BOOT: g_fail_boot_magic = FAIL_BOOT_MAGIC; Serial.println("OK fault nvs-boot (the counter-block write of the next cold boot fails once)"); break;
+    case PPE_HOOK_FAULT_CLEAR: g_fail_nvs_write = false; g_fail_ble_starts = 0; g_fail_boot_magic = 0; Serial.println("OK fault clear (injected faults only; a NODE_FAULT clears on reset)"); break;
     case PPE_HOOK_AWAKE:      g_awake_until = pnow_ms() + (uint32_t)h.arg * 1000u; Serial.printf("OK awake %ld s\n", h.arg); break;
     case PPE_HOOK_SLEEP_ON:   g_sleep_on = 1; Serial.println("OK sleep on"); break;
     case PPE_HOOK_SLEEP_OFF:  g_sleep_on = 0; Serial.println("OK sleep off (until the next cold boot)"); break;
@@ -569,6 +574,11 @@ static void begin_run() {
   ppe_sleep_state_init(&g_sleep);
 #ifdef PPE_TEST_HOOKS
   { char fwb[96]; fw_line(fwb, sizeof fwb); info_add("%s", fwb); }   // firmware identity: printed with the first buffered lines
+  if (g_fail_boot_magic == FAIL_BOOT_MAGIC) {             // hook fault nvs-boot: armed before the reset, used once
+    g_fail_boot_magic = 0;
+    g_fail_nvs_write = true;
+    info_add("TEST fault nvs-boot: the counter-block write of this cold boot fails (hook)");
+  }
 #endif
   ppe_ctr_status_t st = counter.cold_boot();
   if (st != PPE_CTR_OK) { enter_fault(FAULT_NVS); return; }
