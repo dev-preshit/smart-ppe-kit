@@ -321,6 +321,14 @@ class T(unittest.TestCase):
         t = time.time(); self.assertTrue(observe.wait_port_stable(h, 5.0, stable=0.5)); self.assertTrue(time.time() - t >= 0.9)
     def test_wait_port_stable_gives_up_when_the_port_never_stays(self):
         self.assertFalse(observe.wait_port_stable({"ser": None}, 0.3, stable=0.1))
+    def test_packets_before_the_startup_node_reset_are_ignored_but_not_before_a_plan_reset(self):
+        # TC-11a at f09cbb3: a heartbeat of the previous boot, cut after 1 copy by the startup reset, came first
+        p = make_log(hexes=[adv(ctr=7)]); lines = open(p).read().split("\n")
+        old = "2026-11-11T10:00:00.500 | PKT 5.000000 21 3 -60 %s" % adv(flags=0x00, ctr=6)
+        open(p, "w").write("\n".join(lines[:2] + [old, "x | NODE RESET by RTS pulse"] + lines[2:]))
+        rc, out = self.run_(p); self.assertEqual(rc, 0, out); self.assertIn("transmissions=1", out)
+        open(p, "w").write("\n".join(lines[:2] + [old, "x | " + observe.PLAN_RESET_NOTE] + lines[2:]))
+        rc, out = self.run_(p); self.assertIn("transmissions=2", out)
     # ---- A-58: waitboot plans (hand power-on / RESET tap), FW line of every cold boot, TC-08 power-on check
     FW_OK = "common=aaaaaaaa node=bbbbbbbb dirty=0"
     def _boot(self, fw=FW_OK, grace=(7000,), copy0=25010953, tx=(("event", 5, 2, 1),), clock=9700):

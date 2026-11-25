@@ -41,6 +41,9 @@ def parse(path):
             if "| OK reset" in ln:      # a capture starts with RESET: whatever came before it does not count
                 pk, end, lost = [], 0, 0
                 continue
+            if "| NODE RESET by RTS pulse" in ln and "(plan)" not in ln:
+                pk = []                 # A-59: packets before the startup reset belong to the node's previous boot
+                continue
             m = PKT.search(ln)
             if m:
                 us = int(m.group(1)) * 1000000 + int(m.group(2))
