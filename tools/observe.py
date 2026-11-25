@@ -413,15 +413,15 @@ SHOW_SLEEP = re.compile(r"\| NODE SLEEP on=\d+ wake=(\w+) .*now_ms=(\d+)")
 
 def reset_problem(text, max_up_ms):
     """None when the node's last show reply proves a fresh cold boot (wake=boot, up no longer than max_up_ms), else the reason."""
-    boot_ms, reply = None, None
+    boot_us, reply = None, None
     for ln in text.splitlines():
         m = SHOW_NODE.search(ln)
         if m:
-            boot_ms = int(m.group(1)) // 1000
+            boot_us = int(m.group(1))       # the node prints boot_ms * 1000 as a 32-bit number: it wraps every 4294.967 s
             continue
         m = SHOW_SLEEP.search(ln)
-        if m and boot_ms is not None:
-            reply = (m.group(1), (int(m.group(2)) - boot_ms) & 0xFFFFFFFF)
+        if m and boot_us is not None:       # so compare in the same 32-bit microsecond space (A-54)
+            reply = (m.group(1), ((int(m.group(2)) * 1000 - boot_us) & 0xFFFFFFFF) // 1000)
     if reply is None:
         return "the node did not answer show after the reset"
     if reply[0] != "boot":

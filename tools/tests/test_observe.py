@@ -293,6 +293,10 @@ class T(unittest.TestCase):
     def test_reset_check_rejects_a_wake_from_sleep_and_a_missing_reply(self):
         self.assertIn("wake=gpio", observe.reset_problem(self.SHOW % (7000, "gpio", 900), 4000))
         self.assertIn("did not answer", observe.reset_problem("x | NODE MARK RAW 1 state=2 fault=0\n", 4000))
+    def test_reset_check_handles_the_32_bit_boot_us_wrap(self):
+        # TC-11b at 0e9051e: persistent clock 4564932 ms, boot_us printed as (g_boot_ms * 1000) mod 2^32 = 267447704
+        self.assertIsNone(observe.reset_problem(self.SHOW % (267447704, "boot", 4564932), 4012))
+        self.assertIn("did not reach", observe.reset_problem(self.SHOW % (267447704, "boot", 4564932 + 9000), 4012))
     def test_reset_check_uses_the_last_show_reply(self):
         self.assertIsNone(observe.reset_problem(self.SHOW % (7000, "boot", 90000) + self.SHOW % (5, "boot", 3000), 4000))
     # ---- prompts for the person at the bench (glove and helmet runs)
