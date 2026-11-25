@@ -23,6 +23,10 @@ LOSS = re.compile(r"\| (?:LOST (\d+)|STAT .*lost=(\d+))")
 NODE_MARK = re.compile(r"\| NODE MARK COPY(\d) (\d+)")
 FWLINE = re.compile(r"\| NODE FW common=([0-9a-f]{8}) node=([0-9a-f]{8}) dirty=(\d) type=(\d) hooks=(\d)")
 NODE_TX = re.compile(r"\| NODE .*TX seq=(\d+) type=(event|heartbeat) ctr=(\d+) state=(\d+) boot=(\d) fault=(\d)")
+COLD_MARK = re.compile(r"\| NODE MARK COLD_START (\d+) state=(\d)")
+GRACE_MARK = re.compile(r"\| NODE MARK GRACE_START (\d+)")
+BOOT_NOT_SEEN = "NODE BOOT NOT SEEN"
+WAIT_STATES = ("worn", "not_worn", "any")
 
 
 def log_file(a):
@@ -70,6 +74,75 @@ def parse_node(path):
             if m:
                 tx.append((int(m.group(1)), m.group(2), int(m.group(3)), int(m.group(4)), int(m.group(5)), int(m.group(6))))
     return seqs, tx
+
+
+def parse_boots(path):
+    """The node's cold boots after the capture start ('OK reset'), each as a dict: clock (us of the node clock at the cold
+    start mark), fw (the FW line printed just before the mark, or None), grace (GRACE_START marks before the first copy),
+    copy0 (first COPY0 mark), tx (node TX lines: type, ctr, state, boot), after_prompt (a PROMPT line came before it)."""
+    boots, recent, cur, prompted = [], [], None, False
+    with open(path, encoding="utf-8") as f:
+        for ln in f:
+            if "| OK reset" in ln:
+                boots, recent, cur, prompted = [], [], None, False
+                continue
+            if "| PROMPT " in ln:
+                prompted = True
+                continue
+            if "| NODE " not in ln:
+                continue
+            m = COLD_MARK.search(ln)
+            if m:
+                cur = {"clock": int(m.group(1)), "fw": next((parse_fw(r) for r in reversed(recent) if parse_fw(r)), None),
+                       "grace": [], "copy0": None, "tx": [], "after_prompt": prompted}
+                boots.append(cur); recent = []
+                continue
+            recent = (recent + [ln])[-3:]                   # the FW line comes right before the COLD_START mark
+            if cur is None:
+                continue
+            m = GRACE_MARK.search(ln)
+            if m and cur["copy0"] is None:
+                cur["grace"].append(int(m.group(1)))
+                continue
+            m = NODE_MARK.search(ln)
+            if m and int(m.group(1)) == 0 and cur["copy0"] is None:
+                cur["copy0"] = int(m.group(2))
+                continue
+            m = NODE_TX.search(ln)
+            if m:
+                cur["tx"].append((m.group(2), int(m.group(3)), int(m.group(4)), int(m.group(5))))
+    return boots
+
+
+def poweron_check(boots, n, states, grace_s=25.0, tol_s=0.5):
+    """TC-08: the cold boots after the first prompt, against n planned power-ons. -> (out lines, errors, incomplete).
+    Each: exactly one BOOT=1 event, the first one in its boot, first copy grace_s +/- tol_s after the last GRACE_START
+    (setup() start, or the last candidate change: part b), state as planned (node state 2 = worn, 1 = not worn)."""
+    out, errs = [], []
+    seen = [b for b in boots if b["after_prompt"]]
+    for k, b in enumerate(seen[:n], 1):
+        if b["copy0"] is None or not b["grace"]:
+            errs.append("power-on %d: no first copy after the cold start" % k)
+            continue
+        d = ((b["copy0"] - b["grace"][-1]) & 0xFFFFFFFF) / 1e6
+        chg = ((b["grace"][-1] - b["grace"][0]) & 0xFFFFFFFF) / 1e6
+        b1 = [t for t in b["tx"] if t[0] == "event" and t[3] == 1]
+        st = b1[0][2] if b1 else None
+        out.append("POWER-ON %d: first copy %.3f s after the grace start%s, BOOT=1 events %d, state %s" % (
+            k, d, (", last candidate change %.3f s after setup()" % chg) if len(b["grace"]) > 1 else "", len(b1),
+            {2: "worn", 1: "not_worn"}.get(st, st)))
+        if abs(d - grace_s) > tol_s:
+            errs.append("power-on %d: first copy %.3f s after the grace start, limit %.1f +/- %.1f s" % (k, d, grace_s, tol_s))
+        if len(b1) != 1:
+            errs.append("power-on %d: %d BOOT=1 events, exactly one is needed" % (k, len(b1)))
+        if b["tx"] and not (b["tx"][0][0] == "event" and b["tx"][0][3] == 1):
+            errs.append("power-on %d: the first packet after the cold start is not the BOOT=1 event" % k)
+        want = states[k - 1] if states and k <= len(states) else "any"
+        if want != "any" and st is not None and st != (2 if want == "worn" else 1):
+            errs.append("power-on %d: BOOT=1 event state %s, planned %s" % (k, {2: "worn", 1: "not_worn"}.get(st, st), want))
+    if len(seen) > n:
+        errs.append("%d cold boots after the first prompt, %d planned" % (len(seen), n))
+    return out, errs, len(seen) < n
 
 
 def bursts(pdus, gap_us):
@@ -141,14 +214,33 @@ def cmd_analyze(a):
             if dec(h)["node"] != nid:
                 errs.append("TX %d: node_id %d on the air, provisioned as %d" % (i, dec(h)["node"], nid))
     whole = open(path, encoding="utf-8").read()
-    for bad in ("OBSERVER STALLED", "NODE RESET FAILED", "final TIME and STAT could not be sent", "FIRMWARE MISMATCH"):
+    for bad in ("OBSERVER STALLED", "NODE RESET FAILED", "final TIME and STAT could not be sent", "FIRMWARE MISMATCH", BOOT_NOT_SEEN):
         if bad in whole:
             errs.append("the capture reports: %s" % bad)
+    m = re.search(r"# fw_expected common=([0-9a-f]{8}) node=([0-9a-f]{8})", whole)
+    want_fw = (int(m.group(1), 16), int(m.group(2), 16), 0) if m else None
     if "# fw_check=required" in whole:               # process rule 2: this log must show the firmware of HEAD
-        m = re.search(r"# fw_expected common=([0-9a-f]{8}) node=([0-9a-f]{8})", whole)
-        prob = fw_problem(parse_fw(whole), (int(m.group(1), 16), int(m.group(2), 16), 0)) if m else "no fw_expected line in the header"
+        prob = fw_problem(parse_fw(whole), want_fw) if want_fw else "no fw_expected line in the header"
         if prob:
             errs.append("firmware identity: " + prob)
+    boots = parse_boots(path)
+    if "# fw_check=every-boot" in whole:             # waitboot plan: every cold boot must print the firmware of HEAD
+        if not want_fw:
+            errs.append("firmware identity: no fw_expected line in the header")
+        elif not boots:
+            errs.append("firmware identity: no cold boot in the log (fw_check=every-boot)")
+        for k, b in enumerate(boots, 1):
+            prob = fw_problem(b["fw"], want_fw) if want_fw else None
+            if prob:
+                errs.append("firmware identity, cold boot %d: %s" % (k, prob))
+    incomplete = False
+    if getattr(a, "powerons", 0):                    # TC-08: n planned hand power-ons
+        states = re.findall(r"# plan \S+ waitboot (\S+) ", whole)
+        p_out, p_errs, incomplete = poweron_check(boots, a.powerons, states)
+        out += p_out; errs += p_errs
+        n_seen = len([b for b in boots if b["after_prompt"]])
+        if incomplete:
+            out.append("INCOMPLETE: %d of %d planned power-ons show a cold start" % (n_seen, a.powerons))
     nseqs, ntx = parse_node(path)
     for lost_cmd in [x for x in ntx if x[0] == "FAILED"]:      # a hook command that never reached the node makes the run meaningless
         errs.append("a node command was lost: %s" % lost_cmd[1])
@@ -225,9 +317,9 @@ def cmd_analyze(a):
         out.append("RUN %d wear + %d remove events and %d heartbeats checked against the air" % (cyc, cyc, hbn))
     for e in errs:
         out.append("FINDING " + e)
-    out.append("RESULT %s" % ("PASS" if not errs else "FAIL (%d)" % len(errs)))
+    out.append("RESULT %s" % ("FAIL (%d)" % len(errs) if errs else "INCOMPLETE" if incomplete else "PASS"))
     emit(path, out)
-    return 1 if errs else 0
+    return 1 if (errs or incomplete) else 0
 
 
 def cmd_calibrate(a):
@@ -268,6 +360,12 @@ def load_plan(path):
                 continue
             t, cmd = ln.split(None, 1)
             if cmd.startswith("say "):                          # a prompt for the person at the bench, never sent to the node
+                out.append((float(t), cmd))
+                continue
+            if cmd.startswith("waitboot "):                     # a hand power-on or RESET tap: '<t> waitboot <worn|not_worn|any> <prompt>'
+                parts = cmd.split(None, 2)
+                if len(parts) < 3 or parts[1] not in WAIT_STATES:
+                    sys.exit("STOP: plan line '%s': use '<t> waitboot <worn|not_worn|any> <prompt>'" % ln[:60])
                 out.append((float(t), cmd))
                 continue
             if len(cmd) > 40 or "key" in cmd.lower().replace("testkey", ""):
@@ -466,7 +564,31 @@ def node_reader(port, cap, stop, holder):
         buf += chunk
         while b"\n" in buf:
             raw, buf = buf.split(b"\n", 1)
-            cap.note("NODE " + raw.decode("utf-8", "replace").rstrip("\r"))
+            text = raw.decode("utf-8", "replace").rstrip("\r")
+            cap.note("NODE " + text)
+            if text.startswith("MARK COLD_START"):          # a cold boot (power-on, RESET tap or RTS reset): waitboot plan lines wait for it
+                holder["boots"] = holder.get("boots", 0) + 1
+                holder["boot_t"] = time.time()
+
+
+def wait_boot(holder, cap, stalled, prompt, every=20.0, limit=300.0):
+    """A waitboot plan line: prompts the person (again every `every` s) until the node reports a new cold boot, at most
+    `limit` s. -> the PC time the cold boot was seen (the plan's new time base), or None (logged as NODE BOOT NOT SEEN)."""
+    b0 = holder.get("boots", 0)
+    t_s = time.time(); next_p = t_s
+    while True:
+        if holder.get("boots", 0) > b0:
+            cap.note("PLAN BOOT SEEN")
+            return holder["boot_t"]
+        now = time.time()
+        if now - t_s >= limit or stalled.is_set():
+            cap.note("%s (waitboot, %d s): the run is invalid" % (BOOT_NOT_SEEN, int(now - t_s)))
+            return None
+        if now >= next_p:
+            print("\a>>> %s" % prompt); sys.stdout.flush()
+            cap.note("PROMPT %s" % prompt)
+            next_p += every
+        time.sleep(0.1)
 
 
 def cmd_capture(a):
@@ -474,18 +596,23 @@ def cmd_capture(a):
     if os.path.exists(path):
         sys.exit("STOP: %s already exists (a log is never appended to). Move it to test_logs/invalid/ or change HEAD." % path)
     header = logger.header_lines(a.tc, a.waived) + ["via=observe.py", "observer_port=%s" % a.port] + a.header
+    plan_lines = load_plan(a.node_plan) if (a.node and a.node_plan) else []
+    anchored = any(c.startswith("waitboot ") for _t, c in plan_lines)
+    if anchored and (a.node_reset or a.node_send):
+        sys.exit("STOP: a waitboot plan starts with a hand power-on or RESET tap: no --node-reset, no --node-send")
     expect_fw = None
-    if a.node and a.node_reset and not a.no_fw_check:
+    if a.node and (a.node_reset or anchored) and not a.no_fw_check:
         expect_fw = expected_fw()
         if expect_fw[2]:
             sys.exit("STOP: common/ or firmware/node_sense differ from HEAD. Commit them, rebuild and flash, then run (process rule 2).")
-        header += ["fw_check=required", "fw_expected common=%08x node=%08x" % expect_fw[:2]]
+        # --node-reset: one check after the RTS reset. waitboot plan: the FW line of EVERY cold boot is judged by analyze.
+        header += ["fw_check=%s" % ("every-boot" if anchored else "required"), "fw_expected common=%08x node=%08x" % expect_fw[:2]]
     elif a.node:
         header.append("fw_check=skipped")
     if a.node:
         header.append("node_port=%s" % a.node)
         if a.node_plan:
-            header += ["plan %g %s" % (t, c) for t, c in load_plan(a.node_plan)]
+            header += ["plan %g %s" % (t, c) for t, c in plan_lines]
     cap = logger.Capture(a.port, a.baud, path, header)
     print("logging to", path)
     inj = None
@@ -499,7 +626,7 @@ def cmd_capture(a):
         if a.filter:
             cap.send("FILTER %d" % a.filter); time.sleep(0.3)
         threading.Thread(target=observer_watchdog, args=(path, cap, stop, stalled), daemon=True).start()
-        t0 = time.time()
+        t0 = base = time.time()
         if a.node:                                          # the node under test: its lines go into the same log as NODE ...
             threading.Thread(target=node_reader, args=(a.node, cap, stop, holder), daemon=True).start()
             if a.node_reset:                                # the node boots INSIDE the capture: its 25 s boot grace starts now
@@ -516,7 +643,7 @@ def cmd_capture(a):
                     t_reset = None
                     cap.note("NODE RESET FAILED (no node port): the run is invalid")
                 time.sleep(2.5)                             # the node's USB port goes away and comes back
-                if expect_fw:                               # process rule 2: the flashed firmware must be the one of HEAD
+                if expect_fw and not anchored:              # process rule 2: the flashed firmware must be the one of HEAD
                     # The buffered FW line of the cold boot can be printed before the port is reopened, so ask with show:
                     # its reply carries the FW line and proves the reset reached the node (wake=boot, up since the reset).
                     t_f = time.time(); rp = "the node did not answer show after the reset"; problem = None
@@ -542,13 +669,23 @@ def cmd_capture(a):
                     elif a.wake_wait > 5.0:
                         print("\a>>> Node reset and firmware verified. Keep the button PRESSED until a prompt tells you to release it."); sys.stdout.flush()
                 t0 = time.time()
-            plan = [(a.node_after + i * a.node_gap, c) for i, c in enumerate(a.node_send)]
-            if a.node_plan:
-                plan += load_plan(a.node_plan)
-            plan.sort(key=lambda x: x[0])
+            plan = [(a.node_after + i * a.node_gap, c) for i, c in enumerate(a.node_send)] + plan_lines
+            if not anchored:
+                plan.sort(key=lambda x: x[0])
+            # A waitboot plan runs in file order and its times count from the last cold boot seen (from the start before
+            # the first one), so a prompt like "change now" comes 10 s after the node's COLD_START line (TC-08 part b).
+            base = t0
             for t_cmd, c in plan:
-                if not wait_until(t0 + t_cmd, stalled):
+                if not wait_until(base + t_cmd, stalled):
                     break
+                if c.startswith("waitboot "):
+                    bt = wait_boot(holder, cap, stalled, c.split(None, 2)[2])
+                    if bt is None:
+                        fw_msg = BOOT_NOT_SEEN + ": the node reported no cold boot after the prompt"
+                        stalled.set()
+                        break
+                    base = bt
+                    continue
                 if c.startswith("say "):
                     print("\a>>> %s   (t=%g s)" % (c[4:], t_cmd)); sys.stdout.flush()
                     cap.note("PROMPT %s" % c[4:])
@@ -581,7 +718,7 @@ def cmd_capture(a):
                     print("STOP waiting: the injector gave no OK within 5 s")
                     cap.note("INJECTOR no OK within 5 s")
                     break
-        wait_until(t0 + a.seconds, stalled)
+        wait_until((base if anchored else t0) + a.seconds, stalled)    # a waitboot plan: --seconds count from the last cold boot
         try:
             cap.send("TIME"); time.sleep(0.3)
             cap.send("STAT"); time.sleep(0.5)
@@ -601,7 +738,7 @@ def cmd_capture(a):
             inj.close()
         cap.close()
     if fw_msg:
-        fix = "check the node's USB cable and port" if fw_msg.startswith("NODE RESET FAILED") else "flash the firmware of HEAD"
+        fix = "check the node's USB cable and port" if fw_msg.startswith(("NODE RESET FAILED", BOOT_NOT_SEEN)) else "flash the firmware of HEAD"
         print(fw_msg + ". The run was stopped before it started; %s and try again (the log is not evidence)." % fix)
         return 3
     if stalled.is_set():
@@ -640,6 +777,7 @@ def main():
             p.add_argument("--node-id", type=int, help="TC-01: every transmission must carry this node_id")
             p.add_argument("--cycles", type=int, default=0, help="TC-07: boot event then N x (remove, wear); counter +1 and the state alternates")
             p.add_argument("--heartbeats", type=int, default=0, help="TC-10: N heartbeats after the events")
+            p.add_argument("--powerons", type=int, default=0, help="TC-08: N planned hand power-ons (INCOMPLETE when fewer cold boots are seen)")
     pl = sub.add_parser("plan")
     pl.add_argument("--cycles", type=int, default=20); pl.add_argument("--hold", type=float, default=6.0)
     pl.add_argument("--first", type=float, default=32.0); pl.add_argument("--grace", type=int, default=2)

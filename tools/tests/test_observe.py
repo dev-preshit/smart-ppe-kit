@@ -321,4 +321,83 @@ class T(unittest.TestCase):
         t = time.time(); self.assertTrue(observe.wait_port_stable(h, 5.0, stable=0.5)); self.assertTrue(time.time() - t >= 0.9)
     def test_wait_port_stable_gives_up_when_the_port_never_stays(self):
         self.assertFalse(observe.wait_port_stable({"ser": None}, 0.3, stable=0.1))
+    # ---- A-58: waitboot plans (hand power-on / RESET tap), FW line of every cold boot, TC-08 power-on check
+    FW_OK = "common=aaaaaaaa node=bbbbbbbb dirty=0"
+    def _boot(self, fw=FW_OK, grace=(7000,), copy0=25010953, tx=(("event", 5, 2, 1),), clock=9700):
+        L = []
+        if fw: L.append("x | NODE FW %s type=1 hooks=1" % fw)
+        L.append("x | NODE MARK COLD_START %d state=2 fault=0" % clock)
+        L += ["x | NODE MARK GRACE_START %d" % g for g in grace]
+        if copy0 is not None:
+            L.append("x | NODE MARK COPY0 %d" % copy0)
+        L += ["x | NODE TX seq=1 type=%s ctr=%d state=%d boot=%d fault=0 batt=255" % t for t in tx]
+        return L
+    def _boot_log(self, boots, header=("# fw_check=every-boot", "# fw_expected common=aaaaaaaa node=bbbbbbbb"), plan=(), air=None):
+        p = make_log(hexes=air); lines = open(p).read().split("\n")
+        body = ["x | OK reset", "x | PROMPT first"]
+        for b in boots: body += b
+        open(p, "w").write("\n".join(lines[:1] + list(header) + list(plan) + body + lines[1:]))
+        return p
+    def test_plan_waitboot_lines_are_read_and_a_bad_state_is_refused(self):
+        d = tempfile.mkdtemp(); f = os.path.join(d, "p.txt")
+        open(f, "w").write("5 waitboot not_worn Switch OPEN. PLUG the NODE USB cable in NOW and wait for the next beep\n10 say CLOSE now\n")
+        self.assertEqual(observe.load_plan(f)[0], (5.0, "waitboot not_worn Switch OPEN. PLUG the NODE USB cable in NOW and wait for the next beep"))
+        open(f, "w").write("5 waitboot open plug in\n")
+        with self.assertRaises(SystemExit): observe.load_plan(f)
+    def test_every_boot_firmware_check_passes_and_names_a_boot_without_the_line(self):
+        rc, out = self.run_(self._boot_log([self._boot(), self._boot()])); self.assertNotIn("firmware identity", out)
+        rc, out = self.run_(self._boot_log([self._boot(), self._boot(fw=None)])); self.assertEqual(rc, 1)
+        self.assertIn("firmware identity, cold boot 2: the node sent no firmware identity line", out)
+        rc, out = self.run_(self._boot_log([self._boot(fw="common=aaaaaaaa node=cccccccc dirty=0")])); self.assertIn("cold boot 1", out)
+    def test_every_boot_check_fails_when_no_cold_boot_was_logged(self):
+        rc, out = self.run_(self._boot_log([])); self.assertEqual(rc, 1); self.assertIn("no cold boot in the log", out)
+    def test_boot_not_seen_note_fails_the_analysis(self):
+        p = self._boot_log([self._boot()]); open(p, "a").write("x | NODE BOOT NOT SEEN (waitboot, 300 s): the run is invalid\n")
+        rc, out = self.run_(p); self.assertEqual(rc, 1); self.assertIn("NODE BOOT NOT SEEN", out)
+    def test_poweron_check_passes_and_reports_the_part_b_change(self):
+        b = observe.parse_boots(self._boot_log([self._boot(), self._boot(grace=(7000, 10059754), copy0=35060945)]))
+        out, errs, inc = observe.poweron_check(b, 2, ["worn", "worn"])
+        self.assertEqual(errs, []); self.assertFalse(inc)
+        self.assertIn("first copy 25.004 s", out[0]); self.assertIn("last candidate change 10.053 s after setup()", out[1])
+    def test_poweron_check_is_incomplete_when_a_planned_power_on_shows_no_cold_start(self):
+        # TC-08b_88cd53a.log printed PASS with power-ons 1 and 2 missing (the node never lost power)
+        b = observe.parse_boots(self._boot_log([self._boot()]))
+        out, errs, inc = observe.poweron_check(b, 3, [])
+        self.assertTrue(inc); self.assertEqual(errs, [])
+        p = self._boot_log([self._boot(tx=(("event", 258, 2, 1),))], air=[adv(flags=0x30, state=1, ctr=258)])
+        rc, out = self.run_(p, powerons=3, copies=0)
+        self.assertEqual(rc, 1); self.assertIn("INCOMPLETE: 1 of 3", out); self.assertIn("RESULT INCOMPLETE", out)
+    def test_poweron_check_failures(self):
+        late = self._boot(copy0=25610000)
+        two = self._boot(tx=(("event", 5, 2, 1), ("event", 6, 1, 1)))
+        hb_first = self._boot(tx=(("heartbeat", 5, 2, 0), ("event", 6, 2, 1)))
+        none = self._boot(copy0=None, tx=())
+        b = observe.parse_boots(self._boot_log([late, two, hb_first, none, self._boot()]))
+        out, errs, inc = observe.poweron_check(b, 4, ["worn", "worn", "worn", "worn"])
+        txt = "\n".join(errs)
+        self.assertIn("power-on 1: first copy 25.603 s", txt); self.assertIn("power-on 2: 2 BOOT=1 events", txt)
+        self.assertIn("power-on 3: the first packet after the cold start is not the BOOT=1 event", txt)
+        self.assertIn("power-on 4: no first copy", txt); self.assertIn("5 cold boots after the first prompt, 4 planned", txt)
+        out, errs, inc = observe.poweron_check(observe.parse_boots(self._boot_log([self._boot()])), 1, ["not_worn"])
+        self.assertIn("planned not_worn", errs[0])
+    def test_boots_before_the_first_prompt_are_not_power_ons(self):
+        p = make_log(); lines = open(p).read().split("\n")
+        body = ["x | OK reset"] + self._boot(clock=1884780706) + ["x | PROMPT UNPLUG"] + self._boot()
+        open(p, "w").write("\n".join(lines[:1] + body + lines[1:]))
+        b = observe.parse_boots(p); self.assertEqual([x["after_prompt"] for x in b], [False, True])
+    def test_wait_boot_returns_the_boot_time_or_logs_not_seen(self):
+        import threading, time, io, contextlib
+        notes = []
+        class Cap:
+            def note(self, t): notes.append(t)
+        h = {"boots": 2}
+        def boot(): time.sleep(0.3); h["boot_t"] = 123.0; h["boots"] = 3
+        threading.Thread(target=boot).start()
+        with contextlib.redirect_stdout(io.StringIO()) as buf:
+            self.assertEqual(observe.wait_boot(h, Cap(), threading.Event(), "tap RESET", every=0.1, limit=5.0), 123.0)
+        self.assertIn("PLAN BOOT SEEN", notes); self.assertGreaterEqual(notes.count("PROMPT tap RESET"), 2)
+        notes.clear()
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertIsNone(observe.wait_boot({"boots": 0}, Cap(), threading.Event(), "tap RESET", every=0.1, limit=0.3))
+        self.assertIn("NODE BOOT NOT SEEN", notes[-1])
 if __name__ == "__main__": unittest.main()
