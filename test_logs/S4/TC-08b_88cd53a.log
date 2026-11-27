@@ -1,0 +1,971 @@
+# tc=TC-08b
+# sha=88cd53a
+# date=2026-11-25T21:48:13.566
+# tool=logger.py
+# via=observe.py
+# observer_port=COM6
+# fw_check=required
+# fw_expected common=8695540d node=1bea060a
+# node_port=COM9
+# plan 1 say Switch CLOSED. Wait for the next prompt.
+# plan 45 say UNPLUG the NODE USB cable now   (power-on 1 of 7)
+# plan 50 say Set the switch CLOSED, then PLUG the NODE USB cable back in now
+# plan 105 say UNPLUG the NODE USB cable now   (power-on 2 of 7)
+# plan 110 say Set the switch OPEN, then PLUG the NODE USB cable back in now
+# plan 165 say UNPLUG the NODE USB cable now   (power-on 3 of 7)
+# plan 170 say Set the switch CLOSED, then PLUG the NODE USB cable back in now
+# plan 225 say UNPLUG the NODE USB cable now   (power-on 4 of 7)
+# plan 230 say Set the switch OPEN, then PLUG the NODE USB cable back in now
+# plan 285 say UNPLUG the NODE USB cable now   (power-on 5 of 7)
+# plan 290 say Set the switch CLOSED, then PLUG the NODE USB cable back in now
+# plan 345 say UNPLUG the NODE USB cable now   (power-on 6 of 7)
+# plan 350 say Set the switch OPEN, then PLUG the NODE USB cable back in now
+# plan 405 say UNPLUG the NODE USB cable now   (power-on 7 of 7, part b)
+# plan 410 say Set the switch OPEN, then PLUG the NODE USB cable back in now
+# plan 422 say CLOSE the switch now and leave it closed
+# plan 465 say Run finished in about 15 s. Leave everything as it is.
+2026-11-25T21:48:16.490 | TX RESET
+2026-11-25T21:48:16.534 | OK reset
+2026-11-25T21:48:17.081 | SEC 47433 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:17.999 | NODEPORT open
+2026-11-25T21:48:18.068 | SEC 47434 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:19.053 | SEC 47435 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:19.227 | NODE MARK CAND 1882658770 state=2 fault=0
+2026-11-25T21:48:19.227 | NODE MARK GRACE_START 1882659081
+2026-11-25T21:48:19.534 | NODE ESP-ROM:esp32c3-api1-20210207
+2026-11-25T21:48:19.534 | NODE Build:Feb  7 2021
+2026-11-25T21:48:19.534 | NODE rst:0x15 (USB_UART_CHIP_RESET),boot:0xf (SPI_FAST_FLASH_BOOT)
+2026-11-25T21:48:19.534 | NODE Saved PC:0x40389ec2
+2026-11-25T21:48:19.534 | NODE SPIWP:0xee
+2026-11-25T21:48:19.534 | NODE mode:DIO, clock div:1
+2026-11-25T21:48:19.534 | NODE load:0x3fcd5820,len:0x110c
+2026-11-25T21:48:19.534 | NODE load:0x403cbf10,len:0xb54
+2026-11-25T21:48:19.535 | NODE load:0x403ce710,len:0x2f9c
+2026-11-25T21:48:19.667 | NODE RESET by RTS pulse
+2026-11-25T21:48:19.746 | NODE entry 0x403cbf10
+2026-11-25T21:48:19.746 | NODE [9] I node: COLD_START type=1 node=1 vest=1
+2026-11-25T21:48:19.746 | NODE CFG type=1 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-11-25T21:48:20.043 | SEC 47436 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:21.036 | SEC 47437 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:21.176 | NODE FW common=8695540d node=1bea060a dirty=0 type=1 hooks=1
+2026-11-25T21:48:21.176 | NODE MARK COLD_START 1884780706 state=2 fault=0
+2026-11-25T21:48:21.176 | NODE MARK GRACE_START 1884778000
+2026-11-25T21:48:22.022 | SEC 47438 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:22.169 | NODE CFG type=1 settle_ms=0 grace_s=25 heartbeat_s=360 n=16 hooks=1
+2026-11-25T21:48:22.169 | NODE FW common=8695540d node=1bea060a dirty=0 type=1 hooks=1
+2026-11-25T21:48:22.169 | NODE STATE confirmed=0/0 candidate=2/0 grace=1 adc_inject=-1 adc_fail=0
+2026-11-25T21:48:22.370 | NODE NODE run=active prov=1 node=1 vest=1 key=yes fault=none radio=0 ctr=1064576 ceil=1064640 tx_state=0 skip=0 boot_us=1884778000 first_tx_us=0
+2026-11-25T21:48:22.370 | NODE SLEEP on=1 wake=boot resumed=0 noop=0 poll=0 wakes=0 awake_until_ms=0 now_ms=1887294
+2026-11-25T21:48:23.016 | SEC 47439 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:23.707 | PROMPT Switch CLOSED. Wait for the next prompt.
+2026-11-25T21:48:24.010 | SEC 47440 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:24.347 | NODEPORT closed (node asleep or restarting)
+2026-11-25T21:48:24.951 | NODEPORT open
+2026-11-25T21:48:24.996 | SEC 47441 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:26.096 | SEC 47442 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:26.379 | NODE FW common=8695540d node=1bea060a dirty=0 type=1 hooks=1
+2026-11-25T21:48:26.380 | NODE MARK COLD_START 9765 state=2 fault=0
+2026-11-25T21:48:26.380 | NODE MARK GRACE_START 7000
+2026-11-25T21:48:27.093 | SEC 47443 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:28.087 | SEC 47444 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:29.080 | SEC 47445 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:30.068 | SEC 47446 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:31.051 | SEC 47447 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:32.045 | SEC 47448 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:33.031 | SEC 47449 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:34.018 | SEC 47450 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:35.008 | SEC 47451 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:35.998 | SEC 47452 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:36.986 | SEC 47453 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:38.086 | SEC 47454 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:39.080 | SEC 47455 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:40.066 | SEC 47456 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:41.055 | SEC 47457 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:42.039 | SEC 47458 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:43.030 | SEC 47459 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:44.025 | SEC 47460 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:45.014 | SEC 47461 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:46.002 | SEC 47462 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:46.993 | SEC 47463 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:47.988 | SEC 47464 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:49.095 | SEC 47465 seen=0 skipped=0 printed=0 lost=0 q=0
+2026-11-25T21:48:49.865 | PKT 47466.034577 21 3 -71 14ffffff70010101ffc13e10007884ec2f9bf6d38c
+2026-11-25T21:48:49.881 | NODE [25009] I node: EVENT state=2 fault=0 boot=1
+2026-11-25T21:48:49.881 | NODE MARK CONFIRM_BOO 25009585 state=2 fault=0
+2026-11-25T21:48:49.881 | NODE TX seq=1 type=event ctr=1064641 state=2 boot=1 fault=0 batt=255
+2026-11-25T21:48:49.881 | NODE MARK COPY0 25010961
+2026-11-25T21:48:50.082 | SEC 47466 seen=1 skipped=0 printed=1 lost=0 q=0
+2026-11-25T21:48:50.286 | NODE MARK COPY1 25510585
+2026-11-25T21:48:50.301 | PKT 47466.463817 21 3 -71 14ffffff70010101ffc13e10007884ec2f9bf6d38c
+2026-11-25T21:48:50.301 | PKT 47466.496904 21 3 -71 14ffffff70010101ffc13e10007884ec2f9bf6d38c
+2026-11-25T21:48:50.301 | PKT 47466.536277 21 3 -71 14ffffff70010101ffc13e10007884ec2f9bf6d38c
+2026-11-25T21:48:50.736 | PKT 47466.962300 21 3 -71 14ffffff70010101ffc13e10007884ec2f9bf6d38c
+2026-11-25T21:48:50.846 | PKT 47466.994278 21 3 -73 14ffffff70010101ffc13e10007884ec2f9bf6d38c
+2026-11-25T21:48:50.846 | PKT 47467.025529 21 3 -74 14ffffff70010101ffc13e10007884ec2f9bf6d38c
+2026-11-25T21:48:50.893 | NODE MARK COPY2 26010585
+2026-11-25T21:48:51.066 | SEC 47467 seen=7 skipped=0 printed=7 lost=0 q=0
+2026-11-25T21:48:51.285 | PKT 47467.463775 21 3 -71 14ffffff70010101ffc13e10007884ec2f9bf6d38c
+2026-11-25T21:48:51.285 | PKT 47467.497280 21 3 -71 14ffffff70010101ffc13e10007884ec2f9bf6d38c
+2026-11-25T21:48:51.285 | PKT 47467.529161 21 3 -70 14ffffff70010101ffc13e10007884ec2f9bf6d38c
+2026-11-25T21:48:51.301 | NODE MARK COPY3 26510586
+2026-11-25T21:48:51.720 | PKT 47467.962989 21 3 -73 14ffffff70010101ffc13e10007884ec2f9bf6d38c
+2026-11-25T21:48:51.830 | PKT 47467.999967 21 3 -72 14ffffff70010101ffc13e10007884ec2f9bf6d38c
+2026-11-25T21:48:51.830 | PKT 47468.036217 21 3 -71 14ffffff70010101ffc13e10007884ec2f9bf6d38c
+2026-11-25T21:48:51.908 | NODE MARK COPY4 27010586
+2026-11-25T21:48:51.908 | NODE WAKE seq=0 t_wake_ms=7 awake_ms=27103 cause=boot noop=0 poll=0 sleep=gpio hb_rem_ms=357900
+2026-11-25T21:48:52.050 | SEC 47468 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:48:52.077 | NODEPORT closed (node asleep or restarting)
+2026-11-25T21:48:53.042 | SEC 47469 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:48:54.032 | SEC 47470 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:48:55.029 | SEC 47471 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:48:56.019 | SEC 47472 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:48:57.007 | SEC 47473 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:48:58.000 | SEC 47474 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:48:58.991 | SEC 47475 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:00.097 | SEC 47476 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:01.071 | SEC 47477 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:02.036 | SEC 47478 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:03.011 | SEC 47479 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:03.990 | SEC 47480 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:05.089 | SEC 47481 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:06.083 | SEC 47482 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:07.071 | SEC 47483 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:07.707 | PROMPT UNPLUG the NODE USB cable now   (power-on 1 of 7)
+2026-11-25T21:49:08.058 | SEC 47484 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:09.050 | SEC 47485 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:10.034 | SEC 47486 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:11.017 | SEC 47487 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:12.002 | SEC 47488 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:12.707 | PROMPT Set the switch CLOSED, then PLUG the NODE USB cable back in now
+2026-11-25T21:49:13.096 | SEC 47489 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:14.088 | SEC 47490 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:15.067 | SEC 47491 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:16.055 | SEC 47492 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:17.040 | SEC 47493 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:18.034 | SEC 47494 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:19.018 | SEC 47495 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:20.008 | SEC 47496 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:20.995 | SEC 47497 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:22.097 | SEC 47498 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:23.083 | SEC 47499 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:24.073 | SEC 47500 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:25.064 | SEC 47501 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:26.058 | SEC 47502 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:27.051 | SEC 47503 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:28.043 | SEC 47504 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:29.032 | SEC 47505 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:30.022 | SEC 47506 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:31.016 | SEC 47507 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:32.007 | SEC 47508 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:32.993 | SEC 47509 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:34.087 | SEC 47510 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:35.077 | SEC 47511 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:36.060 | SEC 47512 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:37.056 | SEC 47513 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:38.045 | SEC 47514 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:39.035 | SEC 47515 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:40.025 | SEC 47516 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:41.014 | SEC 47517 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:42.002 | SEC 47518 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:42.994 | SEC 47519 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:44.092 | SEC 47520 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:45.078 | SEC 47521 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:46.065 | SEC 47522 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:47.054 | SEC 47523 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:48.048 | SEC 47524 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:49.043 | SEC 47525 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:50.036 | SEC 47526 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:51.023 | SEC 47527 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:52.016 | SEC 47528 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:53.003 | SEC 47529 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:53.988 | SEC 47530 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:55.092 | SEC 47531 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:56.076 | SEC 47532 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:57.065 | SEC 47533 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:58.056 | SEC 47534 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:49:59.043 | SEC 47535 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:00.032 | SEC 47536 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:01.020 | SEC 47537 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:02.005 | SEC 47538 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:02.990 | SEC 47539 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:04.089 | SEC 47540 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:05.078 | SEC 47541 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:06.065 | SEC 47542 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:07.053 | SEC 47543 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:07.707 | PROMPT UNPLUG the NODE USB cable now   (power-on 2 of 7)
+2026-11-25T21:50:08.041 | SEC 47544 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:09.036 | SEC 47545 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:10.022 | SEC 47546 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:11.007 | SEC 47547 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:11.998 | SEC 47548 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:12.707 | PROMPT Set the switch OPEN, then PLUG the NODE USB cable back in now
+2026-11-25T21:50:13.096 | SEC 47549 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:14.087 | SEC 47550 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:15.071 | SEC 47551 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:16.056 | SEC 47552 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:17.039 | SEC 47553 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:18.030 | SEC 47554 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:19.011 | SEC 47555 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:19.998 | SEC 47556 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:21.097 | SEC 47557 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:22.088 | SEC 47558 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:23.079 | SEC 47559 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:24.069 | SEC 47560 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:25.055 | SEC 47561 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:26.041 | SEC 47562 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:27.030 | SEC 47563 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:28.017 | SEC 47564 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:29.010 | SEC 47565 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:29.178 | NODEPORT open
+2026-11-25T21:50:29.999 | SEC 47566 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:30.306 | NODE MARK CAND 48234803 state=1 fault=0
+2026-11-25T21:50:30.306 | NODE MARK GRACE_START 48235113
+2026-11-25T21:50:30.306 | NODE MARK RAW 48284788 state=2 fault=0
+2026-11-25T21:50:30.306 | NODE MARK CAND 48284801 state=2 fault=0
+2026-11-25T21:50:30.306 | NODE MARK GRACE_CANCE 48284964
+2026-11-25T21:50:30.306 | NODE MARK CAND 48448760 state=1 fault=0
+2026-11-25T21:50:30.306 | NODE MARK GRACE_START 48449071
+2026-11-25T21:50:30.306 | NODE MARK RAW 48548744 state=2 fault=0
+2026-11-25T21:50:30.306 | NODE MARK CAND 48548757 state=2 fault=0
+2026-11-25T21:50:30.306 | NODE MARK GRACE_CANCE 48548922
+2026-11-25T21:50:30.306 | NODE MARK RAW 83897371 state=2 fault=0
+2026-11-25T21:50:30.306 | NODE MARK CAND 83954768 state=1 fault=0
+2026-11-25T21:50:30.306 | NODE MARK GRACE_START 83955079
+2026-11-25T21:50:30.306 | NODE MARK RAW 84004753 state=2 fault=0
+2026-11-25T21:50:30.306 | NODE MARK CAND 84004766 state=2 fault=0
+2026-11-25T21:50:30.507 | NODE MARK GRACE_CANCE 84004929
+2026-11-25T21:50:30.507 | NODE MARK CAND 99432435 state=1 fault=0
+2026-11-25T21:50:30.507 | NODE MARK GRACE_START 99432746
+2026-11-25T21:50:30.507 | NODE MARK RAW 99632417 state=2 fault=0
+2026-11-25T21:50:30.507 | NODE MARK CAND 99632430 state=2 fault=0
+2026-11-25T21:50:30.507 | NODE MARK GRACE_CANCE 99632595
+2026-11-25T21:50:30.507 | NODE MARK CAND 124352711 state=1 fault=0
+2026-11-25T21:50:30.507 | NODE MARK GRACE_START 124353021
+2026-11-25T21:50:30.993 | SEC 47567 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:32.093 | SEC 47568 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:33.085 | SEC 47569 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:34.073 | SEC 47570 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:35.065 | SEC 47571 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:36.052 | SEC 47572 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:37.043 | SEC 47573 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:38.032 | SEC 47574 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:39.023 | SEC 47575 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:40.016 | SEC 47576 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:41.006 | SEC 47577 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:41.991 | SEC 47578 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:43.086 | SEC 47579 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:44.077 | SEC 47580 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:45.064 | SEC 47581 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:46.058 | SEC 47582 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:47.048 | SEC 47583 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:48.037 | SEC 47584 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:49.029 | SEC 47585 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:50.023 | SEC 47586 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:51.010 | SEC 47587 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:52.002 | SEC 47588 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:53.094 | SEC 47589 seen=13 skipped=0 printed=13 lost=0 q=0
+2026-11-25T21:50:53.534 | PKT 47589.685433 21 3 -68 14ffffff60010100ffc23e1000ac166b2de50bb9ee
+2026-11-25T21:50:53.534 | PKT 47589.716022 21 3 -68 14ffffff60010100ffc23e1000ac166b2de50bb9ee
+2026-11-25T21:50:53.581 | NODE [24608] I node: EVENT state=1 fault=0 boot=0
+2026-11-25T21:50:53.581 | NODE MARK CONFIRM 148952694 state=1 fault=0
+2026-11-25T21:50:53.581 | NODE TX seq=1 type=event ctr=1064642 state=1 boot=0 fault=0 batt=255
+2026-11-25T21:50:53.581 | NODE MARK COPY0 148954045
+2026-11-25T21:50:53.971 | PKT 47590.161523 21 3 -69 14ffffff60010100ffc23e1000ac166b2de50bb9ee
+2026-11-25T21:50:53.971 | PKT 47590.192155 21 3 -69 14ffffff60010100ffc23e1000ac166b2de50bb9ee
+2026-11-25T21:50:53.987 | NODE MARK COPY1 149453693
+2026-11-25T21:50:54.080 | PKT 47590.231522 21 3 -69 14ffffff60010100ffc23e1000ac166b2de50bb9ee
+2026-11-25T21:50:54.081 | SEC 47590 seen=18 skipped=0 printed=18 lost=0 q=0
+2026-11-25T21:50:54.410 | PKT 47590.660088 21 3 -67 14ffffff60010100ffc23e1000ac166b2de50bb9ee
+2026-11-25T21:50:54.520 | PKT 47590.700155 21 3 -73 14ffffff60010100ffc23e1000ac166b2de50bb9ee
+2026-11-25T21:50:54.520 | PKT 47590.735773 21 3 -72 14ffffff60010100ffc23e1000ac166b2de50bb9ee
+2026-11-25T21:50:54.601 | NODE MARK COPY2 149953694
+2026-11-25T21:50:54.964 | PKT 47591.161483 21 3 -69 14ffffff60010100ffc23e1000ac166b2de50bb9ee
+2026-11-25T21:50:54.964 | PKT 47591.199398 21 3 -67 14ffffff60010100ffc23e1000ac166b2de50bb9ee
+2026-11-25T21:50:55.011 | NODE MARK COPY3 150453695
+2026-11-25T21:50:55.074 | PKT 47591.235649 21 3 -67 14ffffff60010100ffc23e1000ac166b2de50bb9ee
+2026-11-25T21:50:55.074 | SEC 47591 seen=24 skipped=0 printed=24 lost=0 q=0
+2026-11-25T21:50:55.418 | NODE MARK COPY4 150953695
+2026-11-25T21:50:55.508 | NODE WAKE seq=1 t_wake_ms=48233 awake_ms=51 cause=gpio noop=0 poll=0 sleep=gpio hb_rem_ms=336726
+2026-11-25T21:50:55.509 | NODE WAKE seq=2 t_wake_ms=48447 awake_ms=101 cause=gpio noop=0 poll=0 sleep=gpio hb_rem_ms=336462
+2026-11-25T21:50:55.509 | NODE WAKE seq=3 t_wake_ms=83896 awake_ms=1 cause=gpio noop=1 poll=0 sleep=gpio hb_rem_ms=301113
+2026-11-25T21:50:55.509 | NODE WAKE seq=4 t_wake_ms=83953 awake_ms=51 cause=gpio noop=0 poll=0 sleep=gpio hb_rem_ms=301006
+2026-11-25T21:50:55.509 | NODE WAKE seq=5 t_wake_ms=95294 awake_ms=0 cause=gpio noop=1 poll=0 sleep=gpio hb_rem_ms=289716
+2026-11-25T21:50:55.512 | PKT 47591.660769 21 3 -73 14ffffff60010100ffc23e1000ac166b2de50bb9ee
+2026-11-25T21:50:55.513 | PKT 47591.701461 21 3 -69 14ffffff60010100ffc23e1000ac166b2de50bb9ee
+2026-11-25T21:50:55.513 | PKT 47591.732095 21 3 -70 14ffffff60010100ffc23e1000ac166b2de50bb9ee
+2026-11-25T21:50:55.716 | NODE WAKE seq=6 t_wake_ms=97811 awake_ms=1 cause=gpio noop=2 poll=1 sleep=poll hb_rem_ms=287198
+2026-11-25T21:50:55.716 | NODE WAKE seq=8 t_wake_ms=99431 awake_ms=201 cause=gpio noop=0 poll=0 sleep=gpio hb_rem_ms=285378
+2026-11-25T21:50:55.716 | NODE WAKE seq=9 t_wake_ms=124351 awake_ms=26702 cause=gpio noop=0 poll=0 sleep=gpio hb_rem_ms=357900
+2026-11-25T21:50:55.795 | NODEPORT closed (node asleep or restarting)
+2026-11-25T21:50:56.061 | SEC 47592 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:50:57.056 | SEC 47593 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:50:58.042 | SEC 47594 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:50:59.032 | SEC 47595 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:51:00.023 | SEC 47596 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:51:01.010 | SEC 47597 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:51:01.998 | SEC 47598 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:51:03.098 | SEC 47599 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:51:04.074 | SEC 47600 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:51:05.041 | SEC 47601 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:51:06.032 | SEC 47602 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:51:07.018 | SEC 47603 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:51:07.707 | PROMPT UNPLUG the NODE USB cable now   (power-on 3 of 7)
+2026-11-25T21:51:08.009 | SEC 47604 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:51:09.000 | SEC 47605 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:51:09.988 | SEC 47606 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:51:11.082 | SEC 47607 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:51:12.081 | SEC 47608 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:51:12.707 | PROMPT Set the switch CLOSED, then PLUG the NODE USB cable back in now
+2026-11-25T21:51:13.067 | SEC 47609 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:51:14.061 | SEC 47610 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:51:15.044 | SEC 47611 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:51:16.027 | SEC 47612 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:51:17.016 | SEC 47613 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:51:18.005 | SEC 47614 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:51:18.997 | SEC 47615 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:51:20.094 | SEC 47616 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:51:20.752 | NODEPORT open
+2026-11-25T21:51:21.084 | SEC 47617 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:51:21.779 | NODE FW common=8695540d node=1bea060a dirty=0 type=1 hooks=1
+2026-11-25T21:51:21.779 | NODE MARK COLD_START 9771 state=2 fault=0
+2026-11-25T21:51:21.779 | NODE MARK GRACE_START 7000
+2026-11-25T21:51:22.075 | SEC 47618 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:51:23.064 | SEC 47619 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:51:24.057 | SEC 47620 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:51:25.044 | SEC 47621 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:51:26.039 | SEC 47622 seen=27 skipped=0 printed=27 lost=0 q=0
+2026-11-25T21:51:26.370 | PKT 47622.606813 31 0 -96 02010606094f4c4153311107fec7c0029588a9e093f3a3b51218406e020a08
+2026-11-25T21:51:26.588 | PKT 47622.748623 31 0 -93 02010606094f4c4153311107fec7c0029588a9e093f3a3b51218406e020a08
+2026-11-25T21:51:26.699 | PKT 47622.888325 31 0 -88 02010606094f4c4153311107fec7c0029588a9e093f3a3b51218406e020a08
+2026-11-25T21:51:26.808 | PKT 47622.956757 31 0 -89 02010606094f4c4153311107fec7c0029588a9e093f3a3b51218406e020a08
+2026-11-25T21:51:26.808 | PKT 47623.008159 30 2 -94 1aff4c00021533d7fdba4c8f11edbdc3fec7c002958800000000be020a01
+2026-11-25T21:51:27.027 | SEC 47623 seen=32 skipped=0 printed=32 lost=0 q=0
+2026-11-25T21:51:27.907 | PKT 47624.146596 31 0 -92 02010606094f4c4153311107fec7c0029588a9e093f3a3b51218406e020a08
+2026-11-25T21:51:28.015 | SEC 47624 seen=33 skipped=0 printed=33 lost=0 q=0
+2026-11-25T21:51:28.894 | PKT 47625.056430 31 0 -97 02010606094f4c4153311107fec7c0029588a9e093f3a3b51218406e020a08
+2026-11-25T21:51:29.004 | SEC 47625 seen=34 skipped=0 printed=34 lost=0 q=0
+2026-11-25T21:51:29.115 | PKT 47625.338833 31 0 -94 02010606094f4c4153311107fec7c0029588a9e093f3a3b51218406e020a08
+2026-11-25T21:51:29.775 | PKT 47625.967697 31 0 -93 02010606094f4c4153311107fec7c0029588a9e093f3a3b51218406e020a08
+2026-11-25T21:51:29.996 | SEC 47626 seen=36 skipped=0 printed=36 lost=0 q=0
+2026-11-25T21:51:30.104 | PKT 47626.248444 31 0 -97 02010606094f4c4153311107fec7c0029588a9e093f3a3b51218406e020a08
+2026-11-25T21:51:30.105 | PKT 47626.318662 31 0 -96 02010606094f4c4153311107fec7c0029588a9e093f3a3b51218406e020a08
+2026-11-25T21:51:30.324 | PKT 47626.525844 31 0 -99 02010606094f4c4153311107fec7c0029588a9e093f3a3b51218406e020a08
+2026-11-25T21:51:30.434 | PKT 47626.596362 31 0 -97 02010606094f4c4153311107fec7c0029588a9e093f3a3b51218406e020a08
+2026-11-25T21:51:31.094 | SEC 47627 seen=40 skipped=0 printed=40 lost=0 q=0
+2026-11-25T21:51:31.204 | PKT 47627.435114 31 0 -96 02010606094f4c4153311107fec7c0029588a9e093f3a3b51218406e020a08
+2026-11-25T21:51:31.314 | PKT 47627.508666 31 0 -97 02010606094f4c4153311107fec7c0029588a9e093f3a3b51218406e020a08
+2026-11-25T21:51:32.081 | SEC 47628 seen=42 skipped=0 printed=42 lost=0 q=0
+2026-11-25T21:51:33.069 | SEC 47629 seen=42 skipped=0 printed=42 lost=0 q=0
+2026-11-25T21:51:34.051 | SEC 47630 seen=42 skipped=0 printed=42 lost=0 q=0
+2026-11-25T21:51:35.038 | SEC 47631 seen=42 skipped=0 printed=42 lost=0 q=0
+2026-11-25T21:51:36.027 | SEC 47632 seen=42 skipped=0 printed=42 lost=0 q=0
+2026-11-25T21:51:37.016 | SEC 47633 seen=42 skipped=0 printed=42 lost=0 q=0
+2026-11-25T21:51:38.006 | SEC 47634 seen=42 skipped=0 printed=42 lost=0 q=0
+2026-11-25T21:51:38.996 | SEC 47635 seen=42 skipped=0 printed=42 lost=0 q=0
+2026-11-25T21:51:40.090 | SEC 47636 seen=42 skipped=0 printed=42 lost=0 q=0
+2026-11-25T21:51:41.084 | SEC 47637 seen=42 skipped=0 printed=42 lost=0 q=0
+2026-11-25T21:51:42.076 | SEC 47638 seen=42 skipped=0 printed=42 lost=0 q=0
+2026-11-25T21:51:43.062 | SEC 47639 seen=42 skipped=0 printed=42 lost=0 q=0
+2026-11-25T21:51:44.049 | SEC 47640 seen=42 skipped=0 printed=42 lost=0 q=0
+2026-11-25T21:51:45.043 | SEC 47641 seen=42 skipped=0 printed=42 lost=0 q=0
+2026-11-25T21:51:45.248 | NODE [25009] I node: EVENT state=2 fault=0 boot=1
+2026-11-25T21:51:45.248 | NODE MARK CONFIRM_BOO 25009577 state=2 fault=0
+2026-11-25T21:51:45.248 | NODE TX seq=1 type=event ctr=1064705 state=2 boot=1 fault=0 batt=255
+2026-11-25T21:51:45.248 | NODE MARK COPY0 25010953
+2026-11-25T21:51:45.264 | PKT 47641.496166 21 3 -84 14ffffff70010101ff013f1000caac33a1d9daab83
+2026-11-25T21:51:45.374 | PKT 47641.531126 21 3 -84 14ffffff70010101ff013f1000caac33a1d9daab83
+2026-11-25T21:51:45.704 | PKT 47641.946830 21 3 -79 14ffffff70010101ff013f1000caac33a1d9daab83
+2026-11-25T21:51:45.814 | PKT 47641.983183 21 3 -69 14ffffff70010101ff013f1000caac33a1d9daab83
+2026-11-25T21:51:45.814 | PKT 47642.020065 21 3 -69 14ffffff70010101ff013f1000caac33a1d9daab83
+2026-11-25T21:51:45.860 | NODE MARK COPY1 25510578
+2026-11-25T21:51:46.035 | SEC 47642 seen=47 skipped=0 printed=47 lost=0 q=0
+2026-11-25T21:51:46.257 | PKT 47642.446121 21 3 -85 14ffffff70010101ff013f1000caac33a1d9daab83
+2026-11-25T21:51:46.258 | PKT 47642.479935 21 3 -79 14ffffff70010101ff013f1000caac33a1d9daab83
+2026-11-25T21:51:46.273 | NODE MARK COPY2 26010578
+2026-11-25T21:51:46.368 | PKT 47642.511809 21 3 -79 14ffffff70010101ff013f1000caac33a1d9daab83
+2026-11-25T21:51:46.368 | PKT 47642.542433 21 3 -78 14ffffff70010101ff013f1000caac33a1d9daab83
+2026-11-25T21:51:46.698 | PKT 47642.947519 21 3 -70 14ffffff70010101ff013f1000caac33a1d9daab83
+2026-11-25T21:51:46.807 | PKT 47642.976066 21 3 -85 14ffffff70010101ff013f1000caac33a1d9daab83
+2026-11-25T21:51:46.807 | PKT 47643.015435 21 3 -85 14ffffff70010101ff013f1000caac33a1d9daab83
+2026-11-25T21:51:46.886 | NODE MARK COPY3 26510579
+2026-11-25T21:51:47.028 | SEC 47643 seen=54 skipped=0 printed=54 lost=0 q=0
+2026-11-25T21:51:47.249 | PKT 47643.446808 21 3 -79 14ffffff70010101ff013f1000caac33a1d9daab83
+2026-11-25T21:51:47.296 | NODE MARK COPY4 27010579
+2026-11-25T21:51:47.297 | NODE WAKE seq=0 t_wake_ms=7 awake_ms=27103 cause=boot noop=0 poll=0 sleep=gpio hb_rem_ms=357900
+2026-11-25T21:51:47.360 | PKT 47643.515621 21 3 -70 14ffffff70010101ff013f1000caac33a1d9daab83
+2026-11-25T21:51:47.585 | NODEPORT closed (node asleep or restarting)
+2026-11-25T21:51:48.016 | SEC 47644 seen=56 skipped=0 printed=56 lost=0 q=0
+2026-11-25T21:51:49.011 | SEC 47645 seen=56 skipped=0 printed=56 lost=0 q=0
+2026-11-25T21:51:50.001 | SEC 47646 seen=56 skipped=0 printed=56 lost=0 q=0
+2026-11-25T21:51:50.994 | SEC 47647 seen=56 skipped=0 printed=56 lost=0 q=0
+2026-11-25T21:51:52.094 | SEC 47648 seen=56 skipped=0 printed=56 lost=0 q=0
+2026-11-25T21:51:53.074 | SEC 47649 seen=56 skipped=0 printed=56 lost=0 q=0
+2026-11-25T21:51:54.065 | SEC 47650 seen=56 skipped=0 printed=56 lost=0 q=0
+2026-11-25T21:51:55.054 | SEC 47651 seen=56 skipped=0 printed=56 lost=0 q=0
+2026-11-25T21:51:56.044 | SEC 47652 seen=56 skipped=0 printed=56 lost=0 q=0
+2026-11-25T21:51:57.031 | SEC 47653 seen=56 skipped=0 printed=56 lost=0 q=0
+2026-11-25T21:51:57.910 | PKT 47654.090302 31 0 -97 1effd6055900120022bfcad949e7f8026464008a0100000a1fad7726c1889c
+2026-11-25T21:51:58.021 | SEC 47654 seen=57 skipped=0 printed=57 lost=0 q=0
+2026-11-25T21:51:59.007 | SEC 47655 seen=57 skipped=0 printed=57 lost=0 q=0
+2026-11-25T21:52:00.003 | SEC 47656 seen=57 skipped=0 printed=57 lost=0 q=0
+2026-11-25T21:52:00.994 | SEC 47657 seen=57 skipped=0 printed=57 lost=0 q=0
+2026-11-25T21:52:02.088 | SEC 47658 seen=57 skipped=0 printed=57 lost=0 q=0
+2026-11-25T21:52:03.071 | SEC 47659 seen=57 skipped=0 printed=57 lost=0 q=0
+2026-11-25T21:52:04.059 | SEC 47660 seen=57 skipped=0 printed=57 lost=0 q=0
+2026-11-25T21:52:05.043 | SEC 47661 seen=57 skipped=0 printed=57 lost=0 q=0
+2026-11-25T21:52:06.034 | SEC 47662 seen=57 skipped=0 printed=57 lost=0 q=0
+2026-11-25T21:52:07.025 | SEC 47663 seen=57 skipped=0 printed=57 lost=0 q=0
+2026-11-25T21:52:07.707 | PROMPT UNPLUG the NODE USB cable now   (power-on 4 of 7)
+2026-11-25T21:52:08.008 | SEC 47664 seen=57 skipped=0 printed=57 lost=0 q=0
+2026-11-25T21:52:09.001 | SEC 47665 seen=57 skipped=0 printed=57 lost=0 q=0
+2026-11-25T21:52:09.832 | NODEPORT open
+2026-11-25T21:52:09.989 | NODEPORT closed (node asleep or restarting)
+2026-11-25T21:52:09.994 | SEC 47666 seen=57 skipped=0 printed=57 lost=0 q=0
+2026-11-25T21:52:11.094 | SEC 47667 seen=57 skipped=0 printed=57 lost=0 q=0
+2026-11-25T21:52:12.088 | SEC 47668 seen=57 skipped=0 printed=57 lost=0 q=0
+2026-11-25T21:52:12.419 | PKT 47668.638065 31 0 -95 1effd6055900120022bfcad949e7f8026464008a0100000a1fad7726c1889c
+2026-11-25T21:52:12.707 | PROMPT Set the switch OPEN, then PLUG the NODE USB cable back in now
+2026-11-25T21:52:12.750 | PKT 47668.921665 31 0 -96 1effd6055900120022bfcad949e7f8026464008a0100000a1fad7726c1889c
+2026-11-25T21:52:13.078 | SEC 47669 seen=59 skipped=0 printed=59 lost=0 q=0
+2026-11-25T21:52:14.071 | SEC 47670 seen=59 skipped=0 printed=59 lost=0 q=0
+2026-11-25T21:52:15.063 | SEC 47671 seen=59 skipped=0 printed=59 lost=0 q=0
+2026-11-25T21:52:15.173 | PKT 47671.318007 31 0 -96 1effd6055900120022bfcad949e7f8026464008a0100000a1fad7726c1889c
+2026-11-25T21:52:15.173 | PKT 47671.391681 31 0 -98 1effd6055900120022bfcad949e7f8026464008a0100000a1fad7726c1889c
+2026-11-25T21:52:15.503 | PKT 47671.671082 31 0 -99 1effd6055900120022bfcad949e7f8026464008a0100000a1fad7726c1889c
+2026-11-25T21:52:15.722 | PKT 47671.918636 31 0 -96 1effd6055900120022bfcad949e7f8026464008a0100000a1fad7726c1889c
+2026-11-25T21:52:16.051 | SEC 47672 seen=63 skipped=0 printed=63 lost=0 q=0
+2026-11-25T21:52:17.035 | SEC 47673 seen=63 skipped=0 printed=63 lost=0 q=0
+2026-11-25T21:52:18.022 | SEC 47674 seen=63 skipped=0 printed=63 lost=0 q=0
+2026-11-25T21:52:19.009 | NODEPORT open
+2026-11-25T21:52:19.011 | SEC 47675 seen=63 skipped=0 printed=63 lost=0 q=0
+2026-11-25T21:52:20.001 | SEC 47676 seen=63 skipped=0 printed=63 lost=0 q=0
+2026-11-25T21:52:20.236 | NODE FW common=8695540d node=1bea060a dirty=0 type=1 hooks=1
+2026-11-25T21:52:20.236 | NODE MARK COLD_START 9768 state=1 fault=0
+2026-11-25T21:52:20.236 | NODE MARK GRACE_START 7000
+2026-11-25T21:52:20.663 | PKT 47676.883985 31 0 -98 1effd6055900120022bfcad949e7f8026464008a0100000a1fad7726c1889c
+2026-11-25T21:52:20.990 | SEC 47677 seen=64 skipped=0 printed=64 lost=0 q=0
+2026-11-25T21:52:22.095 | SEC 47678 seen=64 skipped=0 printed=64 lost=0 q=0
+2026-11-25T21:52:23.083 | SEC 47679 seen=64 skipped=0 printed=64 lost=0 q=0
+2026-11-25T21:52:23.960 | PKT 47680.191504 31 0 -98 1effd6055900120022bfcad949e7f8026464008a0100000a1fad7726c1889c
+2026-11-25T21:52:24.071 | SEC 47680 seen=65 skipped=0 printed=65 lost=0 q=0
+2026-11-25T21:52:25.063 | SEC 47681 seen=65 skipped=0 printed=65 lost=0 q=0
+2026-11-25T21:52:26.053 | SEC 47682 seen=65 skipped=0 printed=65 lost=0 q=0
+2026-11-25T21:52:27.040 | SEC 47683 seen=65 skipped=0 printed=65 lost=0 q=0
+2026-11-25T21:52:28.034 | SEC 47684 seen=65 skipped=0 printed=65 lost=0 q=0
+2026-11-25T21:52:29.022 | SEC 47685 seen=65 skipped=0 printed=65 lost=0 q=0
+2026-11-25T21:52:30.009 | SEC 47686 seen=65 skipped=0 printed=65 lost=0 q=0
+2026-11-25T21:52:31.000 | SEC 47687 seen=65 skipped=0 printed=65 lost=0 q=0
+2026-11-25T21:52:32.096 | SEC 47688 seen=65 skipped=0 printed=65 lost=0 q=0
+2026-11-25T21:52:33.082 | SEC 47689 seen=65 skipped=0 printed=65 lost=0 q=0
+2026-11-25T21:52:34.072 | SEC 47690 seen=65 skipped=0 printed=65 lost=0 q=0
+2026-11-25T21:52:35.059 | SEC 47691 seen=65 skipped=0 printed=65 lost=0 q=0
+2026-11-25T21:52:36.053 | SEC 47692 seen=65 skipped=0 printed=65 lost=0 q=0
+2026-11-25T21:52:37.044 | SEC 47693 seen=65 skipped=0 printed=65 lost=0 q=0
+2026-11-25T21:52:38.032 | SEC 47694 seen=65 skipped=0 printed=65 lost=0 q=0
+2026-11-25T21:52:39.016 | SEC 47695 seen=65 skipped=0 printed=65 lost=0 q=0
+2026-11-25T21:52:40.004 | SEC 47696 seen=65 skipped=0 printed=65 lost=0 q=0
+2026-11-25T21:52:40.993 | SEC 47697 seen=65 skipped=0 printed=65 lost=0 q=0
+2026-11-25T21:52:42.093 | SEC 47698 seen=65 skipped=0 printed=65 lost=0 q=0
+2026-11-25T21:52:43.084 | SEC 47699 seen=65 skipped=0 printed=65 lost=0 q=0
+2026-11-25T21:52:43.713 | NODE [25009] I node: EVENT state=1 fault=0 boot=1
+2026-11-25T21:52:43.713 | NODE MARK CONFIRM_BOO 25009578 state=1 fault=0
+2026-11-25T21:52:43.745 | PKT 47699.985280 21 3 -75 14ffffff70010100ff413f10005fc6858334b0d350
+2026-11-25T21:52:43.916 | NODE TX seq=1 type=event ctr=1064769 state=1 boot=1 fault=0 batt=255
+2026-11-25T21:52:43.916 | NODE MARK COPY0 25010954
+2026-11-25T21:52:44.073 | SEC 47700 seen=66 skipped=0 printed=66 lost=0 q=0
+2026-11-25T21:52:44.183 | PKT 47700.416923 21 3 -76 14ffffff70010100ff413f10005fc6858334b0d350
+2026-11-25T21:52:44.293 | PKT 47700.490125 21 3 -68 14ffffff70010100ff413f10005fc6858334b0d350
+2026-11-25T21:52:44.325 | NODE MARK COPY1 25510578
+2026-11-25T21:52:44.732 | PKT 47700.916150 21 3 -78 14ffffff70010100ff413f10005fc6858334b0d350
+2026-11-25T21:52:44.732 | PKT 47700.954267 21 3 -77 14ffffff70010100ff413f10005fc6858334b0d350
+2026-11-25T21:52:44.732 | NODE MARK COPY2 26010578
+2026-11-25T21:52:44.841 | PKT 47700.993743 21 3 -80 14ffffff70010100ff413f10005fc6858334b0d350
+2026-11-25T21:52:45.062 | SEC 47701 seen=71 skipped=0 printed=71 lost=0 q=0
+2026-11-25T21:52:45.173 | PKT 47701.417619 21 3 -71 14ffffff70010100ff413f10005fc6858334b0d350
+2026-11-25T21:52:45.283 | PKT 47701.453205 21 3 -70 14ffffff70010100ff413f10005fc6858334b0d350
+2026-11-25T21:52:45.283 | PKT 47701.484244 21 3 -79 14ffffff70010100ff413f10005fc6858334b0d350
+2026-11-25T21:52:45.346 | NODE MARK COPY3 26510579
+2026-11-25T21:52:45.721 | PKT 47701.916831 21 3 -76 14ffffff70010100ff413f10005fc6858334b0d350
+2026-11-25T21:52:45.722 | PKT 47701.947457 21 3 -76 14ffffff70010100ff413f10005fc6858334b0d350
+2026-11-25T21:52:45.753 | NODE MARK COPY4 27010579
+2026-11-25T21:52:45.832 | PKT 47701.981932 21 3 -70 14ffffff70010100ff413f10005fc6858334b0d350
+2026-11-25T21:52:45.959 | NODE WAKE seq=0 t_wake_ms=7 awake_ms=27103 cause=boot noop=0 poll=0 sleep=gpio hb_rem_ms=357900
+2026-11-25T21:52:46.048 | NODEPORT closed (node asleep or restarting)
+2026-11-25T21:52:46.054 | SEC 47702 seen=77 skipped=0 printed=77 lost=0 q=0
+2026-11-25T21:52:47.045 | SEC 47703 seen=77 skipped=0 printed=77 lost=0 q=0
+2026-11-25T21:52:48.038 | SEC 47704 seen=77 skipped=0 printed=77 lost=0 q=0
+2026-11-25T21:52:49.032 | SEC 47705 seen=77 skipped=0 printed=77 lost=0 q=0
+2026-11-25T21:52:50.024 | SEC 47706 seen=77 skipped=0 printed=77 lost=0 q=0
+2026-11-25T21:52:51.013 | SEC 47707 seen=77 skipped=0 printed=77 lost=0 q=0
+2026-11-25T21:52:52.002 | SEC 47708 seen=77 skipped=0 printed=77 lost=0 q=0
+2026-11-25T21:52:52.992 | SEC 47709 seen=77 skipped=0 printed=77 lost=0 q=0
+2026-11-25T21:52:54.094 | SEC 47710 seen=77 skipped=0 printed=77 lost=0 q=0
+2026-11-25T21:52:55.091 | SEC 47711 seen=77 skipped=0 printed=77 lost=0 q=0
+2026-11-25T21:52:56.075 | SEC 47712 seen=77 skipped=0 printed=77 lost=0 q=0
+2026-11-25T21:52:57.062 | SEC 47713 seen=77 skipped=0 printed=77 lost=0 q=0
+2026-11-25T21:52:58.054 | SEC 47714 seen=77 skipped=0 printed=77 lost=0 q=0
+2026-11-25T21:52:59.049 | SEC 47715 seen=77 skipped=0 printed=77 lost=0 q=0
+2026-11-25T21:52:59.049 | PKT 47715.274728 31 0 -97 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:00.038 | SEC 47716 seen=78 skipped=0 printed=78 lost=0 q=0
+2026-11-25T21:53:01.026 | SEC 47717 seen=78 skipped=0 printed=78 lost=0 q=0
+2026-11-25T21:53:02.020 | SEC 47718 seen=78 skipped=0 printed=78 lost=0 q=0
+2026-11-25T21:53:03.008 | SEC 47719 seen=78 skipped=0 printed=78 lost=0 q=0
+2026-11-25T21:53:03.995 | SEC 47720 seen=78 skipped=0 printed=78 lost=0 q=0
+2026-11-25T21:53:05.090 | SEC 47721 seen=78 skipped=0 printed=78 lost=0 q=0
+2026-11-25T21:53:06.081 | SEC 47722 seen=78 skipped=0 printed=78 lost=0 q=0
+2026-11-25T21:53:07.069 | SEC 47723 seen=78 skipped=0 printed=78 lost=0 q=0
+2026-11-25T21:53:07.707 | PROMPT UNPLUG the NODE USB cable now   (power-on 5 of 7)
+2026-11-25T21:53:08.065 | SEC 47724 seen=78 skipped=0 printed=78 lost=0 q=0
+2026-11-25T21:53:09.056 | SEC 47725 seen=78 skipped=0 printed=78 lost=0 q=0
+2026-11-25T21:53:10.037 | SEC 47726 seen=78 skipped=0 printed=78 lost=0 q=0
+2026-11-25T21:53:11.020 | PKT 47727.220724 31 0 -98 1effd6055900120022bfcad949e7f8026464008a0100000a1fad7726c1889c
+2026-11-25T21:53:11.020 | SEC 47727 seen=79 skipped=0 printed=79 lost=0 q=0
+2026-11-25T21:53:11.240 | PKT 47727.460877 31 0 -96 1effd6055900120022bfcad949e7f8026464008a0100000a1fad7726c1889c
+2026-11-25T21:53:11.899 | PKT 47728.129102 31 0 -95 1effd6055900120022bfcad949e7f8026464008a0100000a1fad7726c1889c
+2026-11-25T21:53:12.009 | SEC 47728 seen=81 skipped=0 printed=81 lost=0 q=0
+2026-11-25T21:53:12.120 | PKT 47728.362774 31 0 -94 1effd6055900120022bfcad949e7f8026464008a0100000a1fad7726c1889c
+2026-11-25T21:53:12.707 | PROMPT Set the switch CLOSED, then PLUG the NODE USB cable back in now
+2026-11-25T21:53:13.003 | SEC 47729 seen=82 skipped=0 printed=82 lost=0 q=0
+2026-11-25T21:53:13.999 | SEC 47730 seen=82 skipped=0 printed=82 lost=0 q=0
+2026-11-25T21:53:14.982 | PKT 47731.122020 31 0 -94 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:15.090 | SEC 47731 seen=83 skipped=0 printed=83 lost=0 q=0
+2026-11-25T21:53:15.205 | NODEPORT open
+2026-11-25T21:53:15.852 | PKT 47732.029831 31 0 -98 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:16.071 | SEC 47732 seen=84 skipped=0 printed=84 lost=0 q=0
+2026-11-25T21:53:16.071 | PKT 47732.260515 31 0 -96 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:16.401 | PKT 47732.576357 31 0 -96 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:16.432 | NODE MARK CAND 56298536 state=2 fault=0
+2026-11-25T21:53:16.432 | NODE MARK GRACE_START 56298846
+2026-11-25T21:53:17.046 | NODE [2208] I node: candidate state=1 fault=0
+2026-11-25T21:53:17.046 | NODE MARK RAW 58498516 state=1 fault=0
+2026-11-25T21:53:17.046 | NODE MARK CAND 58498529 state=1 fault=0
+2026-11-25T21:53:17.046 | NODE MARK GRACE_CANCE 58498699
+2026-11-25T21:53:17.046 | NODE WAKE seq=1 t_wake_ms=56297 awake_ms=2201 cause=gpio noop=0 poll=0 sleep=gpio hb_rem_ms=326512
+2026-11-25T21:53:17.062 | SEC 47733 seen=86 skipped=0 printed=86 lost=0 q=0
+2026-11-25T21:53:17.240 | NODEPORT closed (node asleep or restarting)
+2026-11-25T21:53:18.056 | SEC 47734 seen=86 skipped=0 printed=86 lost=0 q=0
+2026-11-25T21:53:19.049 | SEC 47735 seen=86 skipped=0 printed=86 lost=0 q=0
+2026-11-25T21:53:20.038 | SEC 47736 seen=86 skipped=0 printed=86 lost=0 q=0
+2026-11-25T21:53:21.031 | SEC 47737 seen=86 skipped=0 printed=86 lost=0 q=0
+2026-11-25T21:53:22.022 | SEC 47738 seen=86 skipped=0 printed=86 lost=0 q=0
+2026-11-25T21:53:23.016 | SEC 47739 seen=86 skipped=0 printed=86 lost=0 q=0
+2026-11-25T21:53:24.003 | SEC 47740 seen=86 skipped=0 printed=86 lost=0 q=0
+2026-11-25T21:53:24.995 | SEC 47741 seen=86 skipped=0 printed=86 lost=0 q=0
+2026-11-25T21:53:25.214 | PKT 47741.396356 31 0 -98 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:25.358 | NODEPORT open
+2026-11-25T21:53:26.094 | SEC 47742 seen=87 skipped=0 printed=87 lost=0 q=0
+2026-11-25T21:53:26.596 | NODE FW common=8695540d node=1bea060a dirty=0 type=1 hooks=1
+2026-11-25T21:53:26.596 | NODE MARK COLD_START 9784 state=2 fault=0
+2026-11-25T21:53:26.596 | NODE MARK GRACE_START 7000
+2026-11-25T21:53:27.081 | SEC 47743 seen=87 skipped=0 printed=87 lost=0 q=0
+2026-11-25T21:53:27.412 | PKT 47743.568592 31 0 -98 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:28.074 | SEC 47744 seen=88 skipped=0 printed=88 lost=0 q=0
+2026-11-25T21:53:28.515 | PKT 47744.746941 31 0 -96 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:28.624 | PKT 47744.784804 31 0 -96 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:29.064 | SEC 47745 seen=90 skipped=0 printed=90 lost=0 q=0
+2026-11-25T21:53:30.053 | SEC 47746 seen=90 skipped=0 printed=90 lost=0 q=0
+2026-11-25T21:53:31.037 | SEC 47747 seen=90 skipped=0 printed=90 lost=0 q=0
+2026-11-25T21:53:31.583 | PKT 47747.809377 31 0 -99 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:32.022 | SEC 47748 seen=91 skipped=0 printed=91 lost=0 q=0
+2026-11-25T21:53:33.011 | SEC 47749 seen=91 skipped=0 printed=91 lost=0 q=0
+2026-11-25T21:53:33.451 | PKT 47749.614609 31 0 -95 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:33.997 | SEC 47750 seen=92 skipped=0 printed=92 lost=0 q=0
+2026-11-25T21:53:34.661 | PKT 47750.835868 31 0 -97 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:34.990 | PKT 47751.229469 31 0 -99 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:35.099 | SEC 47751 seen=94 skipped=0 printed=94 lost=0 q=0
+2026-11-25T21:53:35.646 | PKT 47751.879517 31 0 -98 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:36.084 | SEC 47752 seen=95 skipped=0 printed=95 lost=0 q=0
+2026-11-25T21:53:36.523 | PKT 47752.722076 31 0 -95 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:37.077 | SEC 47753 seen=96 skipped=0 printed=96 lost=0 q=0
+2026-11-25T21:53:37.077 | PKT 47753.320018 31 0 -97 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:37.186 | PKT 47753.395464 31 0 -97 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:37.408 | PKT 47753.604229 31 0 -95 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:37.408 | PKT 47753.635791 31 0 -96 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:38.066 | PKT 47754.235775 31 0 -95 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:38.066 | SEC 47754 seen=101 skipped=0 printed=101 lost=0 q=0
+2026-11-25T21:53:38.726 | PKT 47754.864624 31 0 -93 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:39.055 | SEC 47755 seen=102 skipped=0 printed=102 lost=0 q=0
+2026-11-25T21:53:39.275 | PKT 47755.429492 31 0 -95 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:40.046 | SEC 47756 seen=103 skipped=0 printed=103 lost=0 q=0
+2026-11-25T21:53:40.704 | PKT 47756.949638 31 0 -94 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:41.033 | SEC 47757 seen=104 skipped=0 printed=104 lost=0 q=0
+2026-11-25T21:53:41.142 | PKT 47757.294522 31 0 -94 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:42.023 | PKT 47758.188386 31 0 -94 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:42.023 | PKT 47758.221989 31 0 -93 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:42.023 | SEC 47758 seen=107 skipped=0 printed=107 lost=0 q=0
+2026-11-25T21:53:42.355 | PKT 47758.539954 31 0 -96 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:42.575 | PKT 47758.754537 31 0 -95 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:43.014 | SEC 47759 seen=109 skipped=0 printed=109 lost=0 q=0
+2026-11-25T21:53:43.782 | PKT 47759.995345 31 0 -98 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:44.000 | SEC 47760 seen=110 skipped=0 printed=110 lost=0 q=0
+2026-11-25T21:53:44.110 | PKT 47760.280320 31 0 -96 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:44.442 | PKT 47760.586600 31 0 -96 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:44.442 | PKT 47760.659401 31 0 -97 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:45.099 | SEC 47761 seen=113 skipped=0 printed=113 lost=0 q=0
+2026-11-25T21:53:46.090 | SEC 47762 seen=113 skipped=0 printed=113 lost=0 q=0
+2026-11-25T21:53:47.076 | SEC 47763 seen=113 skipped=0 printed=113 lost=0 q=0
+2026-11-25T21:53:47.735 | PKT 47763.953162 31 0 -93 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:47.847 | PKT 47764.016900 31 0 -94 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:48.066 | SEC 47764 seen=115 skipped=0 printed=115 lost=0 q=0
+2026-11-25T21:53:49.055 | SEC 47765 seen=115 skipped=0 printed=115 lost=0 q=0
+2026-11-25T21:53:50.043 | SEC 47766 seen=115 skipped=0 printed=115 lost=0 q=0
+2026-11-25T21:53:50.043 | PKT 47766.266024 21 3 -75 14ffffff70010101ff813f100035d388260bc496d9
+2026-11-25T21:53:50.059 | NODE [25009] I node: EVENT state=2 fault=0 boot=1
+2026-11-25T21:53:50.059 | NODE MARK CONFIRM_BOO 25009585 state=2 fault=0
+2026-11-25T21:53:50.059 | NODE TX seq=1 type=event ctr=1064833 state=2 boot=1 fault=0 batt=255
+2026-11-25T21:53:50.059 | NODE MARK COPY0 25010955
+2026-11-25T21:53:50.468 | NODE MARK COPY1 25510585
+2026-11-25T21:53:50.485 | PKT 47766.676494 21 3 -80 14ffffff70010101ff813f100035d388260bc496d9
+2026-11-25T21:53:50.485 | PKT 47766.713994 21 3 -81 14ffffff70010101ff813f100035d388260bc496d9
+2026-11-25T21:53:50.595 | PKT 47766.748993 21 3 -80 14ffffff70010101ff813f100035d388260bc496d9
+2026-11-25T21:53:51.005 | PKT 47767.177203 21 3 -75 14ffffff70010101ff813f100035d388260bc496d9
+2026-11-25T21:53:51.005 | PKT 47767.216681 21 3 -65 14ffffff70010101ff813f100035d388260bc496d9
+2026-11-25T21:53:51.005 | SEC 47767 seen=121 skipped=0 printed=121 lost=0 q=0
+2026-11-25T21:53:51.080 | NODE MARK COPY2 26010585
+2026-11-25T21:53:51.112 | PKT 47767.252345 21 3 -65 14ffffff70010101ff813f100035d388260bc496d9
+2026-11-25T21:53:51.443 | PKT 47767.661323 31 0 -98 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:51.443 | PKT 47767.676458 21 3 -80 14ffffff70010101ff813f100035d388260bc496d9
+2026-11-25T21:53:51.491 | NODE MARK COPY3 26510586
+2026-11-25T21:53:51.553 | PKT 47767.714063 21 3 -76 14ffffff70010101ff813f100035d388260bc496d9
+2026-11-25T21:53:51.553 | PKT 47767.745307 21 3 -76 14ffffff70010101ff813f100035d388260bc496d9
+2026-11-25T21:53:51.775 | PKT 47767.973799 31 0 -97 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:51.991 | PKT 47768.177892 21 3 -65 14ffffff70010101ff813f100035d388260bc496d9
+2026-11-25T21:53:51.991 | PKT 47768.214783 31 0 -96 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:51.991 | PKT 47768.216434 21 3 -80 14ffffff70010101ff813f100035d388260bc496d9
+2026-11-25T21:53:52.106 | SEC 47768 seen=130 skipped=0 printed=130 lost=0 q=0
+2026-11-25T21:53:52.106 | PKT 47768.248967 21 3 -80 14ffffff70010101ff813f100035d388260bc496d9
+2026-11-25T21:53:52.106 | NODE MARK COPY4 27010587
+2026-11-25T21:53:52.106 | NODE WAKE seq=0 t_wake_ms=7 awake_ms=27103 cause=boot noop=0 poll=0 sleep=gpio hb_rem_ms=357900
+2026-11-25T21:53:52.312 | NODEPORT closed (node asleep or restarting)
+2026-11-25T21:53:52.326 | PKT 47768.566691 31 0 -94 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:52.436 | PKT 47768.596715 31 0 -93 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:52.878 | PKT 47769.114636 31 0 -94 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:53.099 | SEC 47769 seen=134 skipped=0 printed=134 lost=0 q=0
+2026-11-25T21:53:54.089 | SEC 47770 seen=134 skipped=0 printed=134 lost=0 q=0
+2026-11-25T21:53:54.199 | PKT 47770.374892 31 0 -95 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:55.081 | SEC 47771 seen=135 skipped=0 printed=135 lost=0 q=0
+2026-11-25T21:53:56.072 | SEC 47772 seen=135 skipped=0 printed=135 lost=0 q=0
+2026-11-25T21:53:56.622 | PKT 47772.820394 31 0 -95 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:57.065 | SEC 47773 seen=136 skipped=0 printed=136 lost=0 q=0
+2026-11-25T21:53:57.065 | PKT 47773.256007 31 0 -96 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:57.284 | PKT 47773.431665 31 0 -93 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:57.611 | PKT 47773.779356 31 0 -95 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:57.830 | PKT 47773.989065 31 0 -94 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:57.830 | PKT 47774.018642 31 0 -94 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:58.052 | SEC 47774 seen=141 skipped=0 printed=141 lost=0 q=0
+2026-11-25T21:53:58.162 | PKT 47774.339078 31 0 -94 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:58.162 | PKT 47774.408727 31 0 -96 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:58.272 | PKT 47774.441092 31 0 -96 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:58.383 | PKT 47774.620016 31 0 -94 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:58.714 | PKT 47774.936182 31 0 -94 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:59.044 | SEC 47775 seen=146 skipped=0 printed=146 lost=0 q=0
+2026-11-25T21:53:59.375 | PKT 47775.594674 31 0 -94 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:59.486 | PKT 47775.631504 31 0 -98 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:53:59.927 | PKT 47776.147391 31 0 -96 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:00.039 | PKT 47776.180397 31 0 -96 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:00.039 | SEC 47776 seen=150 skipped=0 printed=150 lost=0 q=0
+2026-11-25T21:54:00.259 | PKT 47776.488376 31 0 -96 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:00.921 | PKT 47777.079413 31 0 -95 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:01.033 | SEC 47777 seen=152 skipped=0 printed=152 lost=0 q=0
+2026-11-25T21:54:01.362 | PKT 47777.500501 31 0 -97 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:01.799 | PKT 47777.981520 31 0 -94 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:01.799 | PKT 47778.016171 31 0 -95 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:02.020 | SEC 47778 seen=155 skipped=0 printed=155 lost=0 q=0
+2026-11-25T21:54:03.003 | SEC 47779 seen=155 skipped=0 printed=155 lost=0 q=0
+2026-11-25T21:54:04.101 | SEC 47780 seen=155 skipped=0 printed=155 lost=0 q=0
+2026-11-25T21:54:04.648 | PKT 47780.801340 31 0 -98 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:04.648 | PKT 47780.835973 31 0 -98 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:05.087 | SEC 47781 seen=157 skipped=0 printed=157 lost=0 q=0
+2026-11-25T21:54:05.524 | PKT 47781.708553 31 0 -96 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:06.072 | SEC 47782 seen=158 skipped=0 printed=158 lost=0 q=0
+2026-11-25T21:54:06.073 | PKT 47782.299010 31 0 -91 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:06.405 | PKT 47782.583851 31 0 -92 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:06.625 | PKT 47782.854672 31 0 -91 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:07.064 | SEC 47783 seen=161 skipped=0 printed=161 lost=0 q=0
+2026-11-25T21:54:07.281 | PKT 47783.446318 31 0 -92 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:07.707 | PROMPT UNPLUG the NODE USB cable now   (power-on 6 of 7)
+2026-11-25T21:54:07.825 | PKT 47784.046307 31 0 -91 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:08.046 | SEC 47784 seen=163 skipped=0 printed=163 lost=0 q=0
+2026-11-25T21:54:08.266 | PKT 47784.457588 31 0 -97 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:08.599 | PKT 47784.763837 31 0 -97 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:09.037 | SEC 47785 seen=165 skipped=0 printed=165 lost=0 q=0
+2026-11-25T21:54:09.364 | PKT 47785.576251 31 0 -92 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:09.691 | PKT 47785.915892 31 0 -94 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:10.020 | PKT 47786.216347 31 0 -95 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:10.020 | SEC 47786 seen=168 skipped=0 printed=168 lost=0 q=0
+2026-11-25T21:54:11.001 | SEC 47787 seen=168 skipped=0 printed=168 lost=0 q=0
+2026-11-25T21:54:12.097 | SEC 47788 seen=168 skipped=0 printed=168 lost=0 q=0
+2026-11-25T21:54:12.707 | PROMPT Set the switch OPEN, then PLUG the NODE USB cable back in now
+2026-11-25T21:54:13.083 | SEC 47789 seen=168 skipped=0 printed=168 lost=0 q=0
+2026-11-25T21:54:14.076 | SEC 47790 seen=168 skipped=0 printed=168 lost=0 q=0
+2026-11-25T21:54:15.060 | SEC 47791 seen=168 skipped=0 printed=168 lost=0 q=0
+2026-11-25T21:54:16.043 | SEC 47792 seen=168 skipped=0 printed=168 lost=0 q=0
+2026-11-25T21:54:17.026 | SEC 47793 seen=168 skipped=0 printed=168 lost=0 q=0
+2026-11-25T21:54:18.014 | SEC 47794 seen=168 skipped=0 printed=168 lost=0 q=0
+2026-11-25T21:54:19.008 | SEC 47795 seen=168 skipped=0 printed=168 lost=0 q=0
+2026-11-25T21:54:19.993 | SEC 47796 seen=168 skipped=0 printed=168 lost=0 q=0
+2026-11-25T21:54:20.877 | NODEPORT open
+2026-11-25T21:54:21.090 | SEC 47797 seen=168 skipped=0 printed=168 lost=0 q=0
+2026-11-25T21:54:22.085 | SEC 47798 seen=168 skipped=0 printed=168 lost=0 q=0
+2026-11-25T21:54:22.116 | NODE FW common=8695540d node=1bea060a dirty=0 type=1 hooks=1
+2026-11-25T21:54:22.116 | NODE MARK COLD_START 9778 state=1 fault=0
+2026-11-25T21:54:22.116 | NODE MARK GRACE_START 7000
+2026-11-25T21:54:22.739 | PKT 47798.979979 31 0 -101 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:23.071 | SEC 47799 seen=169 skipped=0 printed=169 lost=0 q=0
+2026-11-25T21:54:24.062 | SEC 47800 seen=169 skipped=0 printed=169 lost=0 q=0
+2026-11-25T21:54:25.049 | SEC 47801 seen=169 skipped=0 printed=169 lost=0 q=0
+2026-11-25T21:54:26.041 | SEC 47802 seen=169 skipped=0 printed=169 lost=0 q=0
+2026-11-25T21:54:27.028 | SEC 47803 seen=169 skipped=0 printed=169 lost=0 q=0
+2026-11-25T21:54:28.017 | SEC 47804 seen=169 skipped=0 printed=169 lost=0 q=0
+2026-11-25T21:54:28.568 | PKT 47804.775902 31 0 -95 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:28.568 | PKT 47804.806747 31 0 -94 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:28.897 | PKT 47805.075517 31 0 -92 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:28.897 | PKT 47805.105834 31 0 -92 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:29.006 | PKT 47805.143347 31 0 -93 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:29.006 | PKT 47805.216651 31 0 -99 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:29.006 | SEC 47805 seen=175 skipped=0 printed=175 lost=0 q=0
+2026-11-25T21:54:29.229 | PKT 47805.415537 31 0 -93 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:29.778 | PKT 47806.013705 31 0 -94 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:30.000 | SEC 47806 seen=177 skipped=0 printed=177 lost=0 q=0
+2026-11-25T21:54:30.875 | PKT 47807.095483 31 0 -97 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:31.095 | SEC 47807 seen=178 skipped=0 printed=178 lost=0 q=0
+2026-11-25T21:54:31.095 | PKT 47807.310291 31 0 -98 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:54:32.086 | SEC 47808 seen=179 skipped=0 printed=179 lost=0 q=0
+2026-11-25T21:54:33.077 | SEC 47809 seen=179 skipped=0 printed=179 lost=0 q=0
+2026-11-25T21:54:34.061 | SEC 47810 seen=179 skipped=0 printed=179 lost=0 q=0
+2026-11-25T21:54:35.048 | SEC 47811 seen=179 skipped=0 printed=179 lost=0 q=0
+2026-11-25T21:54:36.043 | SEC 47812 seen=179 skipped=0 printed=179 lost=0 q=0
+2026-11-25T21:54:37.024 | SEC 47813 seen=179 skipped=0 printed=179 lost=0 q=0
+2026-11-25T21:54:38.015 | SEC 47814 seen=179 skipped=0 printed=179 lost=0 q=0
+2026-11-25T21:54:39.000 | SEC 47815 seen=179 skipped=0 printed=179 lost=0 q=0
+2026-11-25T21:54:40.101 | SEC 47816 seen=179 skipped=0 printed=179 lost=0 q=0
+2026-11-25T21:54:41.087 | SEC 47817 seen=179 skipped=0 printed=179 lost=0 q=0
+2026-11-25T21:54:42.076 | SEC 47818 seen=179 skipped=0 printed=179 lost=0 q=0
+2026-11-25T21:54:43.066 | SEC 47819 seen=179 skipped=0 printed=179 lost=0 q=0
+2026-11-25T21:54:44.051 | SEC 47820 seen=179 skipped=0 printed=179 lost=0 q=0
+2026-11-25T21:54:45.038 | SEC 47821 seen=179 skipped=0 printed=179 lost=0 q=0
+2026-11-25T21:54:45.571 | NODE [25009] I node: EVENT state=1 fault=0 boot=1
+2026-11-25T21:54:45.571 | NODE MARK CONFIRM_BOO 25009585 state=1 fault=0
+2026-11-25T21:54:45.587 | PKT 47821.821729 21 3 -65 14ffffff70010100ffc13f10002c4cd3b7de3ef328
+2026-11-25T21:54:45.776 | NODE TX seq=1 type=event ctr=1064897 state=1 boot=1 fault=0 batt=255
+2026-11-25T21:54:45.776 | NODE MARK COPY0 25010961
+2026-11-25T21:54:46.028 | SEC 47822 seen=180 skipped=0 printed=180 lost=0 q=0
+2026-11-25T21:54:46.028 | PKT 47822.250980 21 3 -66 14ffffff70010100ffc13f10002c4cd3b7de3ef328
+2026-11-25T21:54:46.137 | PKT 47822.287197 21 3 -66 14ffffff70010100ffc13f10002c4cd3b7de3ef328
+2026-11-25T21:54:46.137 | PKT 47822.321571 21 3 -66 14ffffff70010100ffc13f10002c4cd3b7de3ef328
+2026-11-25T21:54:46.184 | NODE MARK COPY1 25510585
+2026-11-25T21:54:46.574 | PKT 47822.750196 21 3 -62 14ffffff70010100ffc13f10002c4cd3b7de3ef328
+2026-11-25T21:54:46.574 | PKT 47822.787696 21 3 -61 14ffffff70010100ffc13f10002c4cd3b7de3ef328
+2026-11-25T21:54:46.590 | NODE MARK COPY2 26010585
+2026-11-25T21:54:47.017 | SEC 47823 seen=185 skipped=0 printed=185 lost=0 q=0
+2026-11-25T21:54:47.018 | PKT 47823.251671 21 3 -64 14ffffff70010100ffc13f10002c4cd3b7de3ef328
+2026-11-25T21:54:47.128 | PKT 47823.288510 21 3 -64 14ffffff70010100ffc13f10002c4cd3b7de3ef328
+2026-11-25T21:54:47.128 | PKT 47823.324758 21 3 -64 14ffffff70010100ffc13f10002c4cd3b7de3ef328
+2026-11-25T21:54:47.207 | NODE MARK COPY3 26510586
+2026-11-25T21:54:47.570 | PKT 47823.750163 21 3 -61 14ffffff70010100ffc13f10002c4cd3b7de3ef328
+2026-11-25T21:54:47.570 | PKT 47823.790883 21 3 -66 14ffffff70010100ffc13f10002c4cd3b7de3ef328
+2026-11-25T21:54:47.617 | NODE MARK COPY4 27010586
+2026-11-25T21:54:47.617 | NODE WAKE seq=0 t_wake_ms=7 awake_ms=27103 cause=boot noop=0 poll=0 sleep=gpio hb_rem_ms=357900
+2026-11-25T21:54:47.679 | PKT 47823.824009 21 3 -66 14ffffff70010100ffc13f10002c4cd3b7de3ef328
+2026-11-25T21:54:47.887 | NODEPORT closed (node asleep or restarting)
+2026-11-25T21:54:48.012 | SEC 47824 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:54:49.004 | SEC 47825 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:54:49.995 | SEC 47826 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:54:51.103 | SEC 47827 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:54:52.092 | SEC 47828 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:54:53.072 | SEC 47829 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:54:54.065 | SEC 47830 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:54:55.050 | SEC 47831 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:54:56.045 | SEC 47832 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:54:57.033 | SEC 47833 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:54:58.026 | SEC 47834 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:54:59.014 | SEC 47835 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:54:59.996 | SEC 47836 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:55:01.093 | SEC 47837 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:55:02.081 | SEC 47838 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:55:03.066 | SEC 47839 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:55:04.058 | SEC 47840 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:55:05.047 | SEC 47841 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:55:06.034 | SEC 47842 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:55:07.023 | SEC 47843 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:55:07.707 | PROMPT UNPLUG the NODE USB cable now   (power-on 7 of 7, part b)
+2026-11-25T21:55:08.014 | SEC 47844 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:55:09.009 | SEC 47845 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:55:09.997 | SEC 47846 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:55:11.091 | SEC 47847 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:55:12.076 | SEC 47848 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:55:12.707 | PROMPT Set the switch OPEN, then PLUG the NODE USB cable back in now
+2026-11-25T21:55:13.066 | SEC 47849 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:55:14.062 | SEC 47850 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:55:15.047 | SEC 47851 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:55:16.029 | SEC 47852 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:55:17.020 | SEC 47853 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:55:18.006 | SEC 47854 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:55:18.994 | SEC 47855 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:55:20.092 | SEC 47856 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:55:21.080 | SEC 47857 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:55:22.069 | SEC 47858 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:55:23.053 | SEC 47859 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:55:24.039 | SEC 47860 seen=191 skipped=0 printed=191 lost=0 q=0
+2026-11-25T21:55:24.366 | PKT 47860.565356 31 0 -96 1effd6055900120022bfcad949e7f802645a008a010000716b2a7c3d9748d6
+2026-11-25T21:55:24.707 | PROMPT CLOSE the switch now and leave it closed
+2026-11-25T21:55:25.023 | SEC 47861 seen=192 skipped=0 printed=192 lost=0 q=0
+2026-11-25T21:55:26.018 | SEC 47862 seen=192 skipped=0 printed=192 lost=0 q=0
+2026-11-25T21:55:26.995 | SEC 47863 seen=192 skipped=0 printed=192 lost=0 q=0
+2026-11-25T21:55:28.084 | SEC 47864 seen=192 skipped=0 printed=192 lost=0 q=0
+2026-11-25T21:55:29.069 | SEC 47865 seen=192 skipped=0 printed=192 lost=0 q=0
+2026-11-25T21:55:29.680 | NODEPORT open
+2026-11-25T21:55:30.057 | SEC 47866 seen=192 skipped=0 printed=192 lost=0 q=0
+2026-11-25T21:55:30.907 | NODE FW common=8695540d node=1bea060a dirty=0 type=1 hooks=1
+2026-11-25T21:55:30.907 | NODE MARK COLD_START 9780 state=1 fault=0
+2026-11-25T21:55:30.907 | NODE MARK GRACE_START 7000
+2026-11-25T21:55:31.048 | SEC 47867 seen=192 skipped=0 printed=192 lost=0 q=0
+2026-11-25T21:55:31.314 | NODE [1959] I node: candidate state=2 fault=0
+2026-11-25T21:55:31.314 | NODE MARK RAW 1959584 state=2 fault=0
+2026-11-25T21:55:31.314 | NODE MARK CAND 1959597 state=2 fault=0
+2026-11-25T21:55:31.314 | NODE MARK GRACE_START 1959775
+2026-11-25T21:55:32.041 | SEC 47868 seen=192 skipped=0 printed=192 lost=0 q=0
+2026-11-25T21:55:32.925 | PKT 47869.168292 21 0 -97 0201061115d0002d121e4b0fa4994eceb531f40579
+2026-11-25T21:55:33.035 | SEC 47869 seen=193 skipped=0 printed=193 lost=0 q=0
+2026-11-25T21:55:33.255 | PKT 47869.481278 21 0 -97 0201061115d0002d121e4b0fa4994eceb531f40579
+2026-11-25T21:55:34.024 | SEC 47870 seen=194 skipped=0 printed=194 lost=0 q=0
+2026-11-25T21:55:34.792 | PKT 47870.945472 21 0 -100 0201061115d0002d121e4b0fa4994eceb531f40579
+2026-11-25T21:55:35.012 | SEC 47871 seen=195 skipped=0 printed=195 lost=0 q=0
+2026-11-25T21:55:35.342 | PKT 47871.570469 21 0 -95 0201061115d0002d121e4b0fa4994eceb531f40579
+2026-11-25T21:55:35.671 | PKT 47871.886437 21 0 -93 0201061115d0002d121e4b0fa4994eceb531f40579
+2026-11-25T21:55:36.001 | SEC 47872 seen=197 skipped=0 printed=197 lost=0 q=0
+2026-11-25T21:55:36.880 | PKT 47873.031478 21 0 -94 0201061115d0002d121e4b0fa4994eceb531f40579
+2026-11-25T21:55:36.989 | PKT 47873.136245 21 0 -95 0201061115d0002d121e4b0fa4994eceb531f40579
+2026-11-25T21:55:37.099 | SEC 47873 seen=199 skipped=0 printed=199 lost=0 q=0
+2026-11-25T21:55:37.209 | PKT 47873.440286 21 0 -98 0201061115d0002d121e4b0fa4994eceb531f40579
+2026-11-25T21:55:37.316 | PKT 47873.549065 21 0 -95 0201061115d0002d121e4b0fa4994eceb531f40579
+2026-11-25T21:55:37.760 | PKT 47873.964456 21 0 -95 0201061115d0002d121e4b0fa4994eceb531f40579
+2026-11-25T21:55:38.090 | SEC 47874 seen=202 skipped=0 printed=202 lost=0 q=0
+2026-11-25T21:55:39.073 | SEC 47875 seen=202 skipped=0 printed=202 lost=0 q=0
+2026-11-25T21:55:40.061 | SEC 47876 seen=202 skipped=0 printed=202 lost=0 q=0
+2026-11-25T21:55:41.046 | SEC 47877 seen=202 skipped=0 printed=202 lost=0 q=0
+2026-11-25T21:55:42.031 | SEC 47878 seen=202 skipped=0 printed=202 lost=0 q=0
+2026-11-25T21:55:43.022 | SEC 47879 seen=202 skipped=0 printed=202 lost=0 q=0
+2026-11-25T21:55:44.016 | SEC 47880 seen=202 skipped=0 printed=202 lost=0 q=0
+2026-11-25T21:55:45.004 | SEC 47881 seen=202 skipped=0 printed=202 lost=0 q=0
+2026-11-25T21:55:46.103 | SEC 47882 seen=202 skipped=0 printed=202 lost=0 q=0
+2026-11-25T21:55:47.090 | SEC 47883 seen=202 skipped=0 printed=202 lost=0 q=0
+2026-11-25T21:55:48.080 | SEC 47884 seen=202 skipped=0 printed=202 lost=0 q=0
+2026-11-25T21:55:49.075 | SEC 47885 seen=202 skipped=0 printed=202 lost=0 q=0
+2026-11-25T21:55:50.061 | SEC 47886 seen=202 skipped=0 printed=202 lost=0 q=0
+2026-11-25T21:55:51.047 | SEC 47887 seen=202 skipped=0 printed=202 lost=0 q=0
+2026-11-25T21:55:52.033 | SEC 47888 seen=202 skipped=0 printed=202 lost=0 q=0
+2026-11-25T21:55:53.022 | SEC 47889 seen=202 skipped=0 printed=202 lost=0 q=0
+2026-11-25T21:55:54.011 | SEC 47890 seen=202 skipped=0 printed=202 lost=0 q=0
+2026-11-25T21:55:54.996 | SEC 47891 seen=202 skipped=0 printed=202 lost=0 q=0
+2026-11-25T21:55:56.089 | SEC 47892 seen=202 skipped=0 printed=202 lost=0 q=0
+2026-11-25T21:55:56.310 | PKT 47892.547512 21 3 -72 14ffffff70010101ff0140100003d86e41ff6ac159
+2026-11-25T21:55:56.405 | NODE [26959] I node: EVENT state=2 fault=0 boot=1
+2026-11-25T21:55:56.405 | NODE MARK CONFIRM_BOO 26959585 state=2 fault=0
+2026-11-25T21:55:56.405 | NODE TX seq=1 type=event ctr=1064961 state=2 boot=1 fault=0 batt=255
+2026-11-25T21:55:56.405 | NODE MARK COPY0 26960957
+2026-11-25T21:55:56.420 | PKT 47892.582473 21 3 -72 14ffffff70010101ff0140100003d86e41ff6ac159
+2026-11-25T21:55:56.814 | NODE MARK COPY1 27460585
+2026-11-25T21:55:56.861 | PKT 47892.996934 21 3 -68 14ffffff70010101ff0140100003d86e41ff6ac159
+2026-11-25T21:55:56.861 | PKT 47893.032661 21 3 -63 14ffffff70010101ff0140100003d86e41ff6ac159
+2026-11-25T21:55:56.861 | PKT 47893.065169 21 3 -62 14ffffff70010101ff0140100003d86e41ff6ac159
+2026-11-25T21:55:57.081 | SEC 47893 seen=207 skipped=0 printed=207 lost=0 q=0
+2026-11-25T21:55:57.301 | PKT 47893.496217 21 3 -73 14ffffff70010101ff0140100003d86e41ff6ac159
+2026-11-25T21:55:57.301 | PKT 47893.531914 21 3 -69 14ffffff70010101ff0140100003d86e41ff6ac159
+2026-11-25T21:55:57.411 | PKT 47893.565046 21 3 -69 14ffffff70010101ff0140100003d86e41ff6ac159
+2026-11-25T21:55:57.427 | NODE MARK COPY2 27960585
+2026-11-25T21:55:57.833 | NODE MARK COPY3 28460586
+2026-11-25T21:55:57.849 | PKT 47893.997623 21 3 -64 14ffffff70010101ff0140100003d86e41ff6ac159
+2026-11-25T21:55:57.849 | PKT 47894.030748 21 3 -64 14ffffff70010101ff0140100003d86e41ff6ac159
+2026-11-25T21:55:57.849 | PKT 47894.068044 21 3 -71 14ffffff70010101ff0140100003d86e41ff6ac159
+2026-11-25T21:55:58.068 | SEC 47894 seen=213 skipped=0 printed=213 lost=0 q=0
+2026-11-25T21:55:58.289 | PKT 47894.496913 21 3 -69 14ffffff70010101ff0140100003d86e41ff6ac159
+2026-11-25T21:55:58.289 | PKT 47894.526875 21 3 -70 14ffffff70010101ff0140100003d86e41ff6ac159
+2026-11-25T21:55:58.400 | PKT 47894.565725 21 3 -64 14ffffff70010101ff0140100003d86e41ff6ac159
+2026-11-25T21:55:58.447 | NODE MARK COPY4 28960586
+2026-11-25T21:55:58.447 | NODE WAKE seq=0 t_wake_ms=7 awake_ms=29053 cause=boot noop=0 poll=0 sleep=gpio hb_rem_ms=357900
+2026-11-25T21:55:58.617 | NODEPORT closed (node asleep or restarting)
+2026-11-25T21:55:59.061 | SEC 47895 seen=216 skipped=0 printed=216 lost=0 q=0
+2026-11-25T21:56:00.050 | SEC 47896 seen=216 skipped=0 printed=216 lost=0 q=0
+2026-11-25T21:56:01.039 | SEC 47897 seen=216 skipped=0 printed=216 lost=0 q=0
+2026-11-25T21:56:01.808 | PKT 47897.980591 21 0 -97 0201061115d0002d121e4b0fa4994eceb531f40579
+2026-11-25T21:56:02.030 | SEC 47898 seen=217 skipped=0 printed=217 lost=0 q=0
+2026-11-25T21:56:02.139 | PKT 47898.288587 21 0 -97 0201061115d0002d121e4b0fa4994eceb531f40579
+2026-11-25T21:56:03.022 | SEC 47899 seen=218 skipped=0 printed=218 lost=0 q=0
+2026-11-25T21:56:04.008 | SEC 47900 seen=218 skipped=0 printed=218 lost=0 q=0
+2026-11-25T21:56:05.102 | SEC 47901 seen=218 skipped=0 printed=218 lost=0 q=0
+2026-11-25T21:56:06.094 | SEC 47902 seen=218 skipped=0 printed=218 lost=0 q=0
+2026-11-25T21:56:07.087 | SEC 47903 seen=218 skipped=0 printed=218 lost=0 q=0
+2026-11-25T21:56:07.707 | PROMPT Run finished in about 15 s. Leave everything as it is.
+2026-11-25T21:56:08.080 | SEC 47904 seen=218 skipped=0 printed=218 lost=0 q=0
+2026-11-25T21:56:09.075 | SEC 47905 seen=218 skipped=0 printed=218 lost=0 q=0
+2026-11-25T21:56:10.065 | SEC 47906 seen=218 skipped=0 printed=218 lost=0 q=0
+2026-11-25T21:56:11.047 | SEC 47907 seen=218 skipped=0 printed=218 lost=0 q=0
+2026-11-25T21:56:12.032 | SEC 47908 seen=218 skipped=0 printed=218 lost=0 q=0
+2026-11-25T21:56:13.014 | SEC 47909 seen=218 skipped=0 printed=218 lost=0 q=0
+2026-11-25T21:56:14.005 | SEC 47910 seen=218 skipped=0 printed=218 lost=0 q=0
+2026-11-25T21:56:15.000 | SEC 47911 seen=218 skipped=0 printed=218 lost=0 q=0
+2026-11-25T21:56:16.101 | SEC 47912 seen=218 skipped=0 printed=218 lost=0 q=0
+2026-11-25T21:56:17.095 | SEC 47913 seen=218 skipped=0 printed=218 lost=0 q=0
+2026-11-25T21:56:18.079 | SEC 47914 seen=218 skipped=0 printed=218 lost=0 q=0
+2026-11-25T21:56:19.071 | SEC 47915 seen=218 skipped=0 printed=218 lost=0 q=0
+2026-11-25T21:56:20.059 | SEC 47916 seen=218 skipped=0 printed=218 lost=0 q=0
+2026-11-25T21:56:21.043 | SEC 47917 seen=218 skipped=0 printed=218 lost=0 q=0
+2026-11-25T21:56:22.032 | SEC 47918 seen=218 skipped=0 printed=218 lost=0 q=0
+2026-11-25T21:56:22.707 | TX TIME
+2026-11-25T21:56:22.795 | TIME 47918.954059
+2026-11-25T21:56:23.008 | TX STAT
+2026-11-25T21:56:23.015 | SEC 47919 seen=218 skipped=0 printed=218 lost=0 q=0
+2026-11-25T21:56:23.015 | STAT seen=218 skipped=0 printed=218 lost=0 filter=0
+2026-11-25T21:56:24.004 | SEC 47920 seen=218 skipped=0 printed=218 lost=0 q=0
+# ANALYSIS analyze TC-08b_88cd53a.log: observer PDUs=218, matching 21-byte PDUs=92, transmissions=7, lost=0
+# ANALYSIS TX 1 node=1 vest=1 type=event flags=0x70 boot=1 low_batt=0 fault=0 state=1 batt=255 ctr=1064641 copies=5 pdus_per_burst=[1, 3, 3, 3, 3] start_to_start_ms=['429.2', '498.5', '501.5', '499.2']
+# ANALYSIS TX 2 node=1 vest=1 type=event flags=0x60 boot=0 low_batt=0 fault=0 state=0 batt=255 ctr=1064642 copies=5 pdus_per_burst=[2, 3, 3, 3, 3] start_to_start_ms=['476.1', '498.6', '501.4', '499.3']
+# ANALYSIS TX 2 first copy 123.651 s after the first copy of TX 1
+# ANALYSIS TX 3 node=1 vest=1 type=event flags=0x70 boot=1 low_batt=0 fault=0 state=1 batt=255 ctr=1064705 copies=5 pdus_per_burst=[2, 3, 4, 3, 2] start_to_start_ms=['450.7', '499.3', '501.4', '499.3']
+# ANALYSIS TX 3 first copy 51.811 s after the first copy of TX 2
+# ANALYSIS TX 4 node=1 vest=1 type=event flags=0x70 boot=1 low_batt=0 fault=0 state=0 batt=255 ctr=1064769 copies=5 pdus_per_burst=[1, 2, 3, 3, 3] start_to_start_ms=['431.6', '499.2', '501.5', '499.2']
+# ANALYSIS TX 4 first copy 58.489 s after the first copy of TX 3
+# ANALYSIS TX 5 node=1 vest=1 type=event flags=0x70 boot=1 low_batt=0 fault=0 state=1 batt=255 ctr=1064833 copies=5 pdus_per_burst=[1, 3, 3, 3, 3] start_to_start_ms=['410.5', '500.7', '499.3', '501.4']
+# ANALYSIS TX 5 first copy 66.281 s after the first copy of TX 4
+# ANALYSIS TX 6 node=1 vest=1 type=event flags=0x70 boot=1 low_batt=0 fault=0 state=0 batt=255 ctr=1064897 copies=5 pdus_per_burst=[1, 3, 2, 3, 3] start_to_start_ms=['429.3', '499.2', '501.5', '498.5']
+# ANALYSIS TX 6 first copy 55.556 s after the first copy of TX 5
+# ANALYSIS TX 7 node=1 vest=1 type=event flags=0x70 boot=1 low_batt=0 fault=0 state=1 batt=255 ctr=1064961 copies=5 pdus_per_burst=[2, 3, 3, 3, 3] start_to_start_ms=['449.4', '499.3', '501.4', '499.3']
+# ANALYSIS TX 7 first copy 70.726 s after the first copy of TX 6
+# ANALYSIS NODE seq 1 marks=5 start_to_start_ms=['499.6', '500.0', '500.0', '500.0'] (node clock, judged)
+# ANALYSIS NODE seq 2 marks=5 start_to_start_ms=['499.6', '500.0', '500.0', '500.0'] (node clock, judged)
+# ANALYSIS NODE seq 3 marks=5 start_to_start_ms=['499.6', '500.0', '500.0', '500.0'] (node clock, judged)
+# ANALYSIS NODE seq 4 marks=5 start_to_start_ms=['499.6', '500.0', '500.0', '500.0'] (node clock, judged)
+# ANALYSIS NODE seq 5 marks=5 start_to_start_ms=['499.6', '500.0', '500.0', '500.0'] (node clock, judged)
+# ANALYSIS NODE seq 6 marks=5 start_to_start_ms=['499.6', '500.0', '500.0', '500.0'] (node clock, judged)
+# ANALYSIS NODE seq 7 marks=5 start_to_start_ms=['499.6', '500.0', '500.0', '500.0'] (node clock, judged)
+# ANALYSIS RESULT PASS
+# ANALYSIS analyze TC-08b_88cd53a.log: observer PDUs=218, matching 21-byte PDUs=92, transmissions=7, lost=0
+# ANALYSIS POWER-ON 1: first copy 25.004 s after the grace start, BOOT=1 events 1, state worn
+# ANALYSIS POWER-ON 2: first copy 25.004 s after the grace start, BOOT=1 events 1, state worn
+# ANALYSIS POWER-ON 3: first copy 25.004 s after the grace start, BOOT=1 events 1, state not_worn
+# ANALYSIS POWER-ON 4: first copy 25.004 s after the grace start, BOOT=1 events 1, state worn
+# ANALYSIS POWER-ON 5: first copy 25.004 s after the grace start, BOOT=1 events 1, state not_worn
+# ANALYSIS POWER-ON 6: first copy 25.001 s after the grace start, last candidate change 1.953 s after setup(), BOOT=1 events 1, state worn
+# ANALYSIS INCOMPLETE: 6 of 7 planned power-ons show a cold start
+# ANALYSIS TX 1 node=1 vest=1 type=event flags=0x70 boot=1 low_batt=0 fault=0 state=1 batt=255 ctr=1064641 copies=5 pdus_per_burst=[1, 3, 3, 3, 3] start_to_start_ms=['429.2', '498.5', '501.5', '499.2']
+# ANALYSIS TX 2 node=1 vest=1 type=event flags=0x60 boot=0 low_batt=0 fault=0 state=0 batt=255 ctr=1064642 copies=5 pdus_per_burst=[2, 3, 3, 3, 3] start_to_start_ms=['476.1', '498.6', '501.4', '499.3']
+# ANALYSIS TX 2 first copy 123.651 s after the first copy of TX 1
+# ANALYSIS TX 3 node=1 vest=1 type=event flags=0x70 boot=1 low_batt=0 fault=0 state=1 batt=255 ctr=1064705 copies=5 pdus_per_burst=[2, 3, 4, 3, 2] start_to_start_ms=['450.7', '499.3', '501.4', '499.3']
+# ANALYSIS TX 3 first copy 51.811 s after the first copy of TX 2
+# ANALYSIS TX 4 node=1 vest=1 type=event flags=0x70 boot=1 low_batt=0 fault=0 state=0 batt=255 ctr=1064769 copies=5 pdus_per_burst=[1, 2, 3, 3, 3] start_to_start_ms=['431.6', '499.2', '501.5', '499.2']
+# ANALYSIS TX 4 first copy 58.489 s after the first copy of TX 3
+# ANALYSIS TX 5 node=1 vest=1 type=event flags=0x70 boot=1 low_batt=0 fault=0 state=1 batt=255 ctr=1064833 copies=5 pdus_per_burst=[1, 3, 3, 3, 3] start_to_start_ms=['410.5', '500.7', '499.3', '501.4']
+# ANALYSIS TX 5 first copy 66.281 s after the first copy of TX 4
+# ANALYSIS TX 6 node=1 vest=1 type=event flags=0x70 boot=1 low_batt=0 fault=0 state=0 batt=255 ctr=1064897 copies=5 pdus_per_burst=[1, 3, 2, 3, 3] start_to_start_ms=['429.3', '499.2', '501.5', '498.5']
+# ANALYSIS TX 6 first copy 55.556 s after the first copy of TX 5
+# ANALYSIS TX 7 node=1 vest=1 type=event flags=0x70 boot=1 low_batt=0 fault=0 state=1 batt=255 ctr=1064961 copies=5 pdus_per_burst=[2, 3, 3, 3, 3] start_to_start_ms=['449.4', '499.3', '501.4', '499.3']
+# ANALYSIS TX 7 first copy 70.726 s after the first copy of TX 6
+# ANALYSIS NODE seq 1 marks=5 start_to_start_ms=['499.6', '500.0', '500.0', '500.0'] (node clock, judged)
+# ANALYSIS NODE seq 2 marks=5 start_to_start_ms=['499.6', '500.0', '500.0', '500.0'] (node clock, judged)
+# ANALYSIS NODE seq 3 marks=5 start_to_start_ms=['499.6', '500.0', '500.0', '500.0'] (node clock, judged)
+# ANALYSIS NODE seq 4 marks=5 start_to_start_ms=['499.6', '500.0', '500.0', '500.0'] (node clock, judged)
+# ANALYSIS NODE seq 5 marks=5 start_to_start_ms=['499.6', '500.0', '500.0', '500.0'] (node clock, judged)
+# ANALYSIS NODE seq 6 marks=5 start_to_start_ms=['499.6', '500.0', '500.0', '500.0'] (node clock, judged)
+# ANALYSIS NODE seq 7 marks=5 start_to_start_ms=['499.6', '500.0', '500.0', '500.0'] (node clock, judged)
+# ANALYSIS RESULT INCOMPLETE

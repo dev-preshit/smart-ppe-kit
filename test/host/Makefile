@@ -6,15 +6,18 @@ HUB      := ../../firmware/hub/src
 CXXFLAGS := -std=c++11 -O1 -g -Wall -Wextra -Wpedantic -Werror -DPPE_HOST_TEST -DPPE_TEST_HOOKS -I$(SRC) -I$(HUB) -I. $(EXTRA_CXXFLAGS)
 MBEDLIBS ?= -lmbedcrypto
 LIBSRC   := $(SRC)/ppe_proto.cpp $(SRC)/ppe_crypto.cpp $(SRC)/ppe_filter.cpp $(SRC)/ppe_counter.cpp $(SRC)/ppe_log.cpp \
-            $(SRC)/ppe_sense.cpp $(SRC)/ppe_settle.cpp $(SRC)/ppe_confirm.cpp $(SRC)/ppe_config.cpp $(SRC)/ppe_rtcctx.cpp $(SRC)/ppe_hooks.cpp
+            $(SRC)/ppe_sense.cpp $(SRC)/ppe_settle.cpp $(SRC)/ppe_confirm.cpp $(SRC)/ppe_config.cpp $(SRC)/ppe_rtcctx.cpp $(SRC)/ppe_hooks.cpp $(SRC)/ppe_tx.cpp $(SRC)/ppe_node.cpp $(SRC)/ppe_sleep.cpp
 # S3 hub pure logic (no Arduino includes), see firmware/hub/README.md
 HUBLIB   := $(HUB)/hub_pipeline.cpp $(HUB)/hub_persist.cpp $(HUB)/hub_scan_supervisor.cpp $(HUB)/hub_hooks.cpp $(HUB)/hub_dump.cpp
 TESTSRC  := ppe_test_main.cpp sha256_portable.cpp test_proto.cpp test_filter.cpp test_counter.cpp test_log.cpp \
-            test_sense.cpp test_confirm.cpp test_rtcctx.cpp test_hooks.cpp \
+            test_sense.cpp test_confirm.cpp test_rtcctx.cpp test_hooks.cpp test_hooks_s4.cpp test_tx.cpp test_node.cpp test_sleep.cpp \
             test_hub_pipeline.cpp test_hub_persist.cpp test_hub_scan.cpp test_hub_hooks.cpp test_hub_tc.cpp
 # S5 hub logic (own lines so a merge with the S4 node test list stays trivial)
 HUBLIB   += $(HUB)/hub_msg.cpp $(HUB)/hub_motor.cpp
 TESTSRC  += test_hub_fsm.cpp test_hub_compliance.cpp test_hub_offline.cpp test_hub_msg.cpp test_hub_motor.cpp test_hub_faults.cpp
+# S4 node logic added after the S5 merge
+LIBSRC   += $(SRC)/ppe_batt.cpp
+TESTSRC  += test_batt.cpp
 BIN      := build/ppe_host_tests
 
 .PHONY: test list clean release_check release_check_node

@@ -1,0 +1,19 @@
+# tc=TC-11 host part (test plan: TC-11 step 5 / TC-75 host power-cut simulation, A-17)
+# sha=c27f481
+# date=2026-11-25T09:09:19
+# tool=test/host make test, output filtered to TC-11 (same method as S5 A-35)
+TEST	TC-11	rtcctx_layout_is_32_bytes_and_crc32_matches_the_check_value	PASS	checks=3
+TEST	TC-11	rtcctx_round_trip_keeps_every_field	PASS	checks=10
+TEST	TC-11	rtcctx_refused_unless_deep_sleep_wake_and_valid_flag	PASS	checks=3
+TEST	TC-11	rtcctx_every_single_bit_flip_is_rejected	PASS	checks=256
+TEST	TC-11	rtcctx_valid_looking_image_with_confirmed_none_is_invalid	PASS	checks=1
+TEST	TC-11	rtcctx_implausible_fields_with_a_correct_crc_are_rejected	PASS	checks=10
+TEST	TC-11	rtcctx_zero_ones_random_and_null_images_are_rejected	PASS	checks=2003
+TEST	TC-11	rtcctx_wake_seeds_the_fsr_hysteresis_with_the_confirmed_state	PASS	checks=4
+  power cuts: commit=255 lost=247 ram=339 boot=159 max=146500
+TEST	TC-11	first_packet_after_provisioning_is_baseline_plus_one	PASS	checks=4
+TEST	TC-11	increments_by_one_and_one_write_per_64	PASS	checks=1922
+TEST	TC-11	million_packets_fake_nvs	PASS	checks=5
+TEST	TC-11	hundred_forced_resets_never_repeat_or_decrease	PASS	checks=300
+TEST	TC-11	deep_sleep_resume_makes_no_nvs_write	PASS	checks=34
+SUMMARY	tests=199	failed=0	checks=273724
